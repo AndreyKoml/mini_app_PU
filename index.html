@@ -6,6 +6,9 @@
     <title>ProdU - Glass OS</title>
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
         /* --- CSS ПЕРЕМЕННЫЕ И ТЕМЫ --- */
         :root {
@@ -238,6 +241,16 @@
 
         .empty-state { text-align: center; opacity: 0.5; padding: 20px; font-style: italic; }
         .day-badge { background: var(--accent-color); color: #000; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; }
+        
+        /* Контейнер для графика */
+        .chart-container {
+            position: relative; 
+            height: 200px; 
+            width: 100%; 
+            display: flex; 
+            justify-content: center;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -249,7 +262,7 @@
     </div>
 
     <div id="sharedViewContainer" class="dashboard" style="display: none; align-items: center; justify-content: center; width: 100%; max-width: 600px; grid-template-columns: 1fr;">
-        </div>
+    </div>
 
     <div id="mainAppContainer" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
         
@@ -303,10 +316,25 @@
         </div>
 
         <div class="dashboard" id="module-finance">
+            
             <div class="glass-card full-width">
                 <div class="card-header" style="justify-content: center;">Текущий баланс</div>
                 <div class="balance-display" id="balanceDisplay">0 ₽</div>
             </div>
+
+            <div class="glass-card full-width">
+                <div class="card-header">
+                    Аналитика
+                    <select id="chartTypeSelect" class="glass-select" style="width: auto; margin: 0; padding: 5px 10px;" onchange="renderChart()">
+                        <option value="doughnut">Круговая</option>
+                        <option value="bar">Столбчатая</option>
+                    </select>
+                </div>
+                <div class="chart-container">
+                    <canvas id="financeChart"></canvas>
+                </div>
+            </div>
+
             <div class="glass-card">
                 <div class="card-header">Новая операция</div>
                 <input type="number" id="financeAmount" class="glass-input" placeholder="Сумма (₽)">
@@ -317,6 +345,7 @@
                 <input type="text" id="financeDesc" class="glass-input" placeholder="Описание">
                 <button class="glass-btn" onclick="addTransaction()">Сохранить</button>
             </div>
+
             <div class="glass-card">
                 <div class="card-header">История</div>
                 <div id="financeList"></div>
@@ -349,6 +378,8 @@
             <input type="checkbox" class="theme-switch" id="themeToggle" title="Смена темы">
         </div>
     </div> <script>
+        let financeChartInstance = null; // Переменная для хранения графика
+
         // Тема оформления
         const themeToggle = document.getElementById('themeToggle');
         if(localStorage.getItem('produ_theme') === 'dark') {
@@ -358,6 +389,9 @@
         themeToggle.addEventListener('change', (e) => {
             if(e.target.checked) { document.body.setAttribute('data-theme', 'dark'); localStorage.setItem('produ_theme', 'dark'); } 
             else { document.body.removeAttribute('data-theme'); localStorage.setItem('produ_theme', 'light'); }
+            
+            // Перерисовываем график при смене темы, чтобы обновились цвета текста
+            if(document.getElementById('financeChart')) renderChart();
         });
 
         // Инициализация данных
@@ -382,8 +416,6 @@
                 prompt('Скопируйте ссылку вручную:', shareUrl);
             });
         }
-
-        // Шеринг обычного списка
         function shareList(listId) {
             const list = data.lists.find(l => l.id === listId);
             if (!list) return;
@@ -391,89 +423,35 @@
             const encoded = btoa(encodeURIComponent(JSON.stringify(snapshot)));
             copyToClipboard(window.location.origin + window.location.pathname + '?list=' + encoded);
         }
-
-        // Шеринг расписания
         function shareSchedule() {
             if (data.schedule.length === 0) return alert('Ваше расписание пока пусто!');
-            // Формируем слепок для расписания
             const snapshot = data.schedule.map(item => ({ x: item.text, d: item.done, t: item.type, w: item.day }));
             const encoded = btoa(encodeURIComponent(JSON.stringify(snapshot)));
             copyToClipboard(window.location.origin + window.location.pathname + '?schedule=' + encoded);
         }
-
-        // Рендер режима "Просмотр чужого списка"
         function renderSharedListView(encodedData) {
+            // ... (предыдущий код шеринга списков)
             try {
                 document.getElementById('mainAppContainer').style.display = 'none';
                 document.getElementById('coinCounter').style.display = 'none';
-                
                 const snapshot = JSON.parse(decodeURIComponent(atob(encodedData)));
                 const container = document.getElementById('sharedViewContainer');
                 container.style.display = 'flex';
-
-                const itemsHtml = snapshot.i.map((item) => `
-                    <div class="list-item" style="${item.d ? 'opacity: 0.6;' : ''}">
-                        <div class="list-item-left">
-                            <input type="checkbox" ${item.d ? 'checked' : ''} onclick="this.parentElement.parentElement.style.opacity = this.checked ? '0.6' : '1'; this.nextElementSibling.style.textDecoration = this.checked ? 'line-through' : 'none';">
-                            <span style="${item.d ? 'text-decoration: line-through;' : ''}">${item.x}</span>
-                        </div>
-                    </div>
-                `).join('') || '<div class="empty-state">Список пуст</div>';
-
-                container.innerHTML = `
-                    <div class="glass-card full-width" style="margin-top: 20px;">
-                        <div class="card-header" style="justify-content: center;">📋 ${snapshot.t}</div>
-                        <div style="margin-bottom: 20px;">${itemsHtml}</div>
-                        <button class="glass-btn secondary" onclick="window.location.href = window.location.pathname">Создать свой ProdU</button>
-                    </div>
-                `;
-            } catch (e) {
-                alert('К сожалению, ссылка повреждена или недействительна.');
-                window.location.href = window.location.pathname;
-            }
+                const itemsHtml = snapshot.i.map((item) => `<div class="list-item" style="${item.d ? 'opacity: 0.6;' : ''}"><div class="list-item-left"><input type="checkbox" ${item.d ? 'checked' : ''} onclick="this.parentElement.parentElement.style.opacity = this.checked ? '0.6' : '1'; this.nextElementSibling.style.textDecoration = this.checked ? 'line-through' : 'none';"><span style="${item.d ? 'text-decoration: line-through;' : ''}">${item.x}</span></div></div>`).join('') || '<div class="empty-state">Список пуст</div>';
+                container.innerHTML = `<div class="glass-card full-width" style="margin-top: 20px;"><div class="card-header" style="justify-content: center;">📋 ${snapshot.t}</div><div style="margin-bottom: 20px;">${itemsHtml}</div><button class="glass-btn secondary" onclick="window.location.href = window.location.pathname">Создать свой ProdU</button></div>`;
+            } catch (e) { alert('Ошибка ссылки.'); window.location.href = window.location.pathname; }
         }
-
-        // Рендер режима "Просмотр чужого расписания"
         function renderSharedScheduleView(encodedData) {
+            // ... (предыдущий код шеринга расписания)
             try {
                 document.getElementById('mainAppContainer').style.display = 'none';
                 document.getElementById('coinCounter').style.display = 'none';
-                
                 const snapshot = JSON.parse(decodeURIComponent(atob(encodedData)));
                 const container = document.getElementById('sharedViewContainer');
                 container.style.display = 'flex';
-
-                const dailyTasks = snapshot.filter(t => t.t === 'day');
-                const weeklyTasks = snapshot.filter(t => t.t === 'week');
-
-                const renderItems = (items) => items.map(item => `
-                    <div class="list-item" style="${item.d ? 'opacity: 0.6;' : ''}">
-                        <div class="list-item-left">
-                            <input type="checkbox" ${item.d ? 'checked' : ''} onclick="this.parentElement.parentElement.style.opacity = this.checked ? '0.6' : '1'; this.nextElementSibling.style.textDecoration = this.checked ? 'line-through' : 'none';">
-                            ${item.t === 'week' ? `<span class="day-badge">${item.w}</span>` : ''}
-                            <span style="${item.d ? 'text-decoration: line-through;' : ''}">${item.x}</span>
-                        </div>
-                    </div>
-                `).join('') || '<div class="empty-state">Нет задач</div>';
-
-                container.innerHTML = `
-                    <div class="glass-card full-width" style="margin-top: 20px;">
-                        <div class="card-header" style="justify-content: center;">📅 Расписание</div>
-                        <div style="margin-bottom: 15px;">
-                            <div style="font-size: 14px; opacity: 0.7; margin-bottom: 10px;">Задачи на день:</div>
-                            ${renderItems(dailyTasks)}
-                        </div>
-                        <div style="margin-bottom: 20px;">
-                            <div style="font-size: 14px; opacity: 0.7; margin-bottom: 10px;">Планы на неделю:</div>
-                            ${renderItems(weeklyTasks)}
-                        </div>
-                        <button class="glass-btn secondary" onclick="window.location.href = window.location.pathname">Создать свой ProdU</button>
-                    </div>
-                `;
-            } catch (e) {
-                alert('К сожалению, ссылка повреждена или недействительна.');
-                window.location.href = window.location.pathname;
-            }
+                const renderItems = (items) => items.map(item => `<div class="list-item" style="${item.d ? 'opacity: 0.6;' : ''}"><div class="list-item-left"><input type="checkbox" ${item.d ? 'checked' : ''} onclick="this.parentElement.parentElement.style.opacity = this.checked ? '0.6' : '1'; this.nextElementSibling.style.textDecoration = this.checked ? 'line-through' : 'none';">${item.t === 'week' ? `<span class="day-badge">${item.w}</span>` : ''}<span style="${item.d ? 'text-decoration: line-through;' : ''}">${item.x}</span></div></div>`).join('') || '<div class="empty-state">Нет задач</div>';
+                container.innerHTML = `<div class="glass-card full-width" style="margin-top: 20px;"><div class="card-header" style="justify-content: center;">📅 Расписание</div><div style="margin-bottom: 15px;"><div style="font-size: 14px; opacity: 0.7; margin-bottom: 10px;">Задачи на день:</div>${renderItems(snapshot.filter(t => t.t === 'day'))}</div><div style="margin-bottom: 20px;"><div style="font-size: 14px; opacity: 0.7; margin-bottom: 10px;">Планы на неделю:</div>${renderItems(snapshot.filter(t => t.t === 'week'))}</div><button class="glass-btn secondary" onclick="window.location.href = window.location.pathname">Создать свой ProdU</button></div>`;
+            } catch (e) { alert('Ошибка ссылки.'); window.location.href = window.location.pathname; }
         }
 
         // ================= ОСТАЛЬНЫЕ ФУНКЦИИ =================
@@ -524,6 +502,74 @@
         }
         function deleteEfficiency(id) { data.efficiency = data.efficiency.filter(e => e.id !== id); saveData(); }
 
+        // ================= ЛОГИКА ОТРИСОВКИ ГРАФИКА =================
+        function renderChart() {
+            const ctx = document.getElementById('financeChart');
+            if(!ctx) return;
+
+            let totalIncome = 0;
+            let totalExpense = 0;
+
+            // Считаем общую сумму доходов и расходов
+            data.finance.forEach(trx => {
+                if(trx.type === 'income') totalIncome += trx.amount;
+                else totalExpense += trx.amount;
+            });
+
+            const chartType = document.getElementById('chartTypeSelect').value;
+            
+            // Если график уже существует, уничтожаем его перед созданием нового
+            if (financeChartInstance) {
+                financeChartInstance.destroy();
+            }
+
+            // Определяем цвета в зависимости от темы
+            const isDark = document.body.getAttribute('data-theme') === 'dark';
+            const textColor = isDark ? '#ffffff' : '#1a1a1a';
+            const gridColor = isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+
+            financeChartInstance = new Chart(ctx, {
+                type: chartType,
+                data: {
+                    labels: ['Доходы', 'Расходы'],
+                    datasets: [{
+                        label: 'Сумма (₽)',
+                        data: [totalIncome, totalExpense],
+                        backgroundColor: [
+                            'rgba(140, 225, 59, 0.8)', // Наш зеленый (доход)
+                            'rgba(255, 71, 87, 0.8)'   // Красный (расход)
+                        ],
+                        borderColor: [
+                            'rgba(140, 225, 59, 1)',
+                            'rgba(255, 71, 87, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: textColor, font: { family: '-apple-system, sans-serif' } }
+                        }
+                    },
+                    // Настройки осей нужны только для столбчатой (bar) диаграммы
+                    scales: chartType === 'bar' ? {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: textColor },
+                            grid: { color: gridColor }
+                        },
+                        x: {
+                            ticks: { color: textColor },
+                            grid: { color: gridColor }
+                        }
+                    } : {}
+                }
+            });
+        }
+
         // ================= ГЛОБАЛЬНЫЙ РЕНДЕР =================
         function renderAll() {
             document.getElementById('coinValue').innerText = data.coins;
@@ -562,6 +608,9 @@
                     `;
                 }).join('');
             }
+
+            // Отрисовываем график после обновления всех данных
+            renderChart();
         }
 
         // ================= РОУТИНГ ПРИ ЗАПУСКЕ =================
