@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ProdU - Glass OS</title>
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
     <style>
         /* --- CSS ПЕРЕМЕННЫЕ И ТЕМЫ --- */
         :root {
@@ -143,11 +145,10 @@
             border: none;
         }
         .glass-btn:hover { opacity: 0.8; }
+        .glass-btn.secondary { background: rgba(0,0,0,0.1); color: var(--text-color); border: 1px solid var(--glass-border); }
+        [data-theme="dark"] .glass-btn.secondary { background: rgba(255,255,255,0.1); }
 
-        .flex-row {
-            display: flex;
-            gap: 10px;
-        }
+        .flex-row { display: flex; gap: 10px; }
 
         /* --- СПИСКИ И ЭЛЕМЕНТЫ --- */
         .list-item {
@@ -243,271 +244,237 @@
 
     <div class="bg-logo">U</div>
     
-    <div class="coin-counter">
+    <div class="coin-counter" id="coinCounter">
         🪙 <span id="coinValue">0</span>
     </div>
 
-    <div class="dashboard active" id="module-schedule">
-        <div class="glass-card full-width">
-            <div class="card-header">Сводка по доходам</div>
-            <div class="flex-row">
-                <div style="flex: 1; text-align: center;">
-                    <div style="font-size: 14px; opacity: 0.7;">Общий доход</div>
-                    <div class="income-text" id="totalIncomeDisplay" style="font-size: 1.5rem;">0 ₽</div>
-                </div>
-                <div style="flex: 1; text-align: center; border-left: 1px solid var(--glass-border);">
-                    <div style="font-size: 14px; opacity: 0.7;">План на неделю</div>
-                    <div style="font-size: 1.5rem; font-weight: bold;">
-                        <span id="weeklyGoalDisplay">0</span> ₽
+    <div id="sharedViewContainer" class="dashboard" style="display: none; align-items: center; justify-content: center; width: 100%; max-width: 600px; grid-template-columns: 1fr;">
+        </div>
+
+    <div id="mainAppContainer" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+        
+        <div class="dashboard active" id="module-schedule">
+            <div class="glass-card full-width">
+                <div class="card-header">Сводка по доходам</div>
+                <div class="flex-row">
+                    <div style="flex: 1; text-align: center;">
+                        <div style="font-size: 14px; opacity: 0.7;">Общий доход</div>
+                        <div class="income-text" id="totalIncomeDisplay" style="font-size: 1.5rem;">0 ₽</div>
+                    </div>
+                    <div style="flex: 1; text-align: center; border-left: 1px solid var(--glass-border);">
+                        <div style="font-size: 14px; opacity: 0.7;">План на неделю</div>
+                        <div style="font-size: 1.5rem; font-weight: bold;"><span id="weeklyGoalDisplay">0</span> ₽</div>
                     </div>
                 </div>
             </div>
-            <div class="flex-row" style="margin-top: 15px;">
-                <input type="number" id="weeklyGoalInput" class="glass-input" placeholder="Установить цель (₽)" style="margin-bottom: 0;">
-                <button class="glass-btn" onclick="setWeeklyGoal()" style="width: auto;">Сохранить</button>
+
+            <div class="glass-card">
+                <div class="card-header">Задачи на день</div>
+                <input type="text" id="dailyTaskInput" class="glass-input" placeholder="Что сделать сегодня?">
+                <button class="glass-btn" onclick="addScheduleTask('day')">Добавить</button>
+                <div id="dailyTasksList" style="margin-top: 15px;"></div>
+            </div>
+
+            <div class="glass-card">
+                <div class="card-header">Планы на неделю</div>
+                <select id="weekDaySelect" class="glass-select">
+                    <option value="Пн">Понедельник</option><option value="Вт">Вторник</option><option value="Ср">Среда</option>
+                    <option value="Чт">Четверг</option><option value="Пт">Пятница</option><option value="Сб">Суббота</option>
+                    <option value="Вс">Воскресенье</option>
+                </select>
+                <input type="text" id="weeklyTaskInput" class="glass-input" placeholder="Задача на неделю">
+                <button class="glass-btn" onclick="addScheduleTask('week')">Запланировать</button>
+                <div id="weeklyTasksList" style="margin-top: 15px;"></div>
             </div>
         </div>
 
-        <div class="glass-card">
-            <div class="card-header">Задачи на день</div>
-            <input type="text" id="dailyTaskInput" class="glass-input" placeholder="Что сделать сегодня?">
-            <button class="glass-btn" onclick="addScheduleTask('day')">Добавить</button>
-            <div id="dailyTasksList" style="margin-top: 15px;"></div>
+        <div class="dashboard" id="module-tasks">
+            <div class="glass-card full-width">
+                <div class="card-header">Создать новый список</div>
+                <div class="flex-row">
+                    <input type="text" id="newListTitle" class="glass-input" placeholder="Название (Например: Покупки)" style="margin-bottom: 0;">
+                    <button class="glass-btn" onclick="createNewList()" style="width: auto; white-space: nowrap;">Создать</button>
+                </div>
+            </div>
+            <div id="customListsContainer" class="full-width" style="display: flex; flex-direction: column; gap: 20px; width: 100%;"></div>
         </div>
 
-        <div class="glass-card">
-            <div class="card-header">Планы на неделю</div>
-            <select id="weekDaySelect" class="glass-select">
-                <option value="Пн">Понедельник</option>
-                <option value="Вт">Вторник</option>
-                <option value="Ср">Среда</option>
-                <option value="Чт">Четверг</option>
-                <option value="Пт">Пятница</option>
-                <option value="Сб">Суббота</option>
-                <option value="Вс">Воскресенье</option>
-            </select>
-            <input type="text" id="weeklyTaskInput" class="glass-input" placeholder="Задача на неделю">
-            <button class="glass-btn" onclick="addScheduleTask('week')">Запланировать</button>
-            <div id="weeklyTasksList" style="margin-top: 15px;"></div>
-        </div>
-    </div>
-
-    <div class="dashboard" id="module-tasks">
-        <div class="glass-card full-width">
-            <div class="card-header">Создать новый список</div>
-            <div class="flex-row">
-                <input type="text" id="newListTitle" class="glass-input" placeholder="Название списка (Например: Покупки, Идеи)" style="margin-bottom: 0;">
-                <button class="glass-btn" onclick="createNewList()" style="width: auto; white-space: nowrap;">Создать список</button>
+        <div class="dashboard" id="module-finance">
+            <div class="glass-card full-width">
+                <div class="card-header" style="justify-content: center;">Текущий баланс</div>
+                <div class="balance-display" id="balanceDisplay">0 ₽</div>
+            </div>
+            <div class="glass-card">
+                <div class="card-header">Новая операция</div>
+                <input type="number" id="financeAmount" class="glass-input" placeholder="Сумма (₽)">
+                <select id="financeType" class="glass-select">
+                    <option value="income">Доход (+)</option>
+                    <option value="expense">Расход (-)</option>
+                </select>
+                <input type="text" id="financeDesc" class="glass-input" placeholder="Описание">
+                <button class="glass-btn" onclick="addTransaction()">Сохранить</button>
+            </div>
+            <div class="glass-card">
+                <div class="card-header">История</div>
+                <div id="financeList"></div>
             </div>
         </div>
 
-        <div id="customListsContainer" class="full-width" style="display: flex; flex-direction: column; gap: 20px; width: 100%;">
+        <div class="dashboard" id="module-efficiency">
+            <div class="glass-card">
+                <div class="card-header">Оценка дня</div>
+                <select id="effScore" class="glass-select">
+                    <option value="5">5 - Супер 🔥</option><option value="4">4 - Хорошо 👍</option>
+                    <option value="3">3 - Нормально 😐</option><option value="2">2 - Мало успел 🥱</option>
+                    <option value="1">1 - Зря 📉</option>
+                </select>
+                <input type="text" id="effNote" class="glass-input" placeholder="Комментарий">
+                <button class="glass-btn" onclick="addEfficiencyScore()">Записать</button>
             </div>
-    </div>
-
-    <div class="dashboard" id="module-finance">
-        <div class="glass-card full-width">
-            <div class="card-header" style="justify-content: center;">Текущий баланс</div>
-            <div class="balance-display" id="balanceDisplay">0 ₽</div>
+            <div class="glass-card">
+                <div class="card-header">Дневник</div>
+                <div id="efficiencyList"></div>
+            </div>
         </div>
 
-        <div class="glass-card">
-            <div class="card-header">Новая операция</div>
-            <input type="number" id="financeAmount" class="glass-input" placeholder="Сумма (₽)">
-            <select id="financeType" class="glass-select">
-                <option value="income">Доход (+)</option>
-                <option value="expense">Расход (-)</option>
-            </select>
-            <input type="text" id="financeDesc" class="glass-input" placeholder="Описание">
-            <button class="glass-btn" onclick="addTransaction()">Сохранить</button>
+        <div class="dock" id="mainDock">
+            <div class="dock-icon active" title="Расписание" onclick="switchTab('schedule', this)">📅</div>
+            <div class="dock-icon" title="Списки" onclick="switchTab('tasks', this)">📋</div>
+            <div class="dock-icon" title="Финансы" onclick="switchTab('finance', this)">💰</div>
+            <div class="dock-icon" title="Эффективность" onclick="switchTab('efficiency', this)">📈</div>
+            <div style="width: 1px; height: 30px; background: var(--glass-border); margin: 0 5px;"></div>
+            <input type="checkbox" class="theme-switch" id="themeToggle" title="Смена темы">
         </div>
-
-        <div class="glass-card">
-            <div class="card-header">История операций</div>
-            <div id="financeList"></div>
-        </div>
-    </div>
-
-    <div class="dashboard" id="module-efficiency">
-        <div class="glass-card">
-            <div class="card-header">Оценка дня</div>
-            <select id="effScore" class="glass-select">
-                <option value="5">5 - Супер продуктивно 🔥</option>
-                <option value="4">4 - Хорошо 👍</option>
-                <option value="3">3 - Нормально 😐</option>
-                <option value="2">2 - Мало успел 🥱</option>
-                <option value="1">1 - Зря 📉</option>
-            </select>
-            <input type="text" id="effNote" class="glass-input" placeholder="Комментарий">
-            <button class="glass-btn" onclick="addEfficiencyScore()">Записать</button>
-        </div>
-
-        <div class="glass-card">
-            <div class="card-header">Дневник</div>
-            <div id="efficiencyList"></div>
-        </div>
-    </div>
-
-    <div class="dock">
-        <div class="dock-icon active" title="Расписание" onclick="switchTab('schedule', this)">📅</div>
-        <div class="dock-icon" title="Списки" onclick="switchTab('tasks', this)">📋</div>
-        <div class="dock-icon" title="Финансы" onclick="switchTab('finance', this)">💰</div>
-        <div class="dock-icon" title="Эффективность" onclick="switchTab('efficiency', this)">📈</div>
-        <div style="width: 1px; height: 30px; background: var(--glass-border); margin: 0 5px;"></div>
-        <input type="checkbox" class="theme-switch" id="themeToggle" title="Смена темы">
-    </div>
-
-    <script>
-        // Управление темой
+    </div> <script>
+        // 1. Тема оформления
         const themeToggle = document.getElementById('themeToggle');
         if(localStorage.getItem('produ_theme') === 'dark') {
             document.body.setAttribute('data-theme', 'dark');
             themeToggle.checked = true;
         }
         themeToggle.addEventListener('change', (e) => {
-            if(e.target.checked) {
-                document.body.setAttribute('data-theme', 'dark');
-                localStorage.setItem('produ_theme', 'dark');
-            } else {
-                document.body.removeAttribute('data-theme');
-                localStorage.setItem('produ_theme', 'light');
-            }
+            if(e.target.checked) { document.body.setAttribute('data-theme', 'dark'); localStorage.setItem('produ_theme', 'dark'); } 
+            else { document.body.removeAttribute('data-theme'); localStorage.setItem('produ_theme', 'light'); }
         });
 
-        // Инициализация данных 
+        // 2. Инициализация данных
         let data = JSON.parse(localStorage.getItem('produ_v4_data')) || {
-            lists: [], // Изменено: теперь здесь массив пользовательских списков
-            schedule: [],
-            finance: [],
-            efficiency: [],
-            coins: 0,
-            incomeGoal: 0
+            lists: [], schedule: [], finance: [], efficiency: [], coins: 0, incomeGoal: 0
         };
 
-        // Вспомогательная функция для переноса старых задач (если были) в новый формат
-        if(data.tasks && data.tasks.length > 0) {
-            data.lists.push({ id: Date.now(), title: "Старые задачи", items: data.tasks });
-            delete data.tasks; 
-        }
+        function saveData() { localStorage.setItem('produ_v4_data', JSON.stringify(data)); renderAll(); }
 
-        function saveData() {
-            localStorage.setItem('produ_v4_data', JSON.stringify(data));
-            renderAll();
-        }
-
+        // 3. Навигация
         function switchTab(moduleName, element) {
-            document.querySelectorAll('.dashboard').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('#mainAppContainer .dashboard').forEach(el => el.classList.remove('active'));
             document.getElementById(`module-${moduleName}`).classList.add('active');
             document.querySelectorAll('.dock-icon').forEach(el => el.classList.remove('active'));
             element.classList.add('active');
         }
 
-        // ================= НОВЫЕ ФУНКЦИИ СПИСКОВ =================
+        // ================= ФУНКЦИИ ШЕРИНГА (НОВОЕ) =================
+        function shareList(listId) {
+            const list = data.lists.find(l => l.id === listId);
+            if (!list) return;
 
-        // 1. Создать новый список
-        function createNewList() {
-            const titleInput = document.getElementById('newListTitle');
-            const title = titleInput.value.trim();
-            if (!title) return;
+            // Создаем облегченный слепок списка для ссылки
+            const snapshot = { t: list.title, i: list.items.map(item => ({ x: item.text, d: item.done })) };
+            
+            // Кодируем в Base64 (encodeURIComponent нужен для поддержки кириллицы)
+            const encoded = btoa(encodeURIComponent(JSON.stringify(snapshot)));
+            const shareUrl = window.location.origin + window.location.pathname + '?list=' + encoded;
 
-            data.lists.unshift({ 
-                id: Date.now(), 
-                title: title, 
-                items: [] 
+            // Пытаемся скопировать в буфер обмена
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                alert('Ссылка на список скопирована в буфер обмена!\n\nОтправьте её другу.');
+            }).catch(() => {
+                prompt('Скопируйте ссылку вручную:', shareUrl);
             });
-            titleInput.value = '';
-            saveData();
         }
 
-        // 2. Удалить целый список
-        function deleteList(listId) {
-            if(confirm("Точно удалить этот список со всеми пунктами?")) {
-                data.lists = data.lists.filter(l => l.id !== listId);
-                saveData();
+        // Рендер режима "Просмотр чужого списка"
+        function renderSharedView(encodedData) {
+            try {
+                // Прячем основной интерфейс
+                document.getElementById('mainAppContainer').style.display = 'none';
+                document.getElementById('coinCounter').style.display = 'none';
+                
+                // Декодируем данные
+                const snapshot = JSON.parse(decodeURIComponent(atob(encodedData)));
+                const container = document.getElementById('sharedViewContainer');
+                container.style.display = 'flex';
+
+                // Генерируем пункты списка (они кликабельны визуально, но не сохраняются)
+                const itemsHtml = snapshot.i.map((item, idx) => `
+                    <div class="list-item" style="${item.d ? 'opacity: 0.6;' : ''}">
+                        <div class="list-item-left">
+                            <input type="checkbox" ${item.d ? 'checked' : ''} onclick="this.parentElement.parentElement.style.opacity = this.checked ? '0.6' : '1'; this.nextElementSibling.style.textDecoration = this.checked ? 'line-through' : 'none';">
+                            <span style="${item.d ? 'text-decoration: line-through;' : ''}">${item.x}</span>
+                        </div>
+                    </div>
+                `).join('') || '<div class="empty-state">Список пуст</div>';
+
+                container.innerHTML = `
+                    <div class="glass-card full-width" style="margin-top: 20px;">
+                        <div class="card-header" style="justify-content: center;">
+                            📋 ${snapshot.t}
+                        </div>
+                        <div style="margin-bottom: 20px;">
+                            ${itemsHtml}
+                        </div>
+                        <button class="glass-btn secondary" onclick="window.location.href = window.location.pathname">Создать свой ProdU</button>
+                    </div>
+                `;
+            } catch (e) {
+                alert('К сожалению, ссылка повреждена или недействительна.');
+                window.location.href = window.location.pathname;
             }
         }
 
-        // 3. Добавить пункт в конкретный список
+        // ================= ОСТАЛЬНЫЕ ФУНКЦИИ (Сокращены для фокуса) =================
+        function createNewList() {
+            const title = document.getElementById('newListTitle').value.trim();
+            if (!title) return;
+            data.lists.unshift({ id: Date.now(), title: title, items: [] });
+            document.getElementById('newListTitle').value = ''; saveData();
+        }
+        function deleteList(listId) { if(confirm("Удалить список?")) { data.lists = data.lists.filter(l => l.id !== listId); saveData(); } }
         function addListItem(listId) {
             const input = document.getElementById(`itemInput_${listId}`);
-            const text = input.value.trim();
-            if (!text) return;
-
+            if (!input.value.trim()) return;
             const list = data.lists.find(l => l.id === listId);
-            if (list) {
-                list.items.push({ id: Date.now(), text: text, done: false });
-                input.value = '';
-                saveData();
-            }
+            if (list) { list.items.push({ id: Date.now(), text: input.value.trim(), done: false }); input.value = ''; saveData(); }
         }
-
-        // 4. Отметить пункт как выполненный
         function toggleListItem(listId, itemId) {
             const list = data.lists.find(l => l.id === listId);
-            if (list) {
-                const item = list.items.find(i => i.id === itemId);
-                if (item) {
-                    item.done = !item.done;
-                    if(item.done) data.coins += 5; // Награда за пункт списка
-                    saveData();
-                }
-            }
+            if (list) { const item = list.items.find(i => i.id === itemId); if (item) { item.done = !item.done; if(item.done) data.coins += 5; saveData(); } }
         }
-
-        // 5. Удалить пункт из списка
         function deleteListItem(listId, itemId) {
             const list = data.lists.find(l => l.id === listId);
-            if (list) {
-                list.items = list.items.filter(i => i.id !== itemId);
-                saveData();
-            }
+            if (list) { list.items = list.items.filter(i => i.id !== itemId); saveData(); }
         }
 
-        // ================= ФУНКЦИИ РАСПИСАНИЯ =================
         function addScheduleTask(type) {
             const inputId = type === 'day' ? 'dailyTaskInput' : 'weeklyTaskInput';
-            const text = document.getElementById(inputId).value.trim();
-            if (!text) return;
+            if (!document.getElementById(inputId).value.trim()) return;
             const dayStr = type === 'week' ? document.getElementById('weekDaySelect').value : 'Сегодня';
-            data.schedule.push({ id: Date.now(), text: text, type: type, day: dayStr, done: false });
-            document.getElementById(inputId).value = '';
-            saveData();
+            data.schedule.push({ id: Date.now(), text: document.getElementById(inputId).value.trim(), type: type, day: dayStr, done: false });
+            document.getElementById(inputId).value = ''; saveData();
         }
+        function toggleSchedule(id) { const item = data.schedule.find(t => t.id === id); if (item) { item.done = !item.done; if(item.done) data.coins += 10; saveData(); } }
+        function deleteSchedule(id) { data.schedule = data.schedule.filter(t => t.id !== id); saveData(); }
 
-        function toggleSchedule(id) {
-            const item = data.schedule.find(t => t.id === id);
-            if (item) {
-                item.done = !item.done;
-                if(item.done) data.coins += 10;
-                saveData();
-            }
-        }
-
-        function deleteSchedule(id) {
-            data.schedule = data.schedule.filter(t => t.id !== id);
-            saveData();
-        }
-
-        function setWeeklyGoal() {
-            const goal = parseFloat(document.getElementById('weeklyGoalInput').value);
-            if(goal) { data.incomeGoal = goal; document.getElementById('weeklyGoalInput').value = ''; saveData(); }
-        }
-
-        // ================= ФИНАНСЫ И ЭФФЕКТИВНОСТЬ =================
         function addTransaction() {
             const amount = parseFloat(document.getElementById('financeAmount').value);
-            const type = document.getElementById('financeType').value;
             const desc = document.getElementById('financeDesc').value;
-            if (!amount || !desc) return alert('Введите сумму и описание!');
-            data.finance.push({ id: Date.now(), amount, type, desc, date: new Date().toLocaleDateString() });
+            if (!amount || !desc) return alert('Ошибка!');
+            data.finance.push({ id: Date.now(), amount, type: document.getElementById('financeType').value, desc, date: new Date().toLocaleDateString() });
             document.getElementById('financeAmount').value = ''; document.getElementById('financeDesc').value = ''; saveData();
         }
         function deleteTransaction(id) { data.finance = data.finance.filter(t => t.id !== id); saveData(); }
 
         function addEfficiencyScore() {
-            const score = document.getElementById('effScore').value;
-            const note = document.getElementById('effNote').value;
-            data.efficiency.push({ id: Date.now(), score, note, date: new Date().toLocaleDateString() });
+            data.efficiency.push({ id: Date.now(), score: document.getElementById('effScore').value, note: document.getElementById('effNote').value, date: new Date().toLocaleDateString() });
             document.getElementById('effNote').value = ''; saveData();
         }
         function deleteEfficiency(id) { data.efficiency = data.efficiency.filter(e => e.id !== id); saveData(); }
@@ -515,65 +482,35 @@
         // ================= ГЛОБАЛЬНЫЙ РЕНДЕР =================
         function renderAll() {
             document.getElementById('coinValue').innerText = data.coins;
+            
+            // Расписание и Финансы (базовый рендер)
+            document.getElementById('dailyTasksList').innerHTML = data.schedule.filter(t => t.type === 'day').map(task => `<div class="list-item" style="${task.done ? 'opacity: 0.6;' : ''}"><div class="list-item-left"><input type="checkbox" ${task.done ? 'checked' : ''} onchange="toggleSchedule(${task.id})"><span style="${task.done ? 'text-decoration: line-through;' : ''}">${task.text}</span></div><button class="delete-btn" onclick="deleteSchedule(${task.id})">X</button></div>`).join('');
+            document.getElementById('weeklyTasksList').innerHTML = data.schedule.filter(t => t.type === 'week').map(task => `<div class="list-item" style="${task.done ? 'opacity: 0.6;' : ''}"><div class="list-item-left"><input type="checkbox" ${task.done ? 'checked' : ''} onchange="toggleSchedule(${task.id})"><span class="day-badge">${task.day}</span><span style="${task.done ? 'text-decoration: line-through;' : ''}">${task.text}</span></div><button class="delete-btn" onclick="deleteSchedule(${task.id})">X</button></div>`).join('');
+            
+            let balance = 0;
+            document.getElementById('financeList').innerHTML = data.finance.map(trx => { const isIncome = trx.type === 'income'; isIncome ? balance += trx.amount : balance -= trx.amount; return `<div class="list-item"><div><div>${trx.desc}</div><small style="opacity: 0.6">${trx.date}</small></div><div style="display: flex; align-items: center; gap: 10px;"><span class="${isIncome ? 'income-text' : 'expense-text'}">${isIncome ? '+' : '-'}${trx.amount} ₽</span><button class="delete-btn" onclick="deleteTransaction(${trx.id})">X</button></div></div>`; }).reverse().join('');
+            document.getElementById('balanceDisplay').innerText = `${balance} ₽`; document.getElementById('balanceDisplay').style.color = balance < 0 ? 'var(--danger)' : 'inherit';
+            document.getElementById('totalIncomeDisplay').innerText = `${data.finance.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0)} ₽`;
+            
+            document.getElementById('efficiencyList').innerHTML = data.efficiency.map(item => `<div class="list-item"><div><strong>Оценка: ${item.score}/5</strong>${item.note ? `<br><small>${item.note}</small>` : ''}</div><div style="display: flex; align-items: center; gap: 10px;"><small style="opacity: 0.6">${item.date}</small><button class="delete-btn" onclick="deleteEfficiency(${item.id})">X</button></div></div>`).reverse().join('');
 
-            // --- Рендер Доходов (в Расписании) ---
-            document.getElementById('weeklyGoalDisplay').innerText = data.incomeGoal || 0;
-            const totalIncome = data.finance.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-            document.getElementById('totalIncomeDisplay').innerText = `${totalIncome} ₽`;
-
-            // --- Рендер Расписания ---
-            const dailyHtml = data.schedule.filter(t => t.type === 'day').map(task => `
-                <div class="list-item" style="${task.done ? 'opacity: 0.6;' : ''}">
-                    <div class="list-item-left">
-                        <input type="checkbox" ${task.done ? 'checked' : ''} onchange="toggleSchedule(${task.id})">
-                        <span style="${task.done ? 'text-decoration: line-through;' : ''}">${task.text}</span>
-                    </div>
-                    <button class="delete-btn" onclick="deleteSchedule(${task.id})">X</button>
-                </div>
-            `).join('');
-            document.getElementById('dailyTasksList').innerHTML = dailyHtml || '<div class="empty-state">Нет задач на сегодня</div>';
-
-            const weeklyHtml = data.schedule.filter(t => t.type === 'week').map(task => `
-                <div class="list-item" style="${task.done ? 'opacity: 0.6;' : ''}">
-                    <div class="list-item-left">
-                        <input type="checkbox" ${task.done ? 'checked' : ''} onchange="toggleSchedule(${task.id})">
-                        <span class="day-badge">${task.day}</span>
-                        <span style="${task.done ? 'text-decoration: line-through;' : ''}">${task.text}</span>
-                    </div>
-                    <button class="delete-btn" onclick="deleteSchedule(${task.id})">X</button>
-                </div>
-            `).join('');
-            document.getElementById('weeklyTasksList').innerHTML = weeklyHtml || '<div class="empty-state">Неделя свободна</div>';
-
-            // --- Рендер Пользовательских Списков ---
+            // --- Рендер Пользовательских Списков (Добавлена кнопка "Поделиться") ---
             const listsContainer = document.getElementById('customListsContainer');
             if (data.lists.length === 0) {
                 listsContainer.innerHTML = '<div class="empty-state">У вас пока нет списков</div>';
             } else {
                 listsContainer.innerHTML = data.lists.map(list => {
-                    // Генерируем HTML для пунктов внутри каждого списка
-                    const itemsHtml = list.items.map(item => `
-                        <div class="list-item" style="${item.done ? 'opacity: 0.6;' : ''}">
-                            <div class="list-item-left">
-                                <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleListItem(${list.id}, ${item.id})">
-                                <span style="${item.done ? 'text-decoration: line-through;' : ''}">${item.text}</span>
-                            </div>
-                            <button class="delete-btn" onclick="deleteListItem(${list.id}, ${item.id})">X</button>
-                        </div>
-                    `).join('');
-
-                    // Возвращаем карточку целого списка
+                    const itemsHtml = list.items.map(item => `<div class="list-item" style="${item.done ? 'opacity: 0.6;' : ''}"><div class="list-item-left"><input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleListItem(${list.id}, ${item.id})"><span style="${item.done ? 'text-decoration: line-through;' : ''}">${item.text}</span></div><button class="delete-btn" onclick="deleteListItem(${list.id}, ${item.id})">X</button></div>`).join('');
                     return `
                         <div class="glass-card full-width">
                             <div class="card-header">
                                 ${list.title}
-                                <button class="delete-btn" onclick="deleteList(${list.id})" style="background: rgba(255, 71, 87, 0.2); color: var(--danger); border: 1px solid var(--danger);">Удалить список</button>
+                                <div style="display: flex; gap: 5px;">
+                                    <button class="glass-btn secondary" onclick="shareList(${list.id})" style="width: auto; padding: 5px 10px; font-size: 12px;" title="Поделиться списком">🔗 Ссылка</button>
+                                    <button class="delete-btn" onclick="deleteList(${list.id})" style="background: rgba(255, 71, 87, 0.2); color: var(--danger); border: 1px solid var(--danger);">Удалить</button>
+                                </div>
                             </div>
-                            
-                            <div style="margin-bottom: 15px;">
-                                ${itemsHtml || '<div style="opacity:0.5; font-size:12px; margin-bottom:10px;">Список пуст</div>'}
-                            </div>
-
+                            <div style="margin-bottom: 15px;">${itemsHtml || '<div style="opacity:0.5; font-size:12px; margin-bottom:10px;">Список пуст</div>'}</div>
                             <div class="flex-row">
                                 <input type="text" id="itemInput_${list.id}" class="glass-input" placeholder="Добавить пункт..." style="margin-bottom: 0;">
                                 <button class="glass-btn" onclick="addListItem(${list.id})" style="width: auto;">+</button>
@@ -582,47 +519,18 @@
                     `;
                 }).join('');
             }
-
-            // --- Рендер Финансов ---
-            let balance = 0;
-            const financeHtml = data.finance.map(trx => {
-                const isIncome = trx.type === 'income';
-                isIncome ? balance += trx.amount : balance -= trx.amount;
-                return `
-                    <div class="list-item">
-                        <div>
-                            <div>${trx.desc}</div><small style="opacity: 0.6">${trx.date}</small>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span class="${isIncome ? 'income-text' : 'expense-text'}">${isIncome ? '+' : '-'}${trx.amount} ₽</span>
-                            <button class="delete-btn" onclick="deleteTransaction(${trx.id})">X</button>
-                        </div>
-                    </div>
-                `;
-            }).reverse().join('');
-            
-            const balDisp = document.getElementById('balanceDisplay');
-            balDisp.innerText = `${balance} ₽`;
-            balDisp.style.color = balance < 0 ? 'var(--danger)' : 'inherit';
-            document.getElementById('financeList').innerHTML = data.finance.length ? financeHtml : '<div class="empty-state">Нет операций</div>';
-
-            // --- Рендер Эффективности ---
-            const effHtml = data.efficiency.map(item => `
-                <div class="list-item">
-                    <div>
-                        <strong>Оценка: ${item.score}/5</strong>
-                        ${item.note ? `<br><small>${item.note}</small>` : ''}
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <small style="opacity: 0.6">${item.date}</small>
-                        <button class="delete-btn" onclick="deleteEfficiency(${item.id})">X</button>
-                    </div>
-                </div>
-            `).reverse().join('');
-            document.getElementById('efficiencyList').innerHTML = data.efficiency.length ? effHtml : '<div class="empty-state">Нет записей</div>';
         }
 
-        renderAll();
+        // ================= РОУТИНГ ПРИ ЗАПУСКЕ =================
+        const urlParams = new URLSearchParams(window.location.search);
+        const sharedListData = urlParams.get('list');
+
+        // Проверяем, открыли ли мы приложение по специальной ссылке
+        if (sharedListData) {
+            renderSharedView(sharedListData);
+        } else {
+            renderAll(); // Обычный запуск приложения
+        }
     </script>
 </body>
 </html>
