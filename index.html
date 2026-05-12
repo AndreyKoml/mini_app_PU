@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ProdU - Glass OS</title>
-    <link rel="icon" type="image/png" href="Group 76.png">
-    <link rel="apple-touch-icon" href="Group 76.png">
     <style>
         /* --- CSS ПЕРЕМЕННЫЕ И ТЕМЫ --- */
         :root {
@@ -165,7 +163,7 @@
         [data-theme="dark"] .list-item { background: rgba(255,255,255,0.05); }
         
         .list-item-left { display: flex; align-items: center; gap: 10px; }
-        .list-item input[type="checkbox"] { accent-color: var(--accent-color); width: 18px; height: 18px; }
+        .list-item input[type="checkbox"] { accent-color: var(--accent-color); width: 18px; height: 18px; cursor: pointer; }
 
         .delete-btn {
             background: var(--danger);
@@ -238,15 +236,7 @@
         .theme-switch:checked::after { transform: translateX(20px); }
 
         .empty-state { text-align: center; opacity: 0.5; padding: 20px; font-style: italic; }
-        
-        .day-badge {
-            background: var(--accent-color);
-            color: #000;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 12px;
-            font-weight: bold;
-        }
+        .day-badge { background: var(--accent-color); color: #000; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -281,7 +271,7 @@
         <div class="glass-card">
             <div class="card-header">Задачи на день</div>
             <input type="text" id="dailyTaskInput" class="glass-input" placeholder="Что сделать сегодня?">
-            <button class="glass-btn" onclick="addScheduleTask('day')">Добавить на сегодня</button>
+            <button class="glass-btn" onclick="addScheduleTask('day')">Добавить</button>
             <div id="dailyTasksList" style="margin-top: 15px;"></div>
         </div>
 
@@ -304,13 +294,15 @@
 
     <div class="dashboard" id="module-tasks">
         <div class="glass-card full-width">
-            <div class="card-header">Общий список (Бэклог)</div>
+            <div class="card-header">Создать новый список</div>
             <div class="flex-row">
-                <input type="text" id="taskInput" class="glass-input" placeholder="Просто заметка или идея" style="margin-bottom: 0;">
-                <button class="glass-btn" onclick="addTask()" style="width: auto;">Добавить</button>
+                <input type="text" id="newListTitle" class="glass-input" placeholder="Название списка (Например: Покупки, Идеи)" style="margin-bottom: 0;">
+                <button class="glass-btn" onclick="createNewList()" style="width: auto; white-space: nowrap;">Создать список</button>
             </div>
-            <div id="tasksList" style="margin-top: 20px;"></div>
         </div>
+
+        <div id="customListsContainer" class="full-width" style="display: flex; flex-direction: column; gap: 20px; width: 100%;">
+            </div>
     </div>
 
     <div class="dashboard" id="module-finance">
@@ -358,7 +350,7 @@
 
     <div class="dock">
         <div class="dock-icon active" title="Расписание" onclick="switchTab('schedule', this)">📅</div>
-        <div class="dock-icon" title="Задачи" onclick="switchTab('tasks', this)">📋</div>
+        <div class="dock-icon" title="Списки" onclick="switchTab('tasks', this)">📋</div>
         <div class="dock-icon" title="Финансы" onclick="switchTab('finance', this)">💰</div>
         <div class="dock-icon" title="Эффективность" onclick="switchTab('efficiency', this)">📈</div>
         <div style="width: 1px; height: 30px; background: var(--glass-border); margin: 0 5px;"></div>
@@ -382,9 +374,9 @@
             }
         });
 
-        // Инициализация данных (Расширенная)
-        let data = JSON.parse(localStorage.getItem('produ_v3_data')) || {
-            tasks: [],
+        // Инициализация данных 
+        let data = JSON.parse(localStorage.getItem('produ_v4_data')) || {
+            lists: [], // Изменено: теперь здесь массив пользовательских списков
             schedule: [],
             finance: [],
             efficiency: [],
@@ -392,12 +384,17 @@
             incomeGoal: 0
         };
 
+        // Вспомогательная функция для переноса старых задач (если были) в новый формат
+        if(data.tasks && data.tasks.length > 0) {
+            data.lists.push({ id: Date.now(), title: "Старые задачи", items: data.tasks });
+            delete data.tasks; 
+        }
+
         function saveData() {
-            localStorage.setItem('produ_v3_data', JSON.stringify(data));
+            localStorage.setItem('produ_v4_data', JSON.stringify(data));
             renderAll();
         }
 
-        // Навигация
         function switchTab(moduleName, element) {
             document.querySelectorAll('.dashboard').forEach(el => el.classList.remove('active'));
             document.getElementById(`module-${moduleName}`).classList.add('active');
@@ -405,22 +402,74 @@
             element.classList.add('active');
         }
 
+        // ================= НОВЫЕ ФУНКЦИИ СПИСКОВ =================
+
+        // 1. Создать новый список
+        function createNewList() {
+            const titleInput = document.getElementById('newListTitle');
+            const title = titleInput.value.trim();
+            if (!title) return;
+
+            data.lists.unshift({ 
+                id: Date.now(), 
+                title: title, 
+                items: [] 
+            });
+            titleInput.value = '';
+            saveData();
+        }
+
+        // 2. Удалить целый список
+        function deleteList(listId) {
+            if(confirm("Точно удалить этот список со всеми пунктами?")) {
+                data.lists = data.lists.filter(l => l.id !== listId);
+                saveData();
+            }
+        }
+
+        // 3. Добавить пункт в конкретный список
+        function addListItem(listId) {
+            const input = document.getElementById(`itemInput_${listId}`);
+            const text = input.value.trim();
+            if (!text) return;
+
+            const list = data.lists.find(l => l.id === listId);
+            if (list) {
+                list.items.push({ id: Date.now(), text: text, done: false });
+                input.value = '';
+                saveData();
+            }
+        }
+
+        // 4. Отметить пункт как выполненный
+        function toggleListItem(listId, itemId) {
+            const list = data.lists.find(l => l.id === listId);
+            if (list) {
+                const item = list.items.find(i => i.id === itemId);
+                if (item) {
+                    item.done = !item.done;
+                    if(item.done) data.coins += 5; // Награда за пункт списка
+                    saveData();
+                }
+            }
+        }
+
+        // 5. Удалить пункт из списка
+        function deleteListItem(listId, itemId) {
+            const list = data.lists.find(l => l.id === listId);
+            if (list) {
+                list.items = list.items.filter(i => i.id !== itemId);
+                saveData();
+            }
+        }
+
         // ================= ФУНКЦИИ РАСПИСАНИЯ =================
         function addScheduleTask(type) {
             const inputId = type === 'day' ? 'dailyTaskInput' : 'weeklyTaskInput';
             const text = document.getElementById(inputId).value.trim();
             if (!text) return;
-            
             const dayStr = type === 'week' ? document.getElementById('weekDaySelect').value : 'Сегодня';
-            
-            data.schedule.push({ 
-                id: Date.now(), 
-                text: text, 
-                type: type, 
-                day: dayStr, 
-                done: false 
-            });
-            
+            data.schedule.push({ id: Date.now(), text: text, type: type, day: dayStr, done: false });
             document.getElementById(inputId).value = '';
             saveData();
         }
@@ -441,64 +490,27 @@
 
         function setWeeklyGoal() {
             const goal = parseFloat(document.getElementById('weeklyGoalInput').value);
-            if(goal) {
-                data.incomeGoal = goal;
-                document.getElementById('weeklyGoalInput').value = '';
-                saveData();
-            }
+            if(goal) { data.incomeGoal = goal; document.getElementById('weeklyGoalInput').value = ''; saveData(); }
         }
 
-        // ================= ОСТАЛЬНЫЕ ФУНКЦИИ =================
-        function addTask() {
-            const input = document.getElementById('taskInput');
-            if (!input.value.trim()) return;
-            data.tasks.push({ id: Date.now(), text: input.value.trim(), done: false });
-            input.value = '';
-            saveData();
-        }
-
-        function toggleTask(id) {
-            const task = data.tasks.find(t => t.id === id);
-            if (task) {
-                task.done = !task.done;
-                if(task.done) data.coins += 5;
-                saveData();
-            }
-        }
-
-        function deleteTask(id) {
-            data.tasks = data.tasks.filter(t => t.id !== id);
-            saveData();
-        }
-
+        // ================= ФИНАНСЫ И ЭФФЕКТИВНОСТЬ =================
         function addTransaction() {
             const amount = parseFloat(document.getElementById('financeAmount').value);
             const type = document.getElementById('financeType').value;
             const desc = document.getElementById('financeDesc').value;
             if (!amount || !desc) return alert('Введите сумму и описание!');
             data.finance.push({ id: Date.now(), amount, type, desc, date: new Date().toLocaleDateString() });
-            document.getElementById('financeAmount').value = '';
-            document.getElementById('financeDesc').value = '';
-            saveData();
+            document.getElementById('financeAmount').value = ''; document.getElementById('financeDesc').value = ''; saveData();
         }
-
-        function deleteTransaction(id) {
-            data.finance = data.finance.filter(t => t.id !== id);
-            saveData();
-        }
+        function deleteTransaction(id) { data.finance = data.finance.filter(t => t.id !== id); saveData(); }
 
         function addEfficiencyScore() {
             const score = document.getElementById('effScore').value;
             const note = document.getElementById('effNote').value;
             data.efficiency.push({ id: Date.now(), score, note, date: new Date().toLocaleDateString() });
-            document.getElementById('effNote').value = '';
-            saveData();
+            document.getElementById('effNote').value = ''; saveData();
         }
-
-        function deleteEfficiency(id) {
-            data.efficiency = data.efficiency.filter(e => e.id !== id);
-            saveData();
-        }
+        function deleteEfficiency(id) { data.efficiency = data.efficiency.filter(e => e.id !== id); saveData(); }
 
         // ================= ГЛОБАЛЬНЫЙ РЕНДЕР =================
         function renderAll() {
@@ -533,17 +545,43 @@
             `).join('');
             document.getElementById('weeklyTasksList').innerHTML = weeklyHtml || '<div class="empty-state">Неделя свободна</div>';
 
-            // --- Рендер Обычных Задач ---
-            const tasksHtml = data.tasks.map(task => `
-                <div class="list-item" style="${task.done ? 'opacity: 0.6;' : ''}">
-                    <div class="list-item-left">
-                        <input type="checkbox" ${task.done ? 'checked' : ''} onchange="toggleTask(${task.id})">
-                        <span style="${task.done ? 'text-decoration: line-through;' : ''}">${task.text}</span>
-                    </div>
-                    <button class="delete-btn" onclick="deleteTask(${task.id})">Удалить</button>
-                </div>
-            `).join('');
-            document.getElementById('tasksList').innerHTML = data.tasks.length ? tasksHtml : '<div class="empty-state">Бэклог пуст</div>';
+            // --- Рендер Пользовательских Списков ---
+            const listsContainer = document.getElementById('customListsContainer');
+            if (data.lists.length === 0) {
+                listsContainer.innerHTML = '<div class="empty-state">У вас пока нет списков</div>';
+            } else {
+                listsContainer.innerHTML = data.lists.map(list => {
+                    // Генерируем HTML для пунктов внутри каждого списка
+                    const itemsHtml = list.items.map(item => `
+                        <div class="list-item" style="${item.done ? 'opacity: 0.6;' : ''}">
+                            <div class="list-item-left">
+                                <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleListItem(${list.id}, ${item.id})">
+                                <span style="${item.done ? 'text-decoration: line-through;' : ''}">${item.text}</span>
+                            </div>
+                            <button class="delete-btn" onclick="deleteListItem(${list.id}, ${item.id})">X</button>
+                        </div>
+                    `).join('');
+
+                    // Возвращаем карточку целого списка
+                    return `
+                        <div class="glass-card full-width">
+                            <div class="card-header">
+                                ${list.title}
+                                <button class="delete-btn" onclick="deleteList(${list.id})" style="background: rgba(255, 71, 87, 0.2); color: var(--danger); border: 1px solid var(--danger);">Удалить список</button>
+                            </div>
+                            
+                            <div style="margin-bottom: 15px;">
+                                ${itemsHtml || '<div style="opacity:0.5; font-size:12px; margin-bottom:10px;">Список пуст</div>'}
+                            </div>
+
+                            <div class="flex-row">
+                                <input type="text" id="itemInput_${list.id}" class="glass-input" placeholder="Добавить пункт..." style="margin-bottom: 0;">
+                                <button class="glass-btn" onclick="addListItem(${list.id})" style="width: auto;">+</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
 
             // --- Рендер Финансов ---
             let balance = 0;
