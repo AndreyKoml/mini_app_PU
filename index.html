@@ -519,6 +519,7 @@
             }
 
             // Отрисовка Виртуальных Карт
+
             const cardsContainer = document.getElementById('digitalCardsContainer');
             if (!data.digitalCards || data.digitalCards.length === 0) {
                 cardsContainer.innerHTML = '<div class="empty-state">Нет сохраненных карт</div>';
@@ -530,14 +531,45 @@
                             <button class="delete-btn" onclick="deleteDigitalCard(${card.id})">Удалить</button>
                         </div>
                         <div class="digital-card-container">
-                            ${card.format === 'QR_CODE' 
-                                ? `<canvas id="barcode_\${card.id}"></canvas>` 
-                                : `<svg id="barcode_\${card.id}"></svg>`
-                            }
-                            <div style="margin-top: 10px; font-family: monospace; font-size: 16px; letter-spacing: 2px;">${card.value}</div>
+                            <!-- Заменили SVG на Canvas для идеальной работы на iOS/Android -->
+                            <canvas id="barcode_${card.id}" style="max-width: 100%;"></canvas>
+                            <div style="margin-top: 10px; font-family: monospace; font-size: 16px; letter-spacing: 2px; text-align: center; word-break: break-all;">${card.value}</div>
                         </div>
                     </div>
                 `).join('');
+
+                // Увеличили задержку (150мс), чтобы интерфейс смартфона успел обновиться
+                setTimeout(() => {
+                    data.digitalCards.forEach(card => {
+                        const canvas = document.getElementById(`barcode_${card.id}`);
+                        if (!canvas) return;
+
+                        if (card.format === 'QR_CODE') {
+                            QRCode.toCanvas(canvas, card.value, { width: 180, margin: 1 });
+                        } else {
+                            const options = { width: 2, height: 80, displayValue: false, background: "transparent" };
+                            try {
+                                // Пытаемся строго определить 13 и 8-значные чисто цифровые коды
+                                if (/^\d{13}\$/.test(card.value)) {
+                                    JsBarcode(canvas, card.value, { ...options, format: "EAN13" });
+                                } else if (/^\d{8}\$/.test(card.value)) {
+                                    JsBarcode(canvas, card.value, { ...options, format: "EAN8" });
+                                } else {
+                                    // Универсальный формат для букв и кодов любой длины (Магнит, SPAR)
+                                    JsBarcode(canvas, card.value, { ...options, format: "CODE128" });
+                                }
+                            } catch (e) {
+                                // Если EAN не прошел валидацию, форсируем CODE128
+                                try {
+                                    JsBarcode(canvas, card.value, { ...options, format: "CODE128" });
+                                } catch (e2) {
+                                    console.error("Штрихкод не может быть отрисован:", e2);
+                                }
+                            }
+                        }
+                    });
+                }, 150);
+            }
 
                 // После вставки HTML, вызываем библиотеки для отрисовки графики
                 setTimeout(() => {
