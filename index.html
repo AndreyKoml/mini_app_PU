@@ -519,56 +519,39 @@
             }
 
             // Отрисовка Виртуальных Карт
-
+            // Отрисовка Виртуальных Карт
             const cardsContainer = document.getElementById('digitalCardsContainer');
             if (!data.digitalCards || data.digitalCards.length === 0) {
                 cardsContainer.innerHTML = '<div class="empty-state">Нет сохраненных карт</div>';
             } else {
-                cardsContainer.innerHTML = data.digitalCards.map(card => `
-                    <div class="glass-card full-width">
-                        <div class="card-header" style="border-bottom: none; margin-bottom: 0;">
-                            ${card.name}
-                            <button class="delete-btn" onclick="deleteDigitalCard(${card.id})">Удалить</button>
-                        </div>
-                        <div class="digital-card-container">
-                            <!-- Заменили SVG на Canvas для идеальной работы на iOS/Android -->
-                            <canvas id="barcode_${card.id}" style="max-width: 100%;"></canvas>
-                            <div style="margin-top: 10px; font-family: monospace; font-size: 16px; letter-spacing: 2px; text-align: center; word-break: break-all;">${card.value}</div>
-                        </div>
-                    </div>
-                `).join('');
+                cardsContainer.innerHTML = data.digitalCards.map(card => {
+                    // Генерируем ссылку на картинку кода через надежные API
+                    let imageUrl = '';
+                    
+                    if (card.format === 'QR_CODE') {
+                        // API для QR-кодов
+                        imageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(card.value)}`;
+                    } else {
+                        // API для штрихкодов (bwip-js). Используем универсальный формат code128.
+                        imageUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(card.value)}&includetext=false`;
+                    }
 
-                // Увеличили задержку (150мс), чтобы интерфейс смартфона успел обновиться
-                setTimeout(() => {
-                    data.digitalCards.forEach(card => {
-                        const canvas = document.getElementById(`barcode_${card.id}`);
-                        if (!canvas) return;
-
-                        if (card.format === 'QR_CODE') {
-                            QRCode.toCanvas(canvas, card.value, { width: 180, margin: 1 });
-                        } else {
-                            const options = { width: 2, height: 80, displayValue: false, background: "transparent" };
-                            try {
-                                // Пытаемся строго определить 13 и 8-значные чисто цифровые коды
-                                if (/^\d{13}\$/.test(card.value)) {
-                                    JsBarcode(canvas, card.value, { ...options, format: "EAN13" });
-                                } else if (/^\d{8}\$/.test(card.value)) {
-                                    JsBarcode(canvas, card.value, { ...options, format: "EAN8" });
-                                } else {
-                                    // Универсальный формат для букв и кодов любой длины (Магнит, SPAR)
-                                    JsBarcode(canvas, card.value, { ...options, format: "CODE128" });
-                                }
-                            } catch (e) {
-                                // Если EAN не прошел валидацию, форсируем CODE128
-                                try {
-                                    JsBarcode(canvas, card.value, { ...options, format: "CODE128" });
-                                } catch (e2) {
-                                    console.error("Штрихкод не может быть отрисован:", e2);
-                                }
-                            }
-                        }
-                    });
-                }, 150);
+                    return `
+                        <div class="glass-card full-width">
+                            <div class="card-header" style="border-bottom: none; margin-bottom: 0;">
+                                ${card.name}
+                                <button class="delete-btn" onclick="deleteDigitalCard(${card.id})">Удалить</button>
+                            </div>
+                            <div class="digital-card-container">
+                                <!-- Вставляем код как обычную картинку -->
+                                <img src="${imageUrl}" alt="Barcode" style="max-width: 100%; height: 80px; object-fit: contain;">
+                                <div style="margin-top: 15px; font-family: monospace; font-size: 16px; letter-spacing: 2px; text-align: center; word-break: break-all;">
+                                    ${card.value}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
             }
 
                 // После вставки HTML, вызываем библиотеки для отрисовки графики
