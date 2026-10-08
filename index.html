@@ -240,7 +240,6 @@
         .day-badge { background: var(--accent-color); color: #000; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; }
         .chart-container { position: relative; height: 200px; width: 100%; display: flex; justify-content: center; margin-bottom: 10px; }
         
-        /* Стили для отрисованных карт */
         .digital-card-container {
             background: #ffffff;
             padding: 15px;
@@ -271,8 +270,8 @@
 
     <div id="mainAppContainer" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
         
+        <!-- РАСПИСАНИЕ -->
         <div class="dashboard active" id="module-schedule">
-            <!-- (Расписание остаётся без изменений) -->
             <div class="glass-card full-width">
                 <div class="card-header">Задачи на день</div>
                 <input type="text" id="dailyTaskInput" class="glass-input" placeholder="Что сделать сегодня?">
@@ -291,8 +290,8 @@
             </div>
         </div>
 
+        <!-- СПИСКИ -->
         <div class="dashboard" id="module-tasks">
-            <!-- (Списки без изменений) -->
             <div class="glass-card full-width">
                 <div class="card-header">Создать новый список</div>
                 <div class="flex-row">
@@ -303,7 +302,7 @@
             <div id="customListsContainer" class="full-width" style="display: flex; flex-direction: column; gap: 20px; width: 100%;"></div>
         </div>
 
-        <!-- НОВЫЙ МОДУЛЬ ВИРТУАЛЬНЫХ КАРТ -->
+        <!-- КАРТЫ (ШТРИХКОДЫ) -->
         <div class="dashboard" id="module-cards">
             <div class="glass-card full-width">
                 <div class="card-header">Оцифровка карты</div>
@@ -322,12 +321,31 @@
                 </div>
             </div>
 
-            <!-- Контейнер для сохраненных цифровых карт -->
             <div id="digitalCardsContainer" class="full-width" style="display: flex; flex-direction: column; gap: 15px; width: 100%;"></div>
         </div>
 
+        <!-- ФОТОКАМЕРА И ГАЛЕРЕЯ -->
+        <div class="dashboard" id="module-camera">
+            <div class="glass-card full-width">
+                <div class="card-header">Сделать фото</div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
+                    <video id="cameraFeed" autoplay playsinline style="width: 100%; max-width: 400px; border-radius: 12px; display: none; background: #000; border: 1px solid var(--glass-border);"></video>
+                    <canvas id="cameraCanvas" style="display: none;"></canvas>
+                    <div class="flex-row" style="width: 100%; justify-content: center;">
+                        <button class="glass-btn" id="btnStartCamera" onclick="startCam()" style="max-width: 200px;">Включить камеру</button>
+                        <button class="glass-btn" id="btnTakePhoto" onclick="takePic()" style="display: none; background: var(--accent-color); max-width: 200px;">📸 Сделать снимок</button>
+                        <button class="glass-btn secondary" id="btnStopCamera" onclick="stopCam()" style="display: none; max-width: 150px;">Выключить</button>
+                    </div>
+                </div>
+            </div>
+            <div class="glass-card full-width">
+                <div class="card-header">Галерея</div>
+                <div id="galleryContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px;"></div>
+            </div>
+        </div>
+
+        <!-- ФИНАНСЫ -->
         <div class="dashboard" id="module-finance">
-             <!-- (Финансы без изменений) -->
             <div class="glass-card full-width">
                 <div class="card-header" style="justify-content: center;">Текущий баланс</div>
                 <div class="balance-display" id="balanceDisplay">0 ₽</div>
@@ -348,11 +366,13 @@
             </div>
         </div>
 
+        <!-- НАВИГАЦИОННОЕ МЕНЮ (DOCK) -->
         <div class="dock" id="mainDock">
             <div class="dock-icon active" title="Расписание" onclick="switchTab('schedule', this)">📅</div>
             <div class="dock-icon" title="Списки" onclick="switchTab('tasks', this)">📋</div>
             <div class="dock-icon" title="Финансы" onclick="switchTab('finance', this)">💰</div>
             <div class="dock-icon" title="Карты" onclick="switchTab('cards', this)">💳</div>
+            <div class="dock-icon" title="Камера" onclick="switchTab('camera', this)">📷</div>
             <div style="width: 1px; height: 30px; background: var(--glass-border); margin: 0 2px;"></div>
             <input type="checkbox" class="theme-switch" id="themeToggle" title="Смена темы">
         </div>
@@ -370,24 +390,62 @@
             else { document.body.removeAttribute('data-theme'); localStorage.setItem('produ_theme', 'light'); }
         });
 
-        // Данные пользователя с новым массивом digitalCards
-        let data = JSON.parse(localStorage.getItem('produ_v5_data')) || {
-            lists: [], schedule: [], finance: [], efficiency: [], coins: 0, digitalCards: []
+        // База данных
+        let data = JSON.parse(localStorage.getItem('produ_v6_data')) || {
+            lists: [], schedule: [], finance: [], efficiency: [], coins: 0, digitalCards: [], photos: []
         };
         if (!data.digitalCards) data.digitalCards = [];
+        if (!data.photos) data.photos = [];
 
-        function saveData() { localStorage.setItem('produ_v5_data', JSON.stringify(data)); renderAll(); }
+        function saveData() { localStorage.setItem('produ_v6_data', JSON.stringify(data)); renderAll(); }
 
+        // Переключение вкладок
         function switchTab(moduleName, element) {
             document.querySelectorAll('#mainAppContainer .dashboard').forEach(el => el.classList.remove('active'));
             document.getElementById(`module-${moduleName}`).classList.add('active');
             document.querySelectorAll('.dock-icon').forEach(el => el.classList.remove('active'));
             element.classList.add('active');
 
-            // Отключаем сканер штрихкодов при уходе со вкладки Карт
-            if (moduleName !== 'cards' && typeof stopCardScanner === 'function') {
-                stopCardScanner();
-            }
+            if (moduleName !== 'cards' && typeof stopCardScanner === 'function') stopCardScanner();
+            if (moduleName !== 'camera' && typeof stopCam === 'function') stopCam();
+        }
+
+        // ================= КАМЕРА (ГАЛЕРЕЯ) =================
+        let cameraStream = null;
+
+        async function startCam() {
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                const video = document.getElementById('cameraFeed');
+                video.srcObject = cameraStream;
+                video.style.display = 'block';
+                document.getElementById('btnStartCamera').style.display = 'none';
+                document.getElementById('btnTakePhoto').style.display = 'block';
+                document.getElementById('btnStopCamera').style.display = 'block';
+            } catch (err) { alert('Ошибка доступа к камере: ' + err.message); }
+        }
+
+        function stopCam() {
+            if (cameraStream) { cameraStream.getTracks().forEach(track => track.stop()); cameraStream = null; }
+            document.getElementById('cameraFeed').style.display = 'none';
+            document.getElementById('btnStartCamera').style.display = 'block';
+            document.getElementById('btnTakePhoto').style.display = 'none';
+            document.getElementById('btnStopCamera').style.display = 'none';
+        }
+
+        function takePic() {
+            const video = document.getElementById('cameraFeed');
+            const canvas = document.getElementById('cameraCanvas');
+            if (!cameraStream) return;
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+            data.photos.unshift({ id: Date.now(), src: canvas.toDataURL('image/jpeg', 0.6) });
+            saveData();
+            video.style.opacity = '0'; setTimeout(() => video.style.opacity = '1', 150);
+        }
+
+        function deletePic(id) {
+            if(confirm('Удалить фото?')) { data.photos = data.photos.filter(p => p.id !== id); saveData(); }
         }
 
         // ================= СКАНЕР И ВИРТУАЛЬНЫЕ КАРТЫ =================
@@ -400,61 +458,42 @@
             document.getElementById('scanResultForm').style.display = 'none';
 
             html5QrcodeScanner = new Html5Qrcode("qrReader");
-            
-            // Настройки сканера: задняя камера, читает и штрихкоды, и QR
             html5QrcodeScanner.start(
-                { facingMode: "environment" },
-                { fps: 10, qrbox: { width: 250, height: 150 } },
+                { facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 150 } },
                 (decodedText, decodedResult) => {
-                    // Успешное сканирование
                     document.getElementById('scannedCodeValue').value = decodedText;
                     document.getElementById('scannedCodeFormat').value = decodedResult.result.format?.formatName || "UNKNOWN";
-                    
-                    stopCardScanner(true); // Останавливаем камеру
+                    stopCardScanner(true);
                     document.getElementById('scanResultForm').style.display = 'block';
                 },
-                (errorMessage) => { /* Игнорируем ошибки (они сыпятся, когда код не в фокусе) */ }
-            ).catch((err) => {
-                alert("Ошибка доступа к камере. Проверьте разрешения.");
-                stopCardScanner();
-            });
+                (errorMessage) => {}
+            ).catch(err => { alert("Ошибка доступа к камере."); stopCardScanner(); });
         }
 
         function stopCardScanner(success = false) {
             if (html5QrcodeScanner) {
-                html5QrcodeScanner.stop().then(() => {
-                    html5QrcodeScanner.clear();
-                    html5QrcodeScanner = null;
-                }).catch(err => console.error(err));
+                html5QrcodeScanner.stop().then(() => { html5QrcodeScanner.clear(); html5QrcodeScanner = null; }).catch(e => console.error(e));
             }
             document.getElementById('qrReader').style.display = 'none';
             document.getElementById('btnStartCardScan').style.display = 'block';
             document.getElementById('btnStopCardScan').style.display = 'none';
-            if (!success) {
-                document.getElementById('scanResultForm').style.display = 'none';
-            }
+            if (!success) document.getElementById('scanResultForm').style.display = 'none';
         }
 
         function saveCard() {
             const name = document.getElementById('cardNameInput').value.trim();
             const value = document.getElementById('scannedCodeValue').value;
             const format = document.getElementById('scannedCodeFormat').value;
-            
-            if (!name) return alert("Пожалуйста, введите название карты!");
+            if (!name) return alert("Введите название карты!");
 
             data.digitalCards.unshift({ id: Date.now(), name, value, format });
             saveData();
-            
-            // Сброс формы
             document.getElementById('cardNameInput').value = '';
             document.getElementById('scanResultForm').style.display = 'none';
         }
 
         function deleteDigitalCard(id) {
-            if(confirm('Удалить эту карту?')) {
-                data.digitalCards = data.digitalCards.filter(c => c.id !== id);
-                saveData();
-            }
+            if(confirm('Удалить эту карту?')) { data.digitalCards = data.digitalCards.filter(c => c.id !== id); saveData(); }
         }
 
         // ================= БАЗОВЫЕ ФУНКЦИИ =================
@@ -518,56 +557,64 @@
                 }).join('');
             }
 
-            // Отрисовка Виртуальных Карт
-            // Отрисовка Виртуальных Карт
+            const gallery = document.getElementById('galleryContainer');
+            if (gallery) {
+                if (!data.photos || data.photos.length === 0) { gallery.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;">Галерея пуста</div>'; } 
+                else { gallery.innerHTML = data.photos.map(p => `<div style="position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--glass-border); aspect-ratio: 1;"><img src="${p.src}" style="width: 100%; height: 100%; object-fit: cover;"><button class="delete-btn" onclick="deletePic(${p.id})" style="position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 10px;" title="Удалить">✕</button></div>`).join(''); }
+            }
+
+            // Отрисовка Виртуальных Карт (Обновленный железобетонный метод)
             const cardsContainer = document.getElementById('digitalCardsContainer');
             if (!data.digitalCards || data.digitalCards.length === 0) {
                 cardsContainer.innerHTML = '<div class="empty-state">Нет сохраненных карт</div>';
             } else {
-                cardsContainer.innerHTML = data.digitalCards.map(card => {
-                    // Генерируем ссылку на картинку кода через надежные API
-                    let imageUrl = '';
-                    
-                    if (card.format === 'QR_CODE') {
-                        // API для QR-кодов
-                        imageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(card.value)}`;
-                    } else {
-                        // API для штрихкодов (bwip-js). Используем универсальный формат code128.
-                        imageUrl = `https://bwipjs-api.metafloor.com/?bcid=code128&text=${encodeURIComponent(card.value)}&includetext=false`;
-                    }
-
-                    return `
-                        <div class="glass-card full-width">
-                            <div class="card-header" style="border-bottom: none; margin-bottom: 0;">
-                                ${card.name}
-                                <button class="delete-btn" onclick="deleteDigitalCard(${card.id})">Удалить</button>
-                            </div>
-                            <div class="digital-card-container">
-                                <!-- Вставляем код как обычную картинку -->
-                                <img src="${imageUrl}" alt="Barcode" style="max-width: 100%; height: 80px; object-fit: contain;">
-                                <div style="margin-top: 15px; font-family: monospace; font-size: 16px; letter-spacing: 2px; text-align: center; word-break: break-all;">
-                                    ${card.value}
-                                </div>
+                cardsContainer.innerHTML = data.digitalCards.map(card => `
+                    <div class="glass-card full-width">
+                        <div class="card-header" style="border-bottom: none; margin-bottom: 0;">
+                            ${card.name}
+                            <button class="delete-btn" onclick="deleteDigitalCard(${card.id})">Удалить</button>
+                        </div>
+                        <div class="digital-card-container">
+                            <img id="img_barcode_${card.id}" alt="Загрузка кода..." style="max-width: 100%; height: 80px; object-fit: contain;">
+                            <div style="margin-top: 15px; font-family: monospace; font-size: 16px; letter-spacing: 2px; text-align: center; word-break: break-all;">
+                                ${card.value}
                             </div>
                         </div>
-                    `;
-                }).join('');
-            }
+                    </div>
+                `).join('');
 
-                // После вставки HTML, вызываем библиотеки для отрисовки графики
+                // Генерация в фоне (в памяти) и подстановка готовых картинок (base64)
                 setTimeout(() => {
                     data.digitalCards.forEach(card => {
+                        const imgElement = document.getElementById(`img_barcode_${card.id}`);
+                        if (!imgElement) return;
+
                         if (card.format === 'QR_CODE') {
-                            QRCode.toCanvas(document.getElementById(`barcode_${card.id}`), card.value, { width: 180, margin: 1 });
+                            QRCode.toDataURL(card.value, { width: 180, margin: 1 })
+                                .then(url => { 
+                                    imgElement.src = url; 
+                                    imgElement.style.height = '180px'; 
+                                })
+                                .catch(err => console.error(err));
                         } else {
                             try {
-                                JsBarcode(`#barcode_${card.id}`, card.value, { 
-                                    format: (card.format === 'EAN_13' ? 'EAN13' : 'CODE128'), // Поддержка форматов
-                                    width: 2, height: 80, displayValue: false, background: "transparent"
+                                // Создаем виртуальный холст вне страницы
+                                const tempCanvas = document.createElement('canvas');
+                                // Рисуем код в универсальном CODE128
+                                JsBarcode(tempCanvas, card.value, {
+                                    format: "CODE128",
+                                    displayValue: false,
+                                    background: "#ffffff",
+                                    lineColor: "#000000",
+                                    width: 2,
+                                    height: 80,
+                                    margin: 0
                                 });
-                            } catch(e) {
-                                // Запасной вариант, если формат специфичный
-                                JsBarcode(`#barcode_${card.id}`, card.value, { format: 'CODE128', width: 2, height: 80, displayValue: false, background: "transparent" });
+                                // Превращаем холст в картинку и отдаем тегу img
+                                imgElement.src = tempCanvas.toDataURL("image/png");
+                            } catch (e) {
+                                console.error("Ошибка штрихкода:", e);
+                                imgElement.alt = "Ошибка формата";
                             }
                         }
                     });
