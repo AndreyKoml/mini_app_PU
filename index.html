@@ -5,7 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ProdU - Glass OS</title>
     <link rel="icon" type="image/png" href="icon_newyear.png">
+    <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="icon_newyear.png">
+    <meta name="theme-color" content="#f7f7f5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="ProdU">
 
     <!-- Подключение библиотек -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -710,6 +714,189 @@
             return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]} ${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
         }
 
+        // ================= СВЯЗЬ С SERVICE WORKER (sw.js) =================
+        // Service worker не видит localStorage, поэтому список напоминаний копируется в IndexedDB.
+        const SWDB = {
+            open() {
+                return new Promise((res, rej) => {
+                    const r = indexedDB.open('produ-sw', 1);
+                    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+                    r.onsuccess = () => res(r.result);
+                    r.onerror = () => rej(r.error);
+                });
+            },
+            async get(key) {
+                const db = await this.open();
+                return new Promise((res, rej) => {
+                    const q = db.transaction('kv').objectStore('kv').get(key);
+                    q.onsuccess = () => res(q.result);
+                    q.onerror = () => rej(q.error);
+                });
+            },
+            async set(key, val) {
+                const db = await this.open();
+                return new Promise((res, rej) => {
+                    const tx = db.transaction('kv', 'readwrite');
+                    tx.objectStore('kv').put(val, key);
+                    tx.oncomplete = () => res();
+                    tx.onerror = () => rej(tx.error);
+                });
+            }
+        };
+
+        const absDate = s => { const d = parseYmd(s); return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]}`; };
+
+        function pendingReminders() {
+            return data.events
+                .filter(e => hasNotify(e) && !e.done && !e.notified)
+                .map(e => ({
+                    id: e.id,
+                    due: dueTime(e),
+                    title: `${(TYPE_INFO[e.type] || TYPE_INFO.reminder).icon} ${e.title}`,
+                    body: `${absDate(e.date)} в ${e.time}${e.notifyBefore ? ' (' + NOTIFY_LABELS[e.notifyBefore] + ')' : ''}`
+                }));
+        }
+
+        function syncRemindersToSW() {
+            if (!('indexedDB' in window) || !data) return;
+            SWDB.set('reminders', pendingReminders()).catch(() => {});
+        }
+
+        // ================= СЕРВЕР PUSH-УВЕДОМЛЕНИЙ =================
+        // Вставьте сюда адрес вашего Cloudflare Worker, например:
+        // const PUSH_SERVER = 'https://produ-push.ваше-имя.workers.dev';
+        // Пока строка пустая, сервер не используется.
+        const PUSH_SERVER = 'https://red-grass-1361.aerogool-frost-12.workers.dev/';
+
+        const PUSH_BASE = PUSH_SERVER.trim().replace(/\/+$/, '');
+        let pushState = 'off';          // off | on | error | unsupported
+        let pushSubscription = null;
+        let pushSyncTimer = null;
+
+        const b64uToBytes = s => {
+            const b = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4));
+            return Uint8Array.from(b, c => c.charCodeAt(0));
+        };
+        const bytesToB64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+        async function setupPush() {
+            if (!PUSH_BASE) return;
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) { pushState = 'unsupported'; renderNotifStatus(); return; }
+            if (!notifSupported() || Notification.permission !== 'granted') return;
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                const r = await fetch(PUSH_BASE + '/vapid');
+                if (!r.ok) throw new Error('vapid ' + r.status);
+                const { publicKey } = await r.json();
+
+                let sub = await reg.pushManager.getSubscription();
+                // Если ключ сервера сменился — переподписываемся
+                if (sub && sub.options && sub.options.applicationServerKey &&
+                    bytesToB64u(sub.options.applicationServerKey) !== publicKey) {
+                    await sub.unsubscribe();
+                    sub = null;
+                }
+                if (!sub) {
+                    sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uToBytes(publicKey) });
+                }
+                pushSubscription = sub;
+                await SWDB.set('pushConfig', { server: PUSH_BASE, publicKey }).catch(() => {});
+                await pushSyncNow();
+            } catch (e) {
+                console.warn('Push:', e);
+                pushState = 'error';
+            }
+            renderNotifStatus();
+        }
+
+        function schedulePushSync() {
+            if (!pushSubscription) return;
+            clearTimeout(pushSyncTimer);
+            pushSyncTimer = setTimeout(pushSyncNow, 1500);
+        }
+
+        async function pushSyncNow() {
+            if (!pushSubscription) return;
+            const prev = pushState;
+            try {
+                const r = await fetch(PUSH_BASE + '/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subscription: pushSubscription.toJSON(), reminders: pendingReminders() })
+                });
+                if (!r.ok) throw new Error('sync ' + r.status);
+                pushState = 'on';
+            } catch (e) {
+                console.warn('Push sync:', e);
+                pushState = 'error';
+            }
+            if (prev !== pushState) renderNotifStatus();
+        }
+
+        window.addEventListener('online', () => pushSyncNow());
+
+        // Напоминания, которые service worker уже показал, пока страница была закрыта
+        async function applySWFired() {
+            try {
+                if (!('indexedDB' in window)) return;
+                const fired = await SWDB.get('fired');
+                if (!fired || !fired.length) return;
+                let changed = false;
+                fired.forEach(id => {
+                    const ev = data.events.find(e => e.id === id);
+                    if (ev && !ev.notified) { ev.notified = true; changed = true; }
+                });
+                await SWDB.set('fired', []);
+                if (changed) { persist(); renderReminders(); }
+            } catch (e) {}
+        }
+
+        let bgSyncOn = false;
+        let deferredInstall = null;
+        const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+        async function registerPeriodicSync() {
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                if (!('periodicSync' in reg)) return false;
+                const st = await navigator.permissions.query({ name: 'periodic-background-sync' });
+                if (st.state !== 'granted') return false;
+                await reg.periodicSync.register('produ-reminders', { minInterval: 15 * 60 * 1000 });
+                bgSyncOn = true;
+                return true;
+            } catch (e) { return false; }
+        }
+
+        async function setupServiceWorker() {
+            if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
+            try {
+                await navigator.serviceWorker.register('sw.js');
+                await navigator.serviceWorker.ready;
+                syncRemindersToSW();
+                await registerPeriodicSync();
+            } catch (e) { console.warn('Service worker:', e); }
+            renderNotifStatus();
+            setupPush();
+        }
+
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            deferredInstall = e;
+            renderNotifStatus();
+        });
+        window.addEventListener('appinstalled', () => {
+            deferredInstall = null;
+            registerPeriodicSync().then(renderNotifStatus);
+        });
+
+        async function installApp() {
+            if (!deferredInstall) return;
+            deferredInstall.prompt();
+            try { await deferredInstall.userChoice; } catch (e) {}
+            deferredInstall = null;
+            renderNotifStatus();
+        }
+
         // ================= БАЗА ДАННЫХ =================
         let data = null;
         try { data = JSON.parse(localStorage.getItem('produ_v6_data')); } catch (e) { data = null; }
@@ -739,6 +926,8 @@
         function persist() {
             try { localStorage.setItem('produ_v6_data', JSON.stringify(data)); }
             catch (e) { alert('Не удалось сохранить: в памяти браузера закончилось место.'); }
+            syncRemindersToSW();
+            schedulePushSync();
         }
         function saveData() { persist(); renderAll(); }
         persist();
@@ -985,6 +1174,7 @@
             if (!notifSupported()) return;
             try { await Notification.requestPermission(); } catch (e) {}
             renderNotifStatus();
+            setupPush();
         }
 
         function askPermissionIfNeeded() {
@@ -1002,17 +1192,44 @@
             } else {
                 html = '<button class="glass-btn" onclick="requestNotif()" style="margin-bottom: 0;">🔔 Разрешить уведомления</button>';
             }
-            html += '<div class="hint">Напоминания срабатывают, пока страница открыта (в том числе в фоновой вкладке). Если страница была закрыта, пропущенные напоминания покажутся при следующем открытии.</div>';
+            if (deferredInstall) {
+                html += '<button class="glass-btn secondary" onclick="installApp()" style="margin: 12px 0 0;">📲 Установить как приложение</button>';
+            }
+
+            if (pushState === 'on') {
+                html += '<div class="hint">☁️ Сервер уведомлений подключён: напоминания придут вовремя, даже если приложение закрыто.</div>';
+                document.getElementById('notifStatus').innerHTML = html;
+                return;
+            }
+            if (pushState === 'error') {
+                html += '<div class="hint">⚠️ Сервер уведомлений сейчас недоступен (проверьте адрес PUSH_SERVER и интернет). Пока работают обычные уведомления.</div>';
+            } else if (pushState === 'unsupported') {
+                html += '<div class="hint">Этот браузер не поддерживает push-уведомления. На iPhone они работают только в приложении, добавленном на главный экран (iOS 16.4 и новее).</div>';
+            }
+
+            let bg;
+            if (location.protocol === 'file:') {
+                bg = '⚠️ Страница открыта как файл с компьютера. Фоновые функции работают, только если открыть её через сайт по https.';
+            } else if (bgSyncOn) {
+                bg = '🌙 Фоновая проверка включена: когда приложение закрыто, браузер сам время от времени проверяет напоминания. Он решает сам, когда это делать, поэтому уведомление может прийти с опозданием.';
+            } else if (!isStandalone()) {
+                bg = 'Если установить приложение (кнопка выше или меню браузера → «Установить приложение» / «Добавить на главный экран»), Chrome и Edge смогут проверять напоминания и при закрытом приложении, но не точно по времени.';
+            } else {
+                bg = 'Этот браузер не умеет проверять напоминания в фоне.';
+            }
+            html += `<div class="hint">Точно вовремя напоминания приходят, пока страница открыта (в том числе в фоновой вкладке). Пропущенные покажутся при следующем открытии.<br>${bg}</div>`;
             document.getElementById('notifStatus').innerHTML = html;
         }
 
-        async function sysNotify(title, body) {
+        async function sysNotify(title, body, tag) {
             if (!notifSupported() || Notification.permission !== 'granted') return;
+            // Одинаковый tag не даёт показать одно и то же уведомление дважды (странице и service worker)
+            const opts = { body, tag, icon: 'icon_newyear.png', data: { url: location.href } };
             try {
                 const reg = navigator.serviceWorker ? await navigator.serviceWorker.getRegistration() : null;
-                if (reg) { reg.showNotification(title, { body, icon: 'icon.png' }); return; }
-                new Notification(title, { body, icon: 'icon.png' });
-            } catch (e) { /* на некоторых мобильных браузерах без service worker не работает — останется уведомление на странице */ }
+                if (reg) { await reg.showNotification(title, opts); return; }
+                new Notification(title, opts);
+            } catch (e) { /* без service worker на Android не работает — останется уведомление на странице */ }
         }
 
         function showToast(title, body) {
@@ -1055,7 +1272,7 @@
             let body;
             if (ev.notifyBefore) body = `${prettyDate(ev.date)} в ${ev.time} (${NOTIFY_LABELS[ev.notifyBefore]})`;
             else body = late ? `Было запланировано: ${prettyDate(ev.date).toLowerCase()}, ${ev.time}` : `Сейчас ${ev.time}`;
-            sysNotify(title, body);
+            sysNotify(title, body, ev.id ? 'produ-' + ev.id : 'produ-test');
             showToast(title, body);
             playBeep();
             if (navigator.vibrate) { try { navigator.vibrate([200, 100, 200]); } catch (e) {} }
@@ -1084,7 +1301,7 @@
         }
 
         setInterval(checkReminders, 20000);
-        document.addEventListener('visibilitychange', () => { if (!document.hidden) checkReminders(); });
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) applySWFired().finally(checkReminders); });
 
         // ================= ДНЕВНИК =================
         let diaryFilter = 'all';
@@ -1392,7 +1609,8 @@
 
         renderAll();
         renderNotifStatus();
-        checkReminders();
+        applySWFired().finally(checkReminders);
+        setupServiceWorker();
     </script>
 </body>
 </html>
