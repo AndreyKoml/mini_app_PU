@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProdU - Glass OS</title>
+    <link rel="icon" type="image/png" href="icon_newyear.png">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon_newyear.png">
+    <meta name="theme-color" content="#f7f7f5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="ProdU">
+
+    <!-- Подключение библиотек -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+
+    <style>
+        /* --- CSS ПЕРЕМЕННЫЕ И ТЕМЫ --- */
+        :root {
+            --bg-color: #f7f7f5;
+            --text-color: #1a1a1a;
+            --accent-color: #8ce13b;
+            --glass-bg: rgba(255, 255, 255, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --glass-shadow: rgba(0, 0, 0, 0.05);
+            --icon-color: #333;
+            --danger: #ff4757;
+            --c-task: #8ce13b;
+            --c-reminder: #ffa502;
+            --c-event: #3b9cff;
+            --soft: rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #2b2b2b;
+            --text-color: #ffffff;
+            --glass-bg: rgba(40, 40, 40, 0.5);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-shadow: rgba(0, 0, 0, 0.3);
+            --icon-color: #fff;
+            --soft: rgba(255, 255, 255, 0.05);
+            color-scheme: dark;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 50px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .bg-logo {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 80vh;
+            font-weight: 900;
+            color: transparent;
+            -webkit-text-stroke: 4px var(--accent-color);
+            opacity: 0.15;
+            z-index: -1;
+            filter: blur(8px);
+            user-select: none;
+        }
+
+        .coin-counter {
+            position: fixed;
+            top: 20px;
+            right: 30px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+            font-size: 20px;
+            z-index: 10;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .dashboard {
+            display: none;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            width: 90%;
+            max-width: 800px;
+            z-index: 1;
+            margin-bottom: 120px;
+        }
+
+        @media (min-width: 600px) {
+            .dashboard { grid-template-columns: 1fr 1fr; }
+        }
+
+        .dashboard.active { display: grid; }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 8px 32px var(--glass-shadow);
+            transition: transform 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .glass-card.full-width, .full-width { grid-column: 1 / -1; }
+        .stack { display: flex; flex-direction: column; gap: 20px; width: 100%; }
+
+        .card-header {
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 10px;
+        }
+
+        .glass-input, .glass-select, .glass-btn {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--text-color);
+            box-sizing: border-box;
+            outline: none;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        [data-theme="dark"] .glass-input, [data-theme="dark"] .glass-select { background: rgba(0, 0, 0, 0.2); }
+        .glass-input::placeholder { color: inherit; opacity: 0.6; }
+        .glass-input:focus, .glass-select:focus { border-color: var(--accent-color); }
+        textarea.glass-input { resize: vertical; line-height: 1.5; min-height: 140px; }
+
+        .glass-btn {
+            background: var(--accent-color);
+            color: #000;
+            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            border: none;
+        }
+        .glass-btn:hover { opacity: 0.8; }
+        .glass-btn.secondary { background: rgba(0,0,0,0.1); color: var(--text-color); border: 1px solid var(--glass-border); }
+        [data-theme="dark"] .glass-btn.secondary { background: rgba(255,255,255,0.1); }
+        .glass-btn.compact { width: auto; margin: 0; padding: 8px 14px; white-space: nowrap; }
+
+        .flex-row { display: flex; gap: 10px; }
+        .flex-row > * { min-width: 0; }
+
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px;
+            background: var(--soft);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .list-item-left { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
+        .list-item input[type="checkbox"] { accent-color: var(--accent-color); width: 18px; height: 18px; cursor: pointer; flex-shrink: 0; }
+        .item-text { overflow-wrap: anywhere; }
+
+        .delete-btn {
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+
+        .icon-btn {
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 5px 8px;
+            cursor: pointer;
+            color: inherit;
+            font-size: 14px;
+            line-height: 1;
+            filter: grayscale(1);
+            opacity: 0.7;
+            transition: all 0.2s;
+        }
+        .icon-btn:hover { opacity: 1; filter: none; }
+        .icon-btn.on { background: var(--accent-color); filter: none; opacity: 1; border-color: var(--accent-color); }
+
+        .balance-display { font-size: 2rem; font-weight: bold; text-align: center; margin-bottom: 20px; }
+        .income-text { color: var(--accent-color); font-weight: bold; }
+        .expense-text { color: var(--danger); font-weight: bold; }
+
+        .dock {
+            position: fixed;
+            bottom: 30px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            padding: 10px 15px;
+            border-radius: 30px;
+            box-shadow: 0 8px 32px var(--glass-shadow);
+            z-index: 100;
+        }
+
+        .dock-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: 50%;
+            transition: all 0.2s;
+            color: var(--icon-color);
+            font-size: 18px;
+            position: relative;
+        }
+        .dock-icon:hover { background: rgba(128, 128, 128, 0.2); transform: translateY(-3px); }
+        .dock-icon.active { background: var(--accent-color); color: #000; box-shadow: 0 0 10px var(--accent-color); }
+        .dock-badge {
+            position: absolute; top: -2px; right: -2px;
+            background: var(--c-reminder); color: #000;
+            font-size: 10px; font-weight: bold;
+            min-width: 16px; height: 16px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center; padding: 0 3px; box-sizing: border-box;
+        }
+        .dock-badge:empty { display: none; }
+
+        .theme-switch {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 44px;
+            height: 24px;
+            background: rgba(128,128,128,0.3);
+            border-radius: 20px;
+            position: relative;
+            cursor: pointer;
+            outline: none;
+            margin-left: 5px;
+            flex-shrink: 0;
+        }
+        .theme-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .theme-switch:checked { background: var(--accent-color); }
+        .theme-switch:checked::after { transform: translateX(20px); }
+
+        .empty-state { text-align: center; opacity: 0.5; padding: 20px; font-style: italic; }
+        .day-badge { background: var(--accent-color); color: #000; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; white-space: nowrap; }
+        .day-badge:empty { display: none; }
+        .hint { font-size: 12px; opacity: 0.6; margin-top: 8px; line-height: 1.4; }
+
+        /* --- ТИПЫ ЗАПИСЕЙ --- */
+        .t-task { --tc: var(--c-task); }
+        .t-reminder { --tc: var(--c-reminder); }
+        .t-event { --tc: var(--c-event); }
+        .type-badge {
+            font-size: 11px; padding: 2px 7px; border-radius: 8px; white-space: nowrap; flex-shrink: 0;
+            background: color-mix(in srgb, var(--tc) 30%, transparent);
+        }
+        .time-badge { font-family: monospace; font-weight: bold; font-size: 13px; flex-shrink: 0; }
+        .time-badge.allday { font-family: inherit; font-weight: normal; font-size: 11px; opacity: 0.6; }
+        .list-item.t-task, .list-item.t-reminder, .list-item.t-event { border-left: 3px solid var(--tc); }
+        .notify-mark { font-size: 11px; opacity: 0.65; white-space: nowrap; }
+
+        /* --- КАЛЕНДАРЬ --- */
+        .cal-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+        .cal-title { font-weight: 700; font-size: 1.2rem; text-align: center; flex: 1; }
+        .nav-btn {
+            width: 38px; height: 38px; border-radius: 50%;
+            border: 1px solid var(--glass-border); background: var(--glass-bg);
+            color: inherit; font-size: 20px; cursor: pointer; flex-shrink: 0;
+        }
+        .nav-btn:hover { background: rgba(128,128,128,0.2); }
+
+        .segmented { display: flex; background: rgba(128,128,128,0.15); border-radius: 12px; padding: 3px; gap: 3px; }
+        .segmented button {
+            flex: 1; border: none; background: transparent; color: inherit;
+            padding: 8px 12px; border-radius: 9px; cursor: pointer; font-weight: 600; font-family: inherit;
+        }
+        .segmented button.active { background: var(--accent-color); color: #000; }
+
+        .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+        .cal-dow { text-align: center; font-size: 12px; opacity: 0.6; padding-bottom: 4px; font-weight: 600; }
+        .cal-day {
+            min-height: 82px; border-radius: 10px; padding: 4px; background: var(--soft);
+            cursor: pointer; display: flex; flex-direction: column; gap: 2px; font-size: 12px;
+            overflow: hidden; border: 2px solid transparent; transition: border-color 0.15s;
+        }
+        .cal-day:hover { border-color: rgba(128,128,128,0.3); }
+        .cal-day.other { opacity: 0.35; }
+        .cal-day .num {
+            font-weight: 600; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; flex-shrink: 0;
+        }
+        .cal-day.today .num { background: var(--accent-color); color: #000; }
+        .cal-day.selected { border-color: var(--accent-color); }
+        .cal-chips { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .cal-chip {
+            font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            border-radius: 4px; padding: 1px 4px;
+            background: color-mix(in srgb, var(--tc) 28%, transparent);
+            border-left: 3px solid var(--tc);
+        }
+        .cal-chip.done { text-decoration: line-through; opacity: 0.55; }
+        .cal-more { font-size: 10px; opacity: 0.6; padding-left: 4px; }
+        .cal-dots { display: none; gap: 3px; flex-wrap: wrap; justify-content: center; margin-top: auto; padding-bottom: 2px; }
+        .cal-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--tc); display: inline-block; }
+        .cal-legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; opacity: 0.75; margin-top: 12px; }
+        .cal-legend span { display: flex; align-items: center; gap: 5px; }
+
+        .week-row {
+            display: flex; gap: 12px; padding: 10px; border-radius: 12px; background: var(--soft);
+            margin-bottom: 6px; cursor: pointer; border: 2px solid transparent;
+        }
+        .week-row.selected { border-color: var(--accent-color); }
+        .week-row .wd { width: 44px; flex-shrink: 0; text-align: center; }
+        .week-row .wd-name { font-size: 12px; opacity: 0.6; }
+        .week-row .n { font-size: 20px; font-weight: 700; }
+        .week-row.today .n { color: var(--accent-color); }
+        .week-items { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; justify-content: center; }
+        .week-items .cal-chip { font-size: 13px; padding: 4px 8px; border-radius: 6px; }
+        .week-empty { font-size: 13px; opacity: 0.4; font-style: italic; }
+
+        .add-box { margin-top: 10px; padding-top: 15px; border-top: 1px solid var(--glass-border); }
+
+        /* --- ЧИПЫ --- */
+        .chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+        .chip {
+            border: 1px solid var(--glass-border); background: var(--soft); color: inherit;
+            padding: 6px 12px; border-radius: 16px; cursor: pointer; font-size: 13px; font-family: inherit;
+        }
+        .chip.active { background: var(--accent-color); color: #000; border-color: var(--accent-color); font-weight: 600; }
+        .chip.small { padding: 3px 9px; font-size: 12px; }
+
+        /* --- ДНЕВНИК --- */
+        .diary-entry.pinned { border-left: 4px solid var(--accent-color); }
+        .diary-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+        .diary-title { font-weight: 700; font-size: 1.1rem; overflow-wrap: anywhere; }
+        .diary-meta { font-size: 12px; opacity: 0.6; margin-top: 3px; }
+        .diary-actions { display: flex; gap: 5px; flex-shrink: 0; }
+        .diary-body { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.55; margin-top: 12px; font-size: 15px; }
+        .diary-body.clamped {
+            display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; cursor: pointer;
+        }
+        .diary-more { font-size: 13px; color: var(--accent-color); cursor: pointer; margin-top: 6px; font-weight: 600; }
+        [data-theme="dark"] .diary-more { color: var(--accent-color); }
+        .tag-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+        .check-label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; margin-bottom: 10px; }
+        .check-label input { accent-color: var(--accent-color); width: 18px; height: 18px; }
+
+        /* --- УВЕДОМЛЕНИЯ (TOAST) --- */
+        #toastContainer {
+            position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 1000;
+            display: flex; flex-direction: column; gap: 10px; width: min(92vw, 380px); pointer-events: none;
+        }
+        .toast {
+            pointer-events: auto; display: flex; gap: 10px; align-items: flex-start;
+            background: var(--glass-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border); border-left: 4px solid var(--c-reminder);
+            border-radius: 14px; padding: 14px; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            animation: toastIn 0.3s ease;
+        }
+        .toast-title { font-weight: 700; overflow-wrap: anywhere; }
+        .toast-body { font-size: 13px; opacity: 0.75; margin-top: 3px; }
+        @keyframes toastIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+
+        /* --- КАРТЫ --- */
+        .digital-card-container {
+            background: #ffffff;
+            padding: 15px;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+            color: #000;
+        }
+        #qrReader {
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            display: none;
+            border: 2px solid var(--accent-color);
+        }
+
+        @media (max-width: 600px) {
+            body { padding-top: 64px; }
+            .coin-counter { top: 12px; right: 12px; font-size: 16px; padding: 6px 14px; }
+            .dashboard { width: calc(100% - 24px); }
+            .glass-card { padding: 16px; }
+            .dock { gap: 3px; padding: 8px 10px; bottom: 16px; }
+            .dock-icon { width: 36px; height: 36px; font-size: 17px; }
+            .theme-switch { width: 38px; height: 22px; }
+            .theme-switch::after { width: 18px; height: 18px; }
+            .theme-switch:checked::after { transform: translateX(16px); }
+            .cal-day { min-height: 46px; align-items: center; }
+            .cal-chips { display: none; }
+            .cal-dots { display: flex; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-logo">U</div>
+
+    <div class="coin-counter" id="coinCounter">
+        🪙 <span id="coinValue">0</span>
+    </div>
+
+    <div id="toastContainer"></div>
+
+    <div id="mainAppContainer" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+
+        <!-- КАЛЕНДАРЬ -->
+        <div class="dashboard active" id="module-calendar">
+            <div class="glass-card full-width">
+                <div class="cal-toolbar">
+                    <button class="nav-btn" onclick="calNav(-1)" aria-label="Назад">‹</button>
+                    <div class="cal-title" id="calTitle"></div>
+                    <button class="nav-btn" onclick="calNav(1)" aria-label="Вперёд">›</button>
+                </div>
+                <div class="flex-row" style="margin-bottom: 12px;">
+                    <div class="segmented" id="calViewSwitch" style="flex: 1;">
+                        <button data-view="month" class="active" onclick="setCalView('month')">Месяц</button>
+                        <button data-view="week" onclick="setCalView('week')">Неделя</button>
+                    </div>
+                    <button class="glass-btn secondary compact" onclick="calToday()">Сегодня</button>
+                </div>
+                <div id="calBody" class="cal-grid"></div>
+                <div class="cal-legend">
+                    <span><i class="cal-dot t-task"></i>Дела</span>
+                    <span><i class="cal-dot t-reminder"></i>Напоминания</span>
+                    <span><i class="cal-dot t-event"></i>События</span>
+                </div>
+            </div>
+
+            <div class="glass-card full-width">
+                <div class="card-header">
+                    <span id="dayTitle"></span>
+                    <span id="dayProgress" class="day-badge"></span>
+                </div>
+                <div id="dayEvents"></div>
+                <div class="add-box">
+                    <input type="text" id="evTitle" class="glass-input" placeholder="Добавить дело, событие или напоминание">
+                    <div class="flex-row">
+                        <select id="evType" class="glass-select">
+                            <option value="task">✅ Дело</option>
+                            <option value="reminder">🔔 Напоминание</option>
+                            <option value="event">📌 Событие</option>
+                        </select>
+                        <input type="time" id="evTime" class="glass-input" title="Время (необязательно)">
+                    </div>
+                    <select id="evNotify" class="glass-select">
+                        <option value="">Без уведомления</option>
+                        <option value="0">Уведомить в момент события</option>
+                        <option value="5">Уведомить за 5 минут</option>
+                        <option value="15">Уведомить за 15 минут</option>
+                        <option value="30">Уведомить за 30 минут</option>
+                        <option value="60">Уведомить за 1 час</option>
+                        <option value="1440">Уведомить за 1 день</option>
+                    </select>
+                    <button class="glass-btn" onclick="addEvent()">Добавить на этот день</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- НАПОМИНАНИЯ -->
+        <div class="dashboard" id="module-reminders">
+            <div class="glass-card full-width">
+                <div class="card-header">Уведомления</div>
+                <div id="notifStatus"></div>
+            </div>
+
+            <div class="glass-card">
+                <div class="card-header">Новое напоминание</div>
+                <input type="text" id="remTitle" class="glass-input" placeholder="О чём напомнить?">
+                <div class="chip-row" style="margin-bottom: 10px;">
+                    <button class="chip small" onclick="remPreset(10)">+10 мин</button>
+                    <button class="chip small" onclick="remPreset(30)">+30 мин</button>
+                    <button class="chip small" onclick="remPreset(60)">+1 час</button>
+                    <button class="chip small" onclick="remPreset('tomorrow')">Завтра 9:00</button>
+                </div>
+                <div class="flex-row">
+                    <input type="date" id="remDate" class="glass-input">
+                    <input type="time" id="remTime" class="glass-input">
+                </div>
+                <select id="remNotify" class="glass-select">
+                    <option value="0">В указанное время</option>
+                    <option value="5">За 5 минут</option>
+                    <option value="15">За 15 минут</option>
+                    <option value="30">За 30 минут</option>
+                    <option value="60">За 1 час</option>
+                    <option value="1440">За 1 день</option>
+                </select>
+                <button class="glass-btn" onclick="addReminder()">Добавить напоминание</button>
+            </div>
+
+            <div class="glass-card">
+                <div class="card-header">Предстоящие <span id="remCount" class="day-badge"></span></div>
+                <div id="remUpcoming"></div>
+            </div>
+
+            <div class="glass-card full-width">
+                <div class="card-header">Прошедшие <button class="delete-btn" onclick="clearPastReminders()">Очистить</button></div>
+                <div id="remPast"></div>
+            </div>
+        </div>
+
+        <!-- ДНЕВНИК -->
+        <div class="dashboard" id="module-diary">
+            <div class="glass-card full-width">
+                <div class="card-header">
+                    Дневник
+                    <button class="glass-btn compact" onclick="openDiaryEditor()">+ Новая запись</button>
+                </div>
+                <input type="text" id="diarySearchInput" class="glass-input" placeholder="🔍 Поиск по записям" oninput="setDiarySearch(this.value)">
+                <div id="diaryChips" class="chip-row"></div>
+            </div>
+
+            <div class="glass-card full-width" id="diaryEditor" style="display: none;">
+                <div class="card-header" id="diaryEditorTitle">Новая запись</div>
+                <input type="text" id="diaryTitle" class="glass-input" placeholder="Заголовок">
+                <textarea id="diaryBody" class="glass-input" rows="8" placeholder="О чём хочется написать?"></textarea>
+                <input type="text" id="diaryTags" class="glass-input" placeholder="Метки через запятую: работа, идеи, путешествия">
+                <div class="flex-row" style="gap: 20px;">
+                    <label class="check-label"><input type="checkbox" id="diaryPinned"> 📌 Закрепить</label>
+                    <label class="check-label"><input type="checkbox" id="diaryBookmarked"> 🔖 В закладки</label>
+                </div>
+                <div class="flex-row">
+                    <button class="glass-btn" onclick="saveDiaryEntry()">Сохранить</button>
+                    <button class="glass-btn secondary" onclick="closeDiaryEditor()">Отмена</button>
+                </div>
+            </div>
+
+            <div id="diaryList" class="full-width stack"></div>
+        </div>
+
+        <!-- СПИСКИ -->
+        <div class="dashboard" id="module-tasks">
+            <div class="glass-card full-width">
+                <div class="card-header">Создать новый список</div>
+                <div class="flex-row">
+                    <input type="text" id="newListTitle" class="glass-input" placeholder="Название (Например: Покупки)" style="margin-bottom: 0;">
+                    <button class="glass-btn" onclick="createNewList()" style="width: auto; white-space: nowrap; margin-bottom: 0;">Создать</button>
+                </div>
+            </div>
+            <div id="customListsContainer" class="full-width stack"></div>
+        </div>
+
+        <!-- КАРТЫ (ШТРИХКОДЫ) -->
+        <div class="dashboard" id="module-cards">
+            <div class="glass-card full-width">
+                <div class="card-header">Оцифровка карты</div>
+
+                <div id="qrReader"></div>
+
+                <button class="glass-btn" id="btnStartCardScan" onclick="startCardScanner()">📷 Сканировать штрих/QR код</button>
+                <button class="glass-btn secondary" id="btnStopCardScan" onclick="stopCardScanner()" style="display: none;">Отмена сканирования</button>
+
+                <div id="scanResultForm" style="display: none; margin-top: 15px;">
+                    <div style="margin-bottom: 10px; font-weight: bold; color: var(--accent-color);">✅ Код распознан!</div>
+                    <input type="hidden" id="scannedCodeValue">
+                    <input type="hidden" id="scannedCodeFormat">
+                    <input type="text" id="cardNameInput" class="glass-input" placeholder="Название магазина или карты">
+                    <button class="glass-btn" onclick="saveCard()">💾 Сохранить виртуальную карту</button>
+                </div>
+            </div>
+
+            <div id="digitalCardsContainer" class="full-width" style="display: flex; flex-direction: column; gap: 15px; width: 100%;"></div>
+        </div>
+
+        <!-- ФИНАНСЫ -->
+        <div class="dashboard" id="module-finance">
+            <div class="glass-card full-width">
+                <div class="card-header" style="justify-content: center;">Текущий баланс</div>
+                <div class="balance-display" id="balanceDisplay">0 ₽</div>
+            </div>
+            <div class="glass-card">
+                <div class="card-header">Новая операция</div>
+                <input type="number" id="financeAmount" class="glass-input" placeholder="Сумма (₽)">
+                <select id="financeType" class="glass-select">
+                    <option value="income">Доход (+)</option>
+                    <option value="expense">Расход (-)</option>
+                </select>
+                <input type="text" id="financeDesc" class="glass-input" placeholder="Описание">
+                <button class="glass-btn" onclick="addTransaction()">Сохранить</button>
+            </div>
+            <div class="glass-card">
+                <div class="card-header">История</div>
+                <div id="financeList"></div>
+            </div>
+        </div>
+
+        <!-- НАВИГАЦИОННОЕ МЕНЮ (DOCK) -->
+        <div class="dock" id="mainDock">
+            <div class="dock-icon active" title="Календарь" onclick="switchTab('calendar', this)">📅</div>
+            <div class="dock-icon" title="Напоминания" onclick="switchTab('reminders', this)">🔔<span class="dock-badge" id="remDockBadge"></span></div>
+            <div class="dock-icon" title="Дневник" onclick="switchTab('diary', this)">📔</div>
+            <div class="dock-icon" title="Списки" onclick="switchTab('tasks', this)">📋</div>
+            <div class="dock-icon" title="Финансы" onclick="switchTab('finance', this)">💰</div>
+            <div class="dock-icon" title="Карты" onclick="switchTab('cards', this)">💳</div>
+            <div style="width: 1px; height: 30px; background: var(--glass-border); margin: 0 2px;"></div>
+            <input type="checkbox" class="theme-switch" id="themeToggle" title="Смена темы">
+        </div>
+    </div>
+
+    <script>
+        // ================= ТЕМА =================
+        const themeToggle = document.getElementById('themeToggle');
+        if (localStorage.getItem('produ_theme') === 'dark') {
+            document.body.setAttribute('data-theme', 'dark');
+            themeToggle.checked = true;
+        }
+        themeToggle.addEventListener('change', (e) => {
+            if (e.target.checked) { document.body.setAttribute('data-theme', 'dark'); localStorage.setItem('produ_theme', 'dark'); }
+            else { document.body.removeAttribute('data-theme'); localStorage.setItem('produ_theme', 'light'); }
+        });
+
+        // ================= УТИЛИТЫ =================
+        const pad = n => String(n).padStart(2, '0');
+        const ymd = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const parseYmd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+        const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+        const startOfWeek = d => { const r = new Date(d.getFullYear(), d.getMonth(), d.getDate()); return addDays(r, -((r.getDay() + 6) % 7)); };
+        const todayStr = () => ymd(new Date());
+        let uidCounter = 0;
+        const uid = () => Date.now() * 100 + (uidCounter++ % 100);
+
+        function esc(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        const MONTHS = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+        const MONTHS_GEN = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+        const WD_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+        const TYPE_INFO = {
+            task: { icon: '✅', label: 'Дело' },
+            reminder: { icon: '🔔', label: 'Напоминание' },
+            event: { icon: '📌', label: 'Событие' }
+        };
+        const NOTIFY_LABELS = { 0: 'в момент события', 5: 'за 5 мин', 15: 'за 15 мин', 30: 'за 30 мин', 60: 'за 1 час', 1440: 'за 1 день' };
+
+        function eventStart(ev) {
+            const d = parseYmd(ev.date);
+            if (ev.time) { const [h, m] = ev.time.split(':').map(Number); d.setHours(h, m, 0, 0); }
+            return d.getTime();
+        }
+        const hasNotify = ev => !!ev.time && ev.notifyBefore !== null && ev.notifyBefore !== undefined;
+        const dueTime = ev => eventStart(ev) - (ev.notifyBefore || 0) * 60000;
+
+        function relTime(ts) {
+            const diff = ts - Date.now();
+            const min = Math.round(Math.abs(diff) / 60000);
+            if (min < 1) return diff >= 0 ? 'меньше чем через минуту' : 'только что';
+            let s;
+            if (min < 60) s = min + ' мин';
+            else if (min < 1440) s = Math.round(min / 60) + ' ч';
+            else s = Math.round(min / 1440) + ' дн';
+            return diff >= 0 ? 'через ' + s : s + ' назад';
+        }
+
+        function prettyDate(s) {
+            if (s === todayStr()) return 'Сегодня';
+            if (s === ymd(addDays(new Date(), 1))) return 'Завтра';
+            if (s === ymd(addDays(new Date(), -1))) return 'Вчера';
+            const d = parseYmd(s);
+            return d.getDate() + ' ' + MONTHS_GEN[d.getMonth()] + (d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : '');
+        }
+
+        function fmtDateTime(ts) {
+            const d = new Date(ts);
+            return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]} ${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
+        // ================= СВЯЗЬ С SERVICE WORKER (sw.js) =================
+        // Service worker не видит localStorage, поэтому список напоминаний копируется в IndexedDB.
+        const SWDB = {
+            open() {
+                return new Promise((res, rej) => {
+                    const r = indexedDB.open('produ-sw', 1);
+                    r.onupgradeneeded = () => r.result.createObjectStore('kv');
+                    r.onsuccess = () => res(r.result);
+                    r.onerror = () => rej(r.error);
+                });
+            },
+            async get(key) {
+                const db = await this.open();
+                return new Promise((res, rej) => {
+                    const q = db.transaction('kv').objectStore('kv').get(key);
+                    q.onsuccess = () => res(q.result);
+                    q.onerror = () => rej(q.error);
+                });
+            },
+            async set(key, val) {
+                const db = await this.open();
+                return new Promise((res, rej) => {
+                    const tx = db.transaction('kv', 'readwrite');
+                    tx.objectStore('kv').put(val, key);
+                    tx.oncomplete = () => res();
+                    tx.onerror = () => rej(tx.error);
+                });
+            }
+        };
+
+        const absDate = s => { const d = parseYmd(s); return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]}`; };
+
+        function pendingReminders() {
+            return data.events
+                .filter(e => hasNotify(e) && !e.done && !e.notified)
+                .map(e => ({
+                    id: e.id,
+                    due: dueTime(e),
+                    title: `${(TYPE_INFO[e.type] || TYPE_INFO.reminder).icon} ${e.title}`,
+                    body: `${absDate(e.date)} в ${e.time}${e.notifyBefore ? ' (' + NOTIFY_LABELS[e.notifyBefore] + ')' : ''}`
+                }));
+        }
+
+        function syncRemindersToSW() {
+            if (!('indexedDB' in window) || !data) return;
+            SWDB.set('reminders', pendingReminders()).catch(() => {});
+        }
+
+        // ================= СЕРВЕР PUSH-УВЕДОМЛЕНИЙ =================
+        // Вставьте сюда адрес вашего Cloudflare Worker, например:
+        // const PUSH_SERVER = 'https://produ-push.ваше-имя.workers.dev';
+        // Пока строка пустая, сервер не используется.
+        const PUSH_SERVER = '';
+
+        const PUSH_BASE = PUSH_SERVER.trim().replace(/\/+$/, '');
+        let pushState = 'off';          // off | on | error | unsupported
+        let pushSubscription = null;
+        let pushSyncTimer = null;
+
+        const b64uToBytes = s => {
+            const b = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4));
+            return Uint8Array.from(b, c => c.charCodeAt(0));
+        };
+        const bytesToB64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+        async function setupPush() {
+            if (!PUSH_BASE) return;
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) { pushState = 'unsupported'; renderNotifStatus(); return; }
+            if (!notifSupported() || Notification.permission !== 'granted') return;
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                const r = await fetch(PUSH_BASE + '/vapid');
+                if (!r.ok) throw new Error('vapid ' + r.status);
+                const { publicKey } = await r.json();
+
+                let sub = await reg.pushManager.getSubscription();
+                // Если ключ сервера сменился — переподписываемся
+                if (sub && sub.options && sub.options.applicationServerKey &&
+                    bytesToB64u(sub.options.applicationServerKey) !== publicKey) {
+                    await sub.unsubscribe();
+                    sub = null;
+                }
+                if (!sub) {
+                    sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uToBytes(publicKey) });
+                }
+                pushSubscription = sub;
+                await SWDB.set('pushConfig', { server: PUSH_BASE, publicKey }).catch(() => {});
+                await pushSyncNow();
+            } catch (e) {
+                console.warn('Push:', e);
+                pushState = 'error';
+            }
+            renderNotifStatus();
+        }
+
+        function schedulePushSync() {
+            if (!pushSubscription) return;
+            clearTimeout(pushSyncTimer);
+            pushSyncTimer = setTimeout(pushSyncNow, 1500);
+        }
+
+        async function pushSyncNow() {
+            if (!pushSubscription) return;
+            const prev = pushState;
+            try {
+                const r = await fetch(PUSH_BASE + '/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ subscription: pushSubscription.toJSON(), reminders: pendingReminders() })
+                });
+                if (!r.ok) throw new Error('sync ' + r.status);
+                pushState = 'on';
+            } catch (e) {
+                console.warn('Push sync:', e);
+                pushState = 'error';
+            }
+            if (prev !== pushState) renderNotifStatus();
+        }
+
+        window.addEventListener('online', () => pushSyncNow());
+
+        // Напоминания, которые service worker уже показал, пока страница была закрыта
+        async function applySWFired() {
+            try {
+                if (!('indexedDB' in window)) return;
+                const fired = await SWDB.get('fired');
+                if (!fired || !fired.length) return;
+                let changed = false;
+                fired.forEach(id => {
+                    const ev = data.events.find(e => e.id === id);
+                    if (ev && !ev.notified) { ev.notified = true; changed = true; }
+                });
+                await SWDB.set('fired', []);
+                if (changed) { persist(); renderReminders(); }
+            } catch (e) {}
+        }
+
+        let bgSyncOn = false;
+        let deferredInstall = null;
+        const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+        async function registerPeriodicSync() {
+            try {
+                const reg = await navigator.serviceWorker.ready;
+                if (!('periodicSync' in reg)) return false;
+                const st = await navigator.permissions.query({ name: 'periodic-background-sync' });
+                if (st.state !== 'granted') return false;
+                await reg.periodicSync.register('produ-reminders', { minInterval: 15 * 60 * 1000 });
+                bgSyncOn = true;
+                return true;
+            } catch (e) { return false; }
+        }
+
+        async function setupServiceWorker() {
+            if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
+            try {
+                await navigator.serviceWorker.register('sw.js');
+                await navigator.serviceWorker.ready;
+                syncRemindersToSW();
+                await registerPeriodicSync();
+            } catch (e) { console.warn('Service worker:', e); }
+            renderNotifStatus();
+            setupPush();
+        }
+
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            deferredInstall = e;
+            renderNotifStatus();
+        });
+        window.addEventListener('appinstalled', () => {
+            deferredInstall = null;
+            registerPeriodicSync().then(renderNotifStatus);
+        });
+
+        async function installApp() {
+            if (!deferredInstall) return;
+            deferredInstall.prompt();
+            try { await deferredInstall.userChoice; } catch (e) {}
+            deferredInstall = null;
+            renderNotifStatus();
+        }
+
+        // ================= БАЗА ДАННЫХ =================
+        let data = null;
+        try { data = JSON.parse(localStorage.getItem('produ_v6_data')); } catch (e) { data = null; }
+        data = data || {};
+        if (!data.lists) data.lists = [];
+        if (!data.finance) data.finance = [];
+        if (!data.digitalCards) data.digitalCards = [];
+        if (!data.diary) data.diary = [];
+        if (!data.coins) data.coins = 0;
+
+        // Перенос старого расписания (задачи на день/неделю) в календарь
+        if (!data.events) {
+            data.events = [];
+            const dayIndex = { 'Пн': 0, 'Вт': 1, 'Ср': 2, 'Чт': 3, 'Пт': 4, 'Сб': 5, 'Вс': 6 };
+            (data.schedule || []).forEach(t => {
+                const created = new Date(t.id);
+                const date = t.type === 'week' ? addDays(startOfWeek(created), dayIndex[t.day] ?? 0) : created;
+                data.events.push({
+                    id: t.id, date: ymd(date), time: '', title: t.text, type: 'task',
+                    notifyBefore: null, done: !!t.done, rewarded: !!t.done, notified: false
+                });
+            });
+        }
+        delete data.schedule;
+        delete data.photos; // раздел фото удалён — освобождаем место в памяти браузера
+
+        function persist() {
+            try { localStorage.setItem('produ_v6_data', JSON.stringify(data)); }
+            catch (e) { alert('Не удалось сохранить: в памяти браузера закончилось место.'); }
+            syncRemindersToSW();
+            schedulePushSync();
+        }
+        function saveData() { persist(); renderAll(); }
+        persist();
+
+        // ================= ВКЛАДКИ =================
+        function switchTab(moduleName, element) {
+            document.querySelectorAll('#mainAppContainer .dashboard').forEach(el => el.classList.remove('active'));
+            document.getElementById(`module-${moduleName}`).classList.add('active');
+            document.querySelectorAll('.dock-icon').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+
+            if (moduleName !== 'cards') stopCardScanner();
+            if (moduleName === 'reminders') { renderReminders(); renderNotifStatus(); }
+        }
+
+        // ================= КАЛЕНДАРЬ =================
+        let calView = 'month';
+        let selectedDate = todayStr();
+        let calCursor = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
+
+        function eventsOn(s) {
+            return data.events.filter(e => e.date === s).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+        }
+
+        function setCalView(v) {
+            calView = v;
+            document.querySelectorAll('#calViewSwitch button').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+            if (v === 'month') { const d = parseYmd(selectedDate); calCursor = new Date(d.getFullYear(), d.getMonth(), 1); }
+            renderCalendar();
+        }
+
+        function calNav(dir) {
+            if (calView === 'month') calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() + dir, 1);
+            else selectedDate = ymd(addDays(parseYmd(selectedDate), 7 * dir));
+            renderCalendar();
+        }
+
+        function calToday() {
+            selectedDate = todayStr();
+            const d = new Date();
+            calCursor = new Date(d.getFullYear(), d.getMonth(), 1);
+            renderCalendar();
+        }
+
+        function calSelect(s) {
+            selectedDate = s;
+            const d = parseYmd(s);
+            if (calView === 'month' && (d.getMonth() !== calCursor.getMonth() || d.getFullYear() !== calCursor.getFullYear())) {
+                calCursor = new Date(d.getFullYear(), d.getMonth(), 1);
+            }
+            renderCalendar();
+        }
+
+        function chipHtml(e) {
+            return `<div class="cal-chip t-${e.type} ${e.done ? 'done' : ''}">${e.time ? e.time + ' ' : ''}${esc(e.title)}</div>`;
+        }
+
+        function renderCalendar() {
+            const body = document.getElementById('calBody');
+            const title = document.getElementById('calTitle');
+            const t = todayStr();
+            let html = '';
+
+            if (calView === 'month') {
+                title.textContent = `${MONTHS[calCursor.getMonth()]} ${calCursor.getFullYear()}`;
+                const offset = (calCursor.getDay() + 6) % 7;
+                const daysInMonth = new Date(calCursor.getFullYear(), calCursor.getMonth() + 1, 0).getDate();
+                const cells = Math.ceil((offset + daysInMonth) / 7) * 7;
+                const start = addDays(calCursor, -offset);
+
+                html = WD_SHORT.map(w => `<div class="cal-dow">${w}</div>`).join('');
+                for (let i = 0; i < cells; i++) {
+                    const d = addDays(start, i);
+                    const s = ymd(d);
+                    const evs = eventsOn(s);
+                    const cls = ['cal-day'];
+                    if (d.getMonth() !== calCursor.getMonth()) cls.push('other');
+                    if (s === t) cls.push('today');
+                    if (s === selectedDate) cls.push('selected');
+                    const chips = evs.slice(0, 3).map(chipHtml).join('') + (evs.length > 3 ? `<div class="cal-more">+${evs.length - 3}</div>` : '');
+                    const dots = evs.slice(0, 4).map(e => `<span class="cal-dot t-${e.type}"></span>`).join('');
+                    html += `<div class="${cls.join(' ')}" onclick="calSelect('${s}')"><span class="num">${d.getDate()}</span><div class="cal-chips">${chips}</div><div class="cal-dots">${dots}</div></div>`;
+                }
+                body.className = 'cal-grid';
+            } else {
+                const mon = startOfWeek(parseYmd(selectedDate));
+                const sun = addDays(mon, 6);
+                title.textContent = `${mon.getDate()} ${MONTHS_GEN[mon.getMonth()]} – ${sun.getDate()} ${MONTHS_GEN[sun.getMonth()]}`;
+                for (let i = 0; i < 7; i++) {
+                    const d = addDays(mon, i);
+                    const s = ymd(d);
+                    const evs = eventsOn(s);
+                    const items = evs.length ? evs.map(chipHtml).join('') : '<div class="week-empty">Свободно</div>';
+                    html += `<div class="week-row ${s === t ? 'today' : ''} ${s === selectedDate ? 'selected' : ''}" onclick="calSelect('${s}')">
+                        <div class="wd"><div class="wd-name">${WD_SHORT[i]}</div><div class="n">${d.getDate()}</div></div>
+                        <div class="week-items">${items}</div></div>`;
+                }
+                body.className = 'week-list';
+            }
+            body.innerHTML = html;
+            renderDayPanel();
+        }
+
+        function eventItemHtml(e, withDate = false) {
+            const info = TYPE_INFO[e.type] || TYPE_INFO.task;
+            const timeHtml = e.time ? `<span class="time-badge">${e.time}</span>` : `<span class="time-badge allday">весь день</span>`;
+            const notify = hasNotify(e) ? `<span class="notify-mark">⏰ ${NOTIFY_LABELS[e.notifyBefore] || ''}</span>` : '';
+            const sub = withDate
+                ? `<div class="notify-mark" style="white-space: normal;">${prettyDate(e.date)}, ${e.time} · ${NOTIFY_LABELS[e.notifyBefore] || ''} · ${relTime(eventStart(e))}</div>`
+                : '';
+            return `<div class="list-item t-${e.type}" style="${e.done ? 'opacity: 0.6;' : ''}">
+                <div class="list-item-left">
+                    <input type="checkbox" ${e.done ? 'checked' : ''} onchange="toggleEvent(${e.id})">
+                    ${withDate ? '' : timeHtml}
+                    <span class="type-badge" title="${info.label}">${info.icon}</span>
+                    <div style="min-width: 0;">
+                        <div class="item-text" style="${e.done ? 'text-decoration: line-through;' : ''}">${esc(e.title)} ${withDate ? '' : notify}</div>
+                        ${sub}
+                    </div>
+                </div>
+                <button class="delete-btn" onclick="deleteEvent(${e.id})">X</button>
+            </div>`;
+        }
+
+        function renderDayPanel() {
+            const d = parseYmd(selectedDate);
+            const head = d.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' });
+            document.getElementById('dayTitle').textContent = head.charAt(0).toUpperCase() + head.slice(1);
+            const evs = eventsOn(selectedDate);
+            const tasks = evs.filter(e => e.type === 'task');
+            document.getElementById('dayProgress').textContent = tasks.length ? `${tasks.filter(x => x.done).length} / ${tasks.length}` : '';
+            document.getElementById('dayEvents').innerHTML = evs.length
+                ? evs.map(e => eventItemHtml(e)).join('')
+                : '<div class="empty-state">На этот день ничего не запланировано</div>';
+        }
+
+        function createEvent(obj) {
+            const ev = { id: uid(), done: false, rewarded: false, notified: false, ...obj };
+            if (hasNotify(ev) && dueTime(ev) < Date.now() - 60000) ev.notified = true; // время уже прошло
+            data.events.push(ev);
+            if (hasNotify(ev)) askPermissionIfNeeded();
+            saveData();
+        }
+
+        function addEvent() {
+            const titleEl = document.getElementById('evTitle');
+            const title = titleEl.value.trim();
+            if (!title) return titleEl.focus();
+            const type = document.getElementById('evType').value;
+            const time = document.getElementById('evTime').value;
+            const nv = document.getElementById('evNotify').value;
+            let notifyBefore = nv === '' ? null : Number(nv);
+            if (type === 'reminder' && notifyBefore === null) notifyBefore = 0;
+            if (notifyBefore !== null && !time) return alert('Чтобы получить уведомление, укажите время.');
+
+            createEvent({ date: selectedDate, title, type, time, notifyBefore });
+            titleEl.value = '';
+            document.getElementById('evTime').value = '';
+            document.getElementById('evNotify').value = '';
+            document.getElementById('evType').value = 'task';
+        }
+
+        document.getElementById('evType').addEventListener('change', e => {
+            const n = document.getElementById('evNotify');
+            if (e.target.value === 'reminder' && n.value === '') n.value = '0';
+        });
+
+        function toggleEvent(id) {
+            const ev = data.events.find(e => e.id === id);
+            if (!ev) return;
+            ev.done = !ev.done;
+            if (ev.done && !ev.rewarded) { data.coins += 10; ev.rewarded = true; }
+            saveData();
+        }
+
+        function deleteEvent(id) {
+            data.events = data.events.filter(e => e.id !== id);
+            saveData();
+        }
+
+        // ================= НАПОМИНАНИЯ =================
+        document.getElementById('remDate').value = todayStr();
+
+        function remPreset(p) {
+            let d;
+            if (p === 'tomorrow') { d = addDays(new Date(), 1); d.setHours(9, 0, 0, 0); }
+            else d = new Date(Date.now() + p * 60000);
+            document.getElementById('remDate').value = ymd(d);
+            document.getElementById('remTime').value = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            document.getElementById('remNotify').value = '0';
+            document.getElementById('remTitle').focus();
+        }
+
+        function addReminder() {
+            const titleEl = document.getElementById('remTitle');
+            const title = titleEl.value.trim();
+            const date = document.getElementById('remDate').value;
+            const time = document.getElementById('remTime').value;
+            if (!title) return titleEl.focus();
+            if (!date || !time) return alert('Укажите дату и время напоминания.');
+            const notifyBefore = Number(document.getElementById('remNotify').value);
+            const draft = { date, time, notifyBefore };
+            if (dueTime(draft) < Date.now() - 60000 && !confirm('Это время уже прошло. Всё равно добавить?')) return;
+
+            createEvent({ date, time, title, type: 'reminder', notifyBefore });
+            titleEl.value = '';
+            document.getElementById('remTime').value = '';
+        }
+
+        function clearPastReminders() {
+            const now = Date.now();
+            const isPast = e => hasNotify(e) && (e.done || eventStart(e) < now);
+            if (!data.events.some(isPast)) return;
+            if (!confirm('Удалить прошедшие и выполненные напоминания? Дела и события останутся в календаре, у них только отключится уведомление.')) return;
+            data.events = data.events.filter(e => !(isPast(e) && e.type === 'reminder'));
+            data.events.forEach(e => { if (isPast(e)) e.notifyBefore = null; });
+            saveData();
+        }
+
+        function renderReminders() {
+            const now = Date.now();
+            const rems = data.events.filter(hasNotify);
+            const upcoming = rems.filter(e => !e.done && eventStart(e) >= now).sort((a, b) => eventStart(a) - eventStart(b));
+            const past = rems.filter(e => e.done || eventStart(e) < now).sort((a, b) => eventStart(b) - eventStart(a)).slice(0, 30);
+
+            document.getElementById('remCount').textContent = upcoming.length || '';
+            document.getElementById('remUpcoming').innerHTML = upcoming.length
+                ? upcoming.map(e => eventItemHtml(e, true)).join('')
+                : '<div class="empty-state">Нет предстоящих напоминаний</div>';
+            document.getElementById('remPast').innerHTML = past.length
+                ? past.map(e => eventItemHtml(e, true)).join('')
+                : '<div class="empty-state">Пока пусто</div>';
+
+            // Значок на иконке: сколько напоминаний осталось на сегодня
+            const t = todayStr();
+            const todayLeft = upcoming.filter(e => e.date === t).length;
+            document.getElementById('remDockBadge').textContent = todayLeft || '';
+        }
+
+        // --- Системные уведомления ---
+        const notifSupported = () => 'Notification' in window;
+
+        async function requestNotif() {
+            if (!notifSupported()) return;
+            try { await Notification.requestPermission(); } catch (e) {}
+            renderNotifStatus();
+            setupPush();
+        }
+
+        function askPermissionIfNeeded() {
+            if (notifSupported() && Notification.permission === 'default') requestNotif();
+        }
+
+        function renderNotifStatus() {
+            let html;
+            if (!notifSupported()) {
+                html = '<div>⚠️ Этот браузер не поддерживает системные уведомления. Напоминания будут появляться на странице со звуком.</div>';
+            } else if (Notification.permission === 'granted') {
+                html = '<div class="flex-row" style="align-items: center; justify-content: space-between;"><span>✅ Уведомления включены</span><button class="glass-btn secondary compact" onclick="testNotification()">Проверить</button></div>';
+            } else if (Notification.permission === 'denied') {
+                html = '<div>🚫 Уведомления заблокированы. Разрешите их в настройках сайта в браузере (значок слева от адреса).</div>';
+            } else {
+                html = '<button class="glass-btn" onclick="requestNotif()" style="margin-bottom: 0;">🔔 Разрешить уведомления</button>';
+            }
+            if (deferredInstall) {
+                html += '<button class="glass-btn secondary" onclick="installApp()" style="margin: 12px 0 0;">📲 Установить как приложение</button>';
+            }
+
+            if (pushState === 'on') {
+                html += '<div class="hint">☁️ Сервер уведомлений подключён: напоминания придут вовремя, даже если приложение закрыто.</div>';
+                document.getElementById('notifStatus').innerHTML = html;
+                return;
+            }
+            if (pushState === 'error') {
+                html += '<div class="hint">⚠️ Сервер уведомлений сейчас недоступен (проверьте адрес PUSH_SERVER и интернет). Пока работают обычные уведомления.</div>';
+            } else if (pushState === 'unsupported') {
+                html += '<div class="hint">Этот браузер не поддерживает push-уведомления. На iPhone они работают только в приложении, добавленном на главный экран (iOS 16.4 и новее).</div>';
+            }
+
+            let bg;
+            if (location.protocol === 'file:') {
+                bg = '⚠️ Страница открыта как файл с компьютера. Фоновые функции работают, только если открыть её через сайт по https.';
+            } else if (bgSyncOn) {
+                bg = '🌙 Фоновая проверка включена: когда приложение закрыто, браузер сам время от времени проверяет напоминания. Он решает сам, когда это делать, поэтому уведомление может прийти с опозданием.';
+            } else if (!isStandalone()) {
+                bg = 'Если установить приложение (кнопка выше или меню браузера → «Установить приложение» / «Добавить на главный экран»), Chrome и Edge смогут проверять напоминания и при закрытом приложении, но не точно по времени.';
+            } else {
+                bg = 'Этот браузер не умеет проверять напоминания в фоне.';
+            }
+            html += `<div class="hint">Точно вовремя напоминания приходят, пока страница открыта (в том числе в фоновой вкладке). Пропущенные покажутся при следующем открытии.<br>${bg}</div>`;
+            document.getElementById('notifStatus').innerHTML = html;
+        }
+
+        async function sysNotify(title, body, tag) {
+            if (!notifSupported() || Notification.permission !== 'granted') return;
+            // Одинаковый tag не даёт показать одно и то же уведомление дважды (странице и service worker)
+            const opts = { body, tag, icon: 'icon_newyear.png', data: { url: location.href } };
+            try {
+                const reg = navigator.serviceWorker ? await navigator.serviceWorker.getRegistration() : null;
+                if (reg) { await reg.showNotification(title, opts); return; }
+                new Notification(title, opts);
+            } catch (e) { /* без service worker на Android не работает — останется уведомление на странице */ }
+        }
+
+        function showToast(title, body) {
+            const c = document.getElementById('toastContainer');
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.innerHTML = `<div style="flex: 1; min-width: 0;"><div class="toast-title">${esc(title)}</div><div class="toast-body">${esc(body)}</div></div><button class="icon-btn" aria-label="Закрыть">✕</button>`;
+            t.querySelector('button').onclick = () => t.remove();
+            c.appendChild(t);
+            setTimeout(() => t.remove(), 20000);
+        }
+
+        let audioCtx = null;
+        document.addEventListener('pointerdown', () => {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                else if (audioCtx.state === 'suspended') audioCtx.resume();
+            } catch (e) {}
+        }, { passive: true });
+
+        function playBeep() {
+            if (!audioCtx) return;
+            try {
+                [0, 0.3].forEach(offset => {
+                    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+                    const t0 = audioCtx.currentTime + offset;
+                    o.type = 'sine'; o.frequency.value = 880;
+                    g.gain.setValueAtTime(0.0001, t0);
+                    g.gain.exponentialRampToValueAtTime(0.25, t0 + 0.02);
+                    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
+                    o.connect(g); g.connect(audioCtx.destination);
+                    o.start(t0); o.stop(t0 + 0.25);
+                });
+            } catch (e) {}
+        }
+
+        function fireNotification(ev, late = false) {
+            const info = TYPE_INFO[ev.type] || TYPE_INFO.reminder;
+            const title = `${info.icon} ${ev.title}`;
+            let body;
+            if (ev.notifyBefore) body = `${prettyDate(ev.date)} в ${ev.time} (${NOTIFY_LABELS[ev.notifyBefore]})`;
+            else body = late ? `Было запланировано: ${prettyDate(ev.date).toLowerCase()}, ${ev.time}` : `Сейчас ${ev.time}`;
+            sysNotify(title, body, ev.id ? 'produ-' + ev.id : 'produ-test');
+            showToast(title, body);
+            playBeep();
+            if (navigator.vibrate) { try { navigator.vibrate([200, 100, 200]); } catch (e) {} }
+        }
+
+        function testNotification() {
+            const d = new Date();
+            fireNotification({ title: 'Тестовое уведомление', type: 'reminder', date: ymd(d), time: `${pad(d.getHours())}:${pad(d.getMinutes())}`, notifyBefore: 0 });
+        }
+
+        function checkReminders() {
+            const now = Date.now();
+            let changed = false;
+            data.events.forEach(ev => {
+                if (!hasNotify(ev) || ev.notified || ev.done) return;
+                const due = dueTime(ev);
+                if (due <= now) {
+                    ev.notified = true;
+                    changed = true;
+                    const lateBy = now - due;
+                    if (lateBy < 12 * 3600 * 1000) fireNotification(ev, lateBy > 2 * 60000);
+                }
+            });
+            if (changed) persist();
+            renderReminders();
+        }
+
+        setInterval(checkReminders, 20000);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) applySWFired().finally(checkReminders); });
+
+        // ================= ДНЕВНИК =================
+        let diaryFilter = 'all';
+        let diaryQuery = '';
+        let diaryEditingId = null;
+        const diaryExpanded = new Set();
+
+        function setDiarySearch(v) { diaryQuery = v.trim().toLowerCase(); renderDiary(); }
+        function setDiaryFilter(f) { diaryFilter = f; renderDiary(); }
+        function toggleDiaryExpand(id) { diaryExpanded.has(id) ? diaryExpanded.delete(id) : diaryExpanded.add(id); renderDiary(); }
+
+        function openDiaryEditor(id = null) {
+            diaryEditingId = id;
+            const e = id ? data.diary.find(x => x.id === id) : null;
+            document.getElementById('diaryEditorTitle').textContent = e ? 'Редактирование записи' : 'Новая запись';
+            document.getElementById('diaryTitle').value = e ? e.title : '';
+            document.getElementById('diaryBody').value = e ? e.body : '';
+            document.getElementById('diaryTags').value = e ? (e.tags || []).join(', ') : '';
+            document.getElementById('diaryPinned').checked = e ? !!e.pinned : false;
+            document.getElementById('diaryBookmarked').checked = e ? !!e.bookmarked : false;
+            const editor = document.getElementById('diaryEditor');
+            editor.style.display = 'flex';
+            editor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            document.getElementById('diaryTitle').focus({ preventScroll: true });
+        }
+
+        function closeDiaryEditor() {
+            document.getElementById('diaryEditor').style.display = 'none';
+            diaryEditingId = null;
+        }
+
+        function saveDiaryEntry() {
+            const title = document.getElementById('diaryTitle').value.trim();
+            const body = document.getElementById('diaryBody').value.trim();
+            if (!title && !body) return alert('Запись пустая — добавьте заголовок или текст.');
+            const tags = [...new Set(document.getElementById('diaryTags').value
+                .split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean))];
+            const pinned = document.getElementById('diaryPinned').checked;
+            const bookmarked = document.getElementById('diaryBookmarked').checked;
+
+            const existing = diaryEditingId ? data.diary.find(x => x.id === diaryEditingId) : null;
+            if (existing) {
+                Object.assign(existing, { title: title || 'Без заголовка', body, tags, pinned, bookmarked, updated: Date.now() });
+            } else {
+                data.diary.unshift({ id: uid(), title: title || 'Без заголовка', body, tags, pinned, bookmarked, created: Date.now(), updated: null });
+            }
+            closeDiaryEditor();
+            saveData();
+        }
+
+        function toggleDiaryFlag(id, flag) {
+            const e = data.diary.find(x => x.id === id);
+            if (e) { e[flag] = !e[flag]; saveData(); }
+        }
+
+        function deleteDiaryEntry(id) {
+            if (!confirm('Удалить запись из дневника?')) return;
+            data.diary = data.diary.filter(x => x.id !== id);
+            if (diaryEditingId === id) closeDiaryEditor();
+            saveData();
+        }
+
+        function renderDiary() {
+            const tags = [...new Set(data.diary.flatMap(e => e.tags || []))].sort((a, b) => a.localeCompare(b, 'ru'));
+            if (diaryFilter.startsWith('tag:') && !tags.includes(diaryFilter.slice(4))) diaryFilter = 'all';
+
+            const chips = [['all', 'Все'], ['pinned', '📌 Закреплённые'], ['bookmarked', '🔖 Закладки'], ...tags.map(t => ['tag:' + t, '#' + t])];
+            document.getElementById('diaryChips').innerHTML = chips.map(([k, label]) =>
+                `<button class="chip ${diaryFilter === k ? 'active' : ''}" data-filter="${esc(k)}" onclick="setDiaryFilter(this.dataset.filter)">${esc(label)}</button>`
+            ).join('');
+
+            const list = data.diary.filter(e => {
+                if (diaryFilter === 'pinned' && !e.pinned) return false;
+                if (diaryFilter === 'bookmarked' && !e.bookmarked) return false;
+                if (diaryFilter.startsWith('tag:') && !(e.tags || []).includes(diaryFilter.slice(4))) return false;
+                if (diaryQuery) {
+                    const hay = `${e.title} ${e.body} ${(e.tags || []).join(' ')}`.toLowerCase();
+                    if (!hay.includes(diaryQuery)) return false;
+                }
+                return true;
+            }).sort((a, b) => (Number(!!b.pinned) - Number(!!a.pinned)) || (b.created - a.created));
+
+            const container = document.getElementById('diaryList');
+            if (!data.diary.length) {
+                container.innerHTML = '<div class="empty-state">В дневнике пока нет записей</div>';
+                return;
+            }
+            if (!list.length) {
+                container.innerHTML = '<div class="empty-state">Ничего не найдено</div>';
+                return;
+            }
+
+            container.innerHTML = list.map(e => {
+                const expanded = diaryExpanded.has(e.id);
+                const isLong = e.body && (e.body.length > 280 || e.body.split('\n').length > 4);
+                return `<div class="glass-card full-width diary-entry ${e.pinned ? 'pinned' : ''}">
+                    <div class="diary-head">
+                        <div style="min-width: 0;">
+                            <div class="diary-title">${e.pinned ? '📌 ' : ''}${e.bookmarked ? '🔖 ' : ''}${esc(e.title)}</div>
+                            <div class="diary-meta">${fmtDateTime(e.created)}${e.updated ? ' · изменено ' + fmtDateTime(e.updated) : ''}</div>
+                        </div>
+                        <div class="diary-actions">
+                            <button class="icon-btn ${e.pinned ? 'on' : ''}" title="${e.pinned ? 'Открепить' : 'Закрепить'}" onclick="toggleDiaryFlag(${e.id}, 'pinned')">📌</button>
+                            <button class="icon-btn ${e.bookmarked ? 'on' : ''}" title="${e.bookmarked ? 'Убрать из закладок' : 'В закладки'}" onclick="toggleDiaryFlag(${e.id}, 'bookmarked')">🔖</button>
+                            <button class="icon-btn" title="Редактировать" onclick="openDiaryEditor(${e.id})">✏️</button>
+                            <button class="icon-btn" title="Удалить" onclick="deleteDiaryEntry(${e.id})">🗑</button>
+                        </div>
+                    </div>
+                    ${e.body ? `<div class="diary-body ${isLong && !expanded ? 'clamped' : ''}" ${isLong ? `onclick="toggleDiaryExpand(${e.id})"` : ''}>${esc(e.body)}</div>` : ''}
+                    ${isLong ? `<div class="diary-more" onclick="toggleDiaryExpand(${e.id})">${expanded ? 'Свернуть' : 'Читать дальше…'}</div>` : ''}
+                    ${(e.tags || []).length ? `<div class="tag-row">${e.tags.map(t => `<span class="chip small" data-filter="tag:${esc(t)}" onclick="setDiaryFilter(this.dataset.filter)">#${esc(t)}</span>`).join('')}</div>` : ''}
+                </div>`;
+            }).join('');
+        }
+
+        // ================= СКАНЕР И ВИРТУАЛЬНЫЕ КАРТЫ =================
+        let html5QrcodeScanner = null;
+
+        function startCardScanner() {
+            document.getElementById('btnStartCardScan').style.display = 'none';
+            document.getElementById('btnStopCardScan').style.display = 'block';
+            document.getElementById('qrReader').style.display = 'block';
+            document.getElementById('scanResultForm').style.display = 'none';
+
+            html5QrcodeScanner = new Html5Qrcode("qrReader");
+            html5QrcodeScanner.start(
+                { facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 150 } },
+                (decodedText, decodedResult) => {
+                    document.getElementById('scannedCodeValue').value = decodedText;
+                    document.getElementById('scannedCodeFormat').value = decodedResult.result.format?.formatName || "UNKNOWN";
+                    stopCardScanner(true);
+                    document.getElementById('scanResultForm').style.display = 'block';
+                },
+                () => {}
+            ).catch(() => { alert("Ошибка доступа к камере."); stopCardScanner(); });
+        }
+
+        function stopCardScanner(success = false) {
+            if (html5QrcodeScanner) {
+                const scanner = html5QrcodeScanner;
+                html5QrcodeScanner = null;
+                scanner.stop().then(() => scanner.clear()).catch(e => console.error(e));
+            }
+            document.getElementById('qrReader').style.display = 'none';
+            document.getElementById('btnStartCardScan').style.display = 'block';
+            document.getElementById('btnStopCardScan').style.display = 'none';
+            if (!success) document.getElementById('scanResultForm').style.display = 'none';
+        }
+
+        function saveCard() {
+            const name = document.getElementById('cardNameInput').value.trim();
+            const value = document.getElementById('scannedCodeValue').value;
+            const format = document.getElementById('scannedCodeFormat').value;
+            if (!name) return alert("Введите название карты!");
+
+            data.digitalCards.unshift({ id: Date.now(), name, value, format });
+            saveData();
+            document.getElementById('cardNameInput').value = '';
+            document.getElementById('scanResultForm').style.display = 'none';
+        }
+
+        function deleteDigitalCard(id) {
+            if (confirm('Удалить эту карту?')) { data.digitalCards = data.digitalCards.filter(c => c.id !== id); saveData(); }
+        }
+
+        function renderCards() {
+            const cardsContainer = document.getElementById('digitalCardsContainer');
+            if (!data.digitalCards.length) {
+                cardsContainer.innerHTML = '<div class="empty-state">Нет сохраненных карт</div>';
+                return;
+            }
+            cardsContainer.innerHTML = data.digitalCards.map(card => `
+                <div class="glass-card full-width">
+                    <div class="card-header" style="border-bottom: none; margin-bottom: 0;">
+                        ${esc(card.name)}
+                        <button class="delete-btn" onclick="deleteDigitalCard(${card.id})">Удалить</button>
+                    </div>
+                    <div class="digital-card-container">
+                        <img id="img_barcode_${card.id}" alt="Загрузка кода..." style="max-width: 100%; height: 80px; object-fit: contain;">
+                        <div style="margin-top: 15px; font-family: monospace; font-size: 16px; letter-spacing: 2px; text-align: center; word-break: break-all;">
+                            ${esc(card.value)}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            setTimeout(() => {
+                data.digitalCards.forEach(card => {
+                    const imgElement = document.getElementById(`img_barcode_${card.id}`);
+                    if (!imgElement) return;
+                    if (card.format === 'QR_CODE') {
+                        QRCode.toDataURL(card.value, { width: 180, margin: 1 })
+                            .then(url => { imgElement.src = url; imgElement.style.height = '180px'; })
+                            .catch(err => console.error(err));
+                    } else {
+                        try {
+                            const tempCanvas = document.createElement('canvas');
+                            JsBarcode(tempCanvas, card.value, {
+                                format: "CODE128", displayValue: false, background: "#ffffff",
+                                lineColor: "#000000", width: 2, height: 80, margin: 0
+                            });
+                            imgElement.src = tempCanvas.toDataURL("image/png");
+                        } catch (e) {
+                            console.error("Ошибка штрихкода:", e);
+                            imgElement.alt = "Ошибка формата";
+                        }
+                    }
+                });
+            }, 50);
+        }
+
+        // ================= СПИСКИ =================
+        function createNewList() {
+            const title = document.getElementById('newListTitle').value.trim();
+            if (!title) return;
+            data.lists.unshift({ id: Date.now(), title, items: [] });
+            document.getElementById('newListTitle').value = '';
+            saveData();
+        }
+        function deleteList(listId) { if (confirm("Удалить список?")) { data.lists = data.lists.filter(l => l.id !== listId); saveData(); } }
+        function addListItem(listId) {
+            const input = document.getElementById(`itemInput_${listId}`);
+            if (!input.value.trim()) return;
+            const list = data.lists.find(l => l.id === listId);
+            if (list) { list.items.push({ id: uid(), text: input.value.trim(), done: false }); saveData(); document.getElementById(`itemInput_${listId}`)?.focus(); }
+        }
+        function toggleListItem(listId, itemId) {
+            const list = data.lists.find(l => l.id === listId);
+            if (!list) return;
+            const item = list.items.find(i => i.id === itemId);
+            if (!item) return;
+            item.done = !item.done;
+            if (item.done && !item.rewarded) { data.coins += 5; item.rewarded = true; }
+            saveData();
+        }
+        function deleteListItem(listId, itemId) {
+            const list = data.lists.find(l => l.id === listId);
+            if (list) { list.items = list.items.filter(i => i.id !== itemId); saveData(); }
+        }
+
+        function renderLists() {
+            const listsContainer = document.getElementById('customListsContainer');
+            if (!data.lists.length) { listsContainer.innerHTML = '<div class="empty-state">У вас пока нет списков</div>'; return; }
+            listsContainer.innerHTML = data.lists.map(list => {
+                const itemsHtml = list.items.map(item => `
+                    <div class="list-item" style="${item.done ? 'opacity: 0.6;' : ''}">
+                        <div class="list-item-left">
+                            <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleListItem(${list.id}, ${item.id})">
+                            <span class="item-text" style="${item.done ? 'text-decoration: line-through;' : ''}">${esc(item.text)}</span>
+                        </div>
+                        <button class="delete-btn" onclick="deleteListItem(${list.id}, ${item.id})">X</button>
+                    </div>`).join('');
+                return `<div class="glass-card full-width">
+                    <div class="card-header">${esc(list.title)}<button class="delete-btn" onclick="deleteList(${list.id})">Удалить</button></div>
+                    <div style="margin-bottom: 15px;">${itemsHtml || '<div style="opacity:0.5; font-size:12px; margin-bottom:10px;">Список пуст</div>'}</div>
+                    <div class="flex-row">
+                        <input type="text" id="itemInput_${list.id}" class="glass-input" placeholder="Добавить пункт..." style="margin-bottom: 0;" onkeydown="if(event.key==='Enter') addListItem(${list.id})">
+                        <button class="glass-btn" onclick="addListItem(${list.id})" style="width: auto; margin-bottom: 0;">+</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        // ================= ФИНАНСЫ =================
+        function addTransaction() {
+            const amount = parseFloat(document.getElementById('financeAmount').value);
+            const desc = document.getElementById('financeDesc').value.trim();
+            if (!amount || !desc) return alert('Укажите сумму и описание.');
+            data.finance.push({ id: Date.now(), amount, type: document.getElementById('financeType').value, desc, date: new Date().toLocaleDateString() });
+            document.getElementById('financeAmount').value = '';
+            document.getElementById('financeDesc').value = '';
+            saveData();
+        }
+
+        function renderFinance() {
+            let balance = 0;
+            document.getElementById('financeList').innerHTML = data.finance.map(trx => {
+                const isIncome = trx.type === 'income';
+                balance += isIncome ? trx.amount : -trx.amount;
+                return `<div class="list-item"><div><div class="item-text">${esc(trx.desc)}</div><small style="opacity: 0.6">${esc(trx.date)}</small></div><span class="${isIncome ? 'income-text' : 'expense-text'}" style="white-space: nowrap;">${isIncome ? '+' : '-'}${trx.amount} ₽</span></div>`;
+            }).reverse().join('') || '<div class="empty-state">Операций пока нет</div>';
+            const bd = document.getElementById('balanceDisplay');
+            bd.innerText = `${balance} ₽`;
+            bd.style.color = balance < 0 ? 'var(--danger)' : 'inherit';
+        }
+
+        // ================= Enter для полей ввода =================
+        const onEnter = (id, fn) => document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') fn(); });
+        onEnter('evTitle', addEvent);
+        onEnter('remTitle', addReminder);
+        onEnter('newListTitle', createNewList);
+        onEnter('cardNameInput', saveCard);
+        onEnter('financeDesc', addTransaction);
+
+        // ================= ГЛОБАЛЬНЫЙ РЕНДЕР =================
+        function renderAll() {
+            document.getElementById('coinValue').innerText = data.coins;
+            renderCalendar();
+            renderReminders();
+            renderDiary();
+            renderLists();
+            renderFinance();
+            renderCards();
+        }
+
+        renderAll();
+        renderNotifStatus();
+        applySWFired().finally(checkReminders);
+        setupServiceWorker();
+    </script>
+</body>
+</html>
