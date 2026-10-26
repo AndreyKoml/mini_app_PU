@@ -35,8 +35,9 @@
  *   GET  /social               — друзья, заявки, последние сообщения и непрочитанные
  *   POST /friends/request | accept | decline | remove   { userId }
  *   GET  /messages?with=ID[&after=N | &before=N]       — переписка с другом
- *   POST /messages/send { to, text, image? } | /messages/read { with, upTo }
+ *   POST /messages/send { to, text, image?, voice? } | /messages/read { with, upTo }
  *   GET  /messages/image?id=N  — картинка из сообщения (data:image/jpeg;base64,…)
+ *   GET  /messages/voice?id=N  — голосовое сообщение (data:audio/…;base64,…)
  */
 
 const MAX_REMINDERS = 500;        // напоминаний с одного устройства
@@ -63,6 +64,10 @@ const MAX_OUTGOING_REQUESTS = 50;
 const MAX_IMAGE_CHARS = 1_500_000;  // ≈ 1,1 МБ JPEG; приложение сжимает фото до 150–300 КБ
 const IMAGES_PER_DAY = 100;         // на одного пользователя — чтобы не переполнить бесплатные 500 МБ базы
 const IMAGE_RE = /^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/;
+const MAX_VOICE_CHARS = 1_900_000;  // предел строки D1 — 2 МБ; 2 минуты голоса обычно 0,5–1 МБ
+const MAX_VOICE_MS = 125_000;       // запись ограничена 2 минутами (+ запас)
+const VOICES_PER_DAY = 100;
+const VOICE_RE = /^data:audio\/(webm|ogg|mp4|mpeg|aac|x-m4a)(;codecs=[A-Za-z0-9.,"-]+)?;base64,[A-Za-z0-9+/]+={0,2}$/;
 
 export default {
     async fetch(request, env, ctx) {
@@ -80,10 +85,14 @@ export default {
                 const stats = await env.DB.prepare(
                     `SELECT (SELECT COUNT(*) FROM subs) AS devices, (SELECT COUNT(*) FROM reminders WHERE sent = 0) AS pending,
                         (SELECT COUNT(*) FROM users) AS users, (SELECT COUNT(*) FROM msg_images) AS images,
-                        (SELECT COALESCE(SUM(length(data)), 0) FROM msg_images) AS image_bytes`
+                        (SELECT COALESCE(SUM(length(data)), 0) FROM msg_images) AS image_bytes,
+                        (SELECT COUNT(*) FROM msg_audio) AS voices,
+                        (SELECT COALESCE(SUM(length(data)), 0) FROM msg_audio) AS voice_bytes`
                 ).first();
-                const mb = (stats.image_bytes / 1048576).toFixed(1);
-                return text(`ProdU push: OK\nАккаунтов: ${stats.users}\nУстройств с push: ${stats.devices}\nОжидают отправки: ${stats.pending}\nКартинок в чатах: ${stats.images} (${mb} МБ из 500 МБ бесплатной базы)\nКлюч: ${publicKey.slice(0, 16)}…`, 200, cors);
+                const mb = n => (n / 1048576).toFixed(1);
+                return text(`ProdU push: OK\nАккаунтов: ${stats.users}\nУстройств с push: ${stats.devices}\nОжидают отправки: ${stats.pending}\n` +
+                    `Картинок в чатах: ${stats.images} (${mb(stats.image_bytes)} МБ)\nГолосовых: ${stats.voices} (${mb(stats.voice_bytes)} МБ)\n` +
+                    `Всего вложений: ${mb(stats.image_bytes + stats.voice_bytes)} МБ из 500 МБ бесплатной базы\nКлюч: ${publicKey.slice(0, 16)}…`, 200, cors);
             }
 
             if (request.method === 'GET' && url.pathname === '/config') {
@@ -108,7 +117,7 @@ export default {
                 return await handleAvatar(env, user, request, url, cors);
             }
 
-            if ((request.method === 'GET' && ['/users/search', '/social', '/messages', '/messages/image'].includes(url.pathname)) ||
+            if ((request.method === 'GET' && ['/users/search', '/social', '/messages', '/messages/image', '/messages/voice'].includes(url.pathname)) ||
                 (request.method === 'POST' && (url.pathname.startsWith('/friends/') || url.pathname.startsWith('/messages/')))) {
                 const user = await authUser(request, env);
                 if (!user) return json({ error: 'Сессия истекла — войдите снова' }, 401, cors);
@@ -180,6 +189,8 @@ async function ensureSchema(env) {
         env.DB.prepare('CREATE TABLE IF NOT EXISTS sub_users (endpoint TEXT PRIMARY KEY, user_id INTEGER NOT NULL)'),
         env.DB.prepare(`CREATE TABLE IF NOT EXISTS msg_images (
             msg_id INTEGER PRIMARY KEY, data TEXT NOT NULL, w INTEGER NOT NULL, h INTEGER NOT NULL)`),
+        env.DB.prepare(`CREATE TABLE IF NOT EXISTS msg_audio (
+            msg_id INTEGER PRIMARY KEY, data TEXT NOT NULL, dur INTEGER NOT NULL, peaks TEXT NOT NULL)`),
         env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_sub_users_user ON sub_users (user_id)')
     ]);
     schemaReady = true;
@@ -327,6 +338,7 @@ async function handleAuth(action, request, env, cors) {
             env.DB.prepare('DELETE FROM avatars WHERE user_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM friends WHERE a = ?1 OR b = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM msg_images WHERE msg_id IN (SELECT id FROM messages WHERE a = ?1 OR b = ?1)').bind(me.id),
+            env.DB.prepare('DELETE FROM msg_audio WHERE msg_id IN (SELECT id FROM messages WHERE a = ?1 OR b = ?1)').bind(me.id),
             env.DB.prepare('DELETE FROM messages WHERE a = ?1 OR b = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM reads WHERE user_id = ?1 OR peer_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM sub_users WHERE user_id = ?1').bind(me.id),
@@ -537,7 +549,8 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
             LEFT JOIN avatars av ON av.user_id = u.id
             WHERE f.a = ?1 OR f.b = ?1`).bind(me.id).all();
         const { results: last } = await env.DB.prepare(`
-            SELECT m.id, m.a, m.b, m.sender, m.body, m.created, EXISTS(SELECT 1 FROM msg_images i WHERE i.msg_id = m.id) AS img FROM messages m
+            SELECT m.id, m.a, m.b, m.sender, m.body, m.created, EXISTS(SELECT 1 FROM msg_images i WHERE i.msg_id = m.id) AS img,
+                (SELECT dur FROM msg_audio au WHERE au.msg_id = m.id) AS vdur FROM messages m
             JOIN (SELECT MAX(id) AS id FROM messages WHERE a = ?1 OR b = ?1 GROUP BY a, b) t ON t.id = m.id`).bind(me.id).all();
         const { results: unread } = await env.DB.prepare(`
             SELECT m.sender AS id, COUNT(*) AS n FROM messages m
@@ -545,7 +558,7 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
             WHERE (m.a = ?1 OR m.b = ?1) AND m.sender != ?1 AND m.id > COALESCE(r.last_id, 0)
             GROUP BY m.sender`).bind(me.id).all();
 
-        const lastBy = new Map(last.map(m => [m.a === me.id ? m.b : m.a, { id: m.id, sender: m.sender, body: m.body.slice(0, 200), created: m.created, img: !!m.img }]));
+        const lastBy = new Map(last.map(m => [m.a === me.id ? m.b : m.a, { id: m.id, sender: m.sender, body: m.body.slice(0, 200), created: m.created, img: !!m.img, voice: m.vdur ? { dur: m.vdur } : null }]));
         const unreadBy = new Map(unread.map(u => [u.id, u.n]));
         const person = r => ({ id: r.id, login: r.login, av: r.av });
         const friends = rels.filter(r => r.status === 'accepted')
@@ -596,6 +609,7 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
             await env.DB.batch([
                 env.DB.prepare('DELETE FROM friends WHERE a = ?1 AND b = ?2').bind(a, b),
                 env.DB.prepare('DELETE FROM msg_images WHERE msg_id IN (SELECT id FROM messages WHERE a = ?1 AND b = ?2)').bind(a, b),
+                env.DB.prepare('DELETE FROM msg_audio WHERE msg_id IN (SELECT id FROM messages WHERE a = ?1 AND b = ?2)').bind(a, b),
                 env.DB.prepare('DELETE FROM messages WHERE a = ?1 AND b = ?2').bind(a, b),
                 env.DB.prepare('DELETE FROM reads WHERE (user_id = ?1 AND peer_id = ?2) OR (user_id = ?2 AND peer_id = ?1)').bind(a, b)
             ]);
@@ -616,12 +630,14 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
         let messages, hasMore = false;
         if (after) {
             ({ results: messages } = await env.DB.prepare(
-                `SELECT m.id, m.sender, m.body, m.created, i.w, i.h FROM messages m LEFT JOIN msg_images i ON i.msg_id = m.id
+                `SELECT m.id, m.sender, m.body, m.created, i.w, i.h, au.dur, au.peaks FROM messages m
+                 LEFT JOIN msg_images i ON i.msg_id = m.id LEFT JOIN msg_audio au ON au.msg_id = m.id
                  WHERE m.a = ?1 AND m.b = ?2 AND m.id > ?3 ORDER BY m.id LIMIT 200`
             ).bind(a, b, after).all());
         } else {
             const { results } = await env.DB.prepare(
-                `SELECT m.id, m.sender, m.body, m.created, i.w, i.h FROM messages m LEFT JOIN msg_images i ON i.msg_id = m.id
+                `SELECT m.id, m.sender, m.body, m.created, i.w, i.h, au.dur, au.peaks FROM messages m
+                 LEFT JOIN msg_images i ON i.msg_id = m.id LEFT JOIN msg_audio au ON au.msg_id = m.id
                  WHERE m.a = ?1 AND m.b = ?2 AND m.id < ?3 ORDER BY m.id DESC LIMIT 51`
             ).bind(a, b, before || Number.MAX_SAFE_INTEGER).all();
             hasMore = results.length > 50;
@@ -630,17 +646,19 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
         messages = messages.map(m => {
             const out = { id: m.id, sender: m.sender, body: m.body, created: m.created };
             if (m.w) out.img = { w: m.w, h: m.h };
+            if (m.dur) out.voice = { dur: m.dur, peaks: m.peaks };
             return out;
         });
         const pr = await env.DB.prepare('SELECT last_id FROM reads WHERE user_id = ?1 AND peer_id = ?2').bind(other, me.id).first();
         return json({ messages, hasMore, peerRead: pr ? pr.last_id : 0 }, 200, cors);
     }
 
-    if (path === '/messages/image') {
+    if (path === '/messages/image' || path === '/messages/voice') {
         const id = readUserId(url.searchParams.get('id'));
-        const row = await env.DB.prepare(`SELECT i.data FROM msg_images i JOIN messages m ON m.id = i.msg_id
-            WHERE i.msg_id = ?1 AND (m.a = ?2 OR m.b = ?2)`).bind(id, me.id).first();
-        if (!row) return json({ error: 'Картинка не найдена' }, 404, cors);
+        const table = path === '/messages/image' ? 'msg_images' : 'msg_audio';
+        const row = await env.DB.prepare(`SELECT x.data FROM ${table} x JOIN messages m ON m.id = x.msg_id
+            WHERE x.msg_id = ?1 AND (m.a = ?2 OR m.b = ?2)`).bind(id, me.id).first();
+        if (!row) return json({ error: path === '/messages/image' ? 'Картинка не найдена' : 'Голосовое не найдено' }, 404, cors);
         return new Response(JSON.stringify({ data: row.data }), {
             status: 200,
             headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'private, max-age=31536000, immutable' }
@@ -648,7 +666,7 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
     }
 
     if (path === '/messages/send') {
-        const { to, text, image } = await readJson(request, MAX_IMAGE_CHARS + 30_000);
+        const { to, text, image, voice } = await readJson(request, Math.max(MAX_IMAGE_CHARS, MAX_VOICE_CHARS) + 30_000);
         const other = readUserId(to);
         const body = String(text || '').replace(/\r\n?/g, '\n').trim();
         let img = null;
@@ -660,7 +678,19 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
             if (!Number.isInteger(w) || !Number.isInteger(h) || w < 1 || h < 1 || w > 4096 || h > 4096) throw new BadRequest('bad size');
             img = { data, w, h };
         }
-        if (!body && !img) throw new BadRequest('Пустое сообщение');
+        let vc = null;
+        if (voice) {
+            if (img) throw new BadRequest('Нельзя отправить картинку и голосовое одним сообщением');
+            const data = String(voice.data || '');
+            const dur = Math.round(Number(voice.dur));
+            const peaks = String(voice.peaks || '');
+            if (data.length > MAX_VOICE_CHARS) return json({ error: 'Голосовое слишком длинное — запишите покороче' }, 413, cors);
+            if (!VOICE_RE.test(data)) throw new BadRequest('Это не похоже на аудиозапись');
+            if (!Number.isFinite(dur) || dur < 300 || dur > MAX_VOICE_MS) throw new BadRequest('Неверная длительность записи');
+            if (!/^[0-9a-f]{0,64}$/.test(peaks)) throw new BadRequest('bad peaks');
+            vc = { data, dur, peaks };
+        }
+        if (!body && !img && !vc) throw new BadRequest('Пустое сообщение');
         if ([...body].length > MAX_MSG_CHARS) return json({ error: `Сообщение длиннее ${MAX_MSG_CHARS} символов` }, 400, cors);
         if (relation(await getFriendRow(env, me.id, other), me.id) !== 'friend') {
             return json({ error: 'Писать можно только друзьям' }, 403, cors);
@@ -673,12 +703,18 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
                 WHERE m.sender = ?1 AND m.created > ?2`).bind(me.id, now - 86400e3).first();
             if (today.n >= IMAGES_PER_DAY) return json({ error: `Можно отправить не больше ${IMAGES_PER_DAY} картинок в сутки` }, 429, cors);
         }
+        if (vc) {
+            const today = await env.DB.prepare(`SELECT COUNT(*) AS n FROM msg_audio x JOIN messages m ON m.id = x.msg_id
+                WHERE m.sender = ?1 AND m.created > ?2`).bind(me.id, now - 86400e3).first();
+            if (today.n >= VOICES_PER_DAY) return json({ error: `Можно отправить не больше ${VOICES_PER_DAY} голосовых в сутки` }, 429, cors);
+        }
         const [a, b] = pairOf(me.id, other);
         const row = await env.DB.prepare('INSERT INTO messages (a, b, sender, body, created) VALUES (?1, ?2, ?3, ?4, ?5) RETURNING id')
             .bind(a, b, me.id, body, now).first();
-        if (img) {
+        if (img || vc) {
             try {
-                await env.DB.prepare('INSERT INTO msg_images (msg_id, data, w, h) VALUES (?1, ?2, ?3, ?4)').bind(row.id, img.data, img.w, img.h).run();
+                if (img) await env.DB.prepare('INSERT INTO msg_images (msg_id, data, w, h) VALUES (?1, ?2, ?3, ?4)').bind(row.id, img.data, img.w, img.h).run();
+                if (vc) await env.DB.prepare('INSERT INTO msg_audio (msg_id, data, dur, peaks) VALUES (?1, ?2, ?3, ?4)').bind(row.id, vc.data, vc.dur, vc.peaks).run();
             } catch (e) {
                 await env.DB.prepare('DELETE FROM messages WHERE id = ?1').bind(row.id).run();
                 throw e;
@@ -686,8 +722,11 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
         }
         const message = { id: row.id, sender: me.id, body, created: now };
         if (img) message.img = { w: img.w, h: img.h };
+        if (vc) message.voice = { dur: vc.dur, peaks: vc.peaks };
         const textPreview = [...body].slice(0, 140).join('') + ([...body].length > 140 ? '…' : '');
-        const preview = img ? '📷 Фото' + (textPreview ? ' · ' + textPreview : '') : textPreview;
+        const fmtDur = ms => { const sec = Math.round(ms / 1000); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
+        const preview = vc ? `🎤 Голосовое (${fmtDur(vc.dur)})`
+            : img ? '📷 Фото' + (textPreview ? ' · ' + textPreview : '') : textPreview;
         const push = pushToUser(env, other, { kind: 'msg', fromId: me.id, title: me.display, body: preview, tag: 'chat-' + me.id });
         if (ctx && ctx.waitUntil) ctx.waitUntil(push); else await push;
         return json({ message }, 200, cors);

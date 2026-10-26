@@ -528,6 +528,28 @@
         .chat-attach img { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; border: 1px solid var(--glass-border); }
         .chat-attach .info { flex: 1; font-size: 13px; opacity: 0.7; }
         .chat-card.dropping { outline: 3px dashed var(--accent-color); outline-offset: -6px; }
+        /* голосовые */
+        .chat-input:not(.can-send) .send-btn { display: none; }
+        .chat-input.can-send .mic-btn, .chat-input.no-mic .mic-btn { display: none; }
+        .chat-input.no-mic .send-btn { display: block; }
+        .rec-bar { display: none; align-items: center; gap: 10px; padding: 10px 12px; border-top: 1px solid var(--glass-border); }
+        .chat-card.recording .rec-bar { display: flex; }
+        .chat-card.recording .chat-input, .chat-card.recording .chat-attach { display: none !important; }
+        .rec-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--danger); flex-shrink: 0; animation: recPulse 1s ease-in-out infinite; }
+        @keyframes recPulse { 50% { opacity: 0.25; } }
+        .rec-time { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 40px; }
+        .rec-wave, .vwave { flex: 1; display: flex; align-items: center; gap: 2px; height: 28px; overflow: hidden; min-width: 0; }
+        .rec-wave { justify-content: flex-end; color: var(--danger); }
+        .rec-wave i, .vwave i { display: block; width: 3px; min-height: 3px; border-radius: 2px; background: currentColor; opacity: 0.45; flex-shrink: 0; }
+        .vwave i.played { opacity: 1; }
+        .rec-bar .glass-btn { width: 46px; height: 44px; margin: 0; padding: 0; font-size: 18px; flex-shrink: 0; }
+        .voice { display: flex; align-items: center; gap: 10px; width: 230px; max-width: 100%; }
+        .vplay {
+            width: 38px; height: 38px; border-radius: 50%; border: none; cursor: pointer; flex-shrink: 0;
+            background: var(--text-color); color: var(--bg-color); font-size: 14px; display: flex; align-items: center; justify-content: center;
+        }
+        .msg.me .vplay { background: #000; color: var(--accent-color); }
+        .vdur { font-size: 12px; opacity: 0.7; font-variant-numeric: tabular-nums; min-width: 32px; text-align: right; }
         .bubble.has-img { padding: 4px 4px 6px; }
         .bubble.has-img .cap { padding: 4px 8px 0; }
         .bubble.has-img .meta { padding: 0 8px; }
@@ -819,11 +841,19 @@
                     <div class="info" id="chatAttachInfo"></div>
                     <button type="button" class="icon-btn" onclick="clearAttach()" aria-label="Убрать картинку">✕</button>
                 </div>
-                <form class="chat-input" onsubmit="sendMessage(event)">
+                <form class="chat-input" id="chatForm" onsubmit="sendMessage(event)">
                     <button type="button" class="glass-btn attach-btn" onclick="pickChatImage()" title="Прикрепить картинку" aria-label="Прикрепить картинку">📎</button>
                     <textarea id="chatText" class="glass-input" rows="1" placeholder="Сообщение" maxlength="2000" aria-label="Текст сообщения"></textarea>
-                    <button class="glass-btn" type="submit" aria-label="Отправить">➤</button>
+                    <button type="button" class="glass-btn mic-btn" id="micBtn" onclick="startRecording()" title="Записать голосовое" aria-label="Записать голосовое">🎤</button>
+                    <button class="glass-btn send-btn" type="submit" aria-label="Отправить">➤</button>
                 </form>
+                <div class="rec-bar" id="recBar" role="group" aria-label="Запись голосового">
+                    <span class="rec-dot" aria-hidden="true"></span>
+                    <span class="rec-time" id="recTime">0:00</span>
+                    <div class="rec-wave" id="recWave" aria-hidden="true"></div>
+                    <button type="button" class="icon-btn" onclick="cancelRecording()" aria-label="Отменить запись" style="padding: 10px 12px;">✕</button>
+                    <button type="button" class="glass-btn" onclick="finishRecording()" aria-label="Отправить голосовое">➤</button>
+                </div>
                 <input type="file" id="chatImageFile" accept="image/*" hidden onchange="onChatImageFile(this)">
             </div>
         </div>
@@ -3265,7 +3295,7 @@
                         <div class="info">
                             <div class="nm">${esc(f.login)}</div>
                             <div class="sub">${f.last
-                                ? (f.last.sender === social.me ? 'Вы: ' : '') + (f.last.img ? '📷 Фото' + (f.last.body ? ' · ' : '') : '') + esc(f.last.body.split('\n')[0])
+                                ? (f.last.sender === social.me ? 'Вы: ' : '') + (f.last.voice ? `🎤 Голосовое (${fmtDur(f.last.voice.dur)})` : '') + (f.last.img ? '📷 Фото' + (f.last.body ? ' · ' : '') : '') + esc(f.last.body.split('\n')[0])
                                 : 'Напишите первое сообщение'}</div>
                         </div>
                         <div class="side">
@@ -3376,6 +3406,8 @@
             if (!f) { setMsg('socMsg', 'Переписка доступна только с друзьями.'); return; }
             if (!socialActive()) switchTab('social', dockIcon('social'));
             if (!chat.peer || chat.peer.id !== id) {
+                if (rec.mr) cancelRecording();
+                stopVoice();
                 Object.assign(chat, { peer: { id, login: f.login }, messages: [], pending: [], hasMore: false, peerRead: 0, lastReadSent: 0 });
                 $('chatBody').innerHTML = '<div class="chat-empty">Загрузка…</div>';
                 $('chatText').value = '';
@@ -3397,6 +3429,8 @@
         }
 
         function closeChat(silent) {
+            if (rec.mr) cancelRecording();
+            stopVoice();
             stopChatPoll();
             chat.peer = null;
             chat.messages = [];
@@ -3499,7 +3533,12 @@
                 else if (mine) meta += m.id <= chat.peerRead ? ' ✓✓' : ' ✓';
                 const failed = m.state === 'failed';
                 let inner;
-                if (m.img) {
+                if (m.voice) {
+                    const key = m.id ? 'v' + m.id : m.tmp;
+                    inner = `<div class="voice" data-key="${key}" data-dur="${m.voice.dur}" ${m.id ? `data-mid="${m.id}"` : `data-tmp="${m.tmp}"`}>` +
+                        `<button type="button" class="vplay" onclick="event.stopPropagation(); toggleVoice(this.parentElement)" aria-label="Слушать">▶</button>` +
+                        `<div class="vwave">${peaksBars(m.voice.peaks)}</div><span class="vdur">${fmtDur(m.voice.dur)}</span></div>`;
+                } else if (m.img) {
                     const src = m.localImg || imgMem.get(m.id) || '';
                     const ratio = `${m.img.w} / ${m.img.h}`;
                     inner = `<img class="chat-img" alt="Фото" ${m.id ? `data-mid="${m.id}"` : ''} width="${m.img.w}" height="${m.img.h}" style="aspect-ratio: ${ratio}"` +
@@ -3513,6 +3552,7 @@
             }
             body.innerHTML = html;
             if (scrollMode === 'bottom' || scrollMode === 'own' || (scrollMode === 'new' && nearBottom)) body.scrollTop = body.scrollHeight;
+            updateVoiceUI();
             body.querySelectorAll('img.chat-img[data-mid]:not([src])').forEach(el => {
                 const id = Number(el.dataset.mid);
                 loadChatImage(id).then(src => {
@@ -3528,37 +3568,230 @@
         const IMG_CACHE = 'produ-chat-img-v1';
         const CHAT_IMG_MAX = 1280;         // длинная сторона после сжатия
 
-        function loadChatImage(id) {
-            if (imgMem.has(id)) return Promise.resolve(imgMem.get(id));
-            if (imgLoading.has(id)) return imgLoading.get(id);
-            const key = `${SERVER_BASE}/messages/image?id=${id}`;
+        const voiceMem = new Map();
+        const loadChatImage = id => loadChatMedia('image', id, imgMem);
+        const loadChatVoice = id => loadChatMedia('voice', id, voiceMem);
+
+        function loadChatMedia(kind, id, mem) {
+            if (mem.has(id)) return Promise.resolve(mem.get(id));
+            const lk = kind + id;
+            if (imgLoading.has(lk)) return imgLoading.get(lk);
+            const key = `${SERVER_BASE}/messages/${kind}?id=${id}`;
             const pr = (async () => {
                 try {
                     // сначала ищем на устройстве — картинка однажды скачанная больше не тратит трафик
                     if ('caches' in window) {
                         const c = await caches.open(IMG_CACHE);
                         const hit = await c.match(key);
-                        if (hit) { const d = await hit.text(); imgMem.set(id, d); return d; }
+                        if (hit) { const d = await hit.text(); mem.set(id, d); return d; }
                     }
-                    const r = await api('/messages/image?id=' + id);
+                    const r = await api(`/messages/${kind}?id=${id}`);
                     const d = r.body.data;
                     if (!d) return null;
-                    imgMem.set(id, d);
+                    mem.set(id, d);
                     if ('caches' in window) caches.open(IMG_CACHE).then(c => c.put(key, new Response(d))).catch(() => {});
                     return d;
                 } catch (e) {
                     return null;
                 } finally {
-                    imgLoading.delete(id);
+                    imgLoading.delete(lk);
                 }
             })();
-            imgLoading.set(id, pr);
+            imgLoading.set(lk, pr);
             return pr;
         }
 
-        function rememberChatImage(id, d) {
-            imgMem.set(id, d);
-            if ('caches' in window) caches.open(IMG_CACHE).then(c => c.put(`${SERVER_BASE}/messages/image?id=${id}`, new Response(d))).catch(() => {});
+        function rememberChatMedia(kind, id, d) {
+            (kind === 'voice' ? voiceMem : imgMem).set(id, d);
+            if ('caches' in window) caches.open(IMG_CACHE).then(c => c.put(`${SERVER_BASE}/messages/${kind}?id=${id}`, new Response(d))).catch(() => {});
+        }
+
+        // ================= ГОЛОСОВЫЕ =================
+        const VOICE_MAX_MS = 120000;
+        const canRecord = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+        const rec = { mr: null, stream: null, chunks: [], start: 0, timer: null, levels: [], analyser: null, actx: null, cancelled: false, peerId: null };
+
+        function fmtDur(ms) {
+            const sec = Math.max(0, Math.round(ms / 1000));
+            return `${Math.floor(sec / 60)}:${pad(sec % 60)}`;
+        }
+
+        function peaksBars(hex, n = 32) {
+            const vals = hex ? [...hex].map(c => parseInt(c, 16) / 15) : Array.from({ length: n }, (_, i) => 0.35 + 0.25 * Math.sin(i * 1.7));
+            return vals.map(v => `<i style="height: ${Math.round(12 + v * 88)}%"></i>`).join('');
+        }
+
+        // 32 столбика громкости 0…f для картинки «волны» в сообщении
+        function compressPeaks(levels, n = 32) {
+            if (!levels.length) return '';
+            const out = [];
+            for (let i = 0; i < n; i++) {
+                const a = Math.floor(i * levels.length / n), b = Math.max(a + 1, Math.floor((i + 1) * levels.length / n));
+                out.push(Math.max(...levels.slice(a, b)));
+            }
+            const max = Math.max(0.02, ...out);
+            return out.map(v => Math.min(15, Math.round(v / max * 15)).toString(16)).join('');
+        }
+
+        function pickVoiceMime() {
+            const list = ['audio/webm;codecs=opus', 'audio/mp4;codecs=mp4a.40.2', 'audio/mp4', 'audio/ogg;codecs=opus', 'audio/webm'];
+            return list.find(m => MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || '';
+        }
+
+        function blobToDataURL(blob) {
+            return new Promise((resolve, reject) => {
+                const fr = new FileReader();
+                fr.onload = () => resolve(fr.result);
+                fr.onerror = () => reject(fr.error);
+                fr.readAsDataURL(blob);
+            });
+        }
+
+        function updateSendMode() {
+            const form = $('chatForm');
+            form.classList.toggle('no-mic', !canRecord);
+            form.classList.toggle('can-send', !!($('chatText').value.trim() || chat.attach));
+        }
+
+        async function startRecording() {
+            if (!chat.peer || rec.mr) return;
+            if (!canRecord) return showToast('Запись недоступна', 'Этот браузер не умеет записывать звук.', 5000);
+            stopVoice();
+            let stream;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
+            } catch (e) {
+                return showToast('Нет доступа к микрофону',
+                    e.name === 'NotAllowedError' ? 'Разрешите доступ к микрофону в настройках сайта в браузере.' : 'Не удалось включить микрофон.', 6000);
+            }
+            if (!chat.peer) { stream.getTracks().forEach(t => t.stop()); return; }
+            const mime = pickVoiceMime();
+            let mr;
+            try { mr = new MediaRecorder(stream, Object.assign({ audioBitsPerSecond: 32000 }, mime ? { mimeType: mime } : {})); }
+            catch (e) { mr = new MediaRecorder(stream); }
+            Object.assign(rec, { mr, stream, chunks: [], levels: [], start: Date.now(), cancelled: false, peerId: chat.peer.id });
+            mr.ondataavailable = e => { if (e.data && e.data.size) rec.chunks.push(e.data); };
+            mr.onstop = onRecordingStop;
+            mr.start(250);
+
+            // уровень громкости для «волны»
+            try {
+                const AC = window.AudioContext || window.webkitAudioContext;
+                rec.actx = new AC();
+                if (rec.actx.state === 'suspended') rec.actx.resume().catch(() => {});
+                rec.analyser = rec.actx.createAnalyser();
+                rec.analyser.fftSize = 512;
+                rec.actx.createMediaStreamSource(stream).connect(rec.analyser);
+            } catch (e) { rec.analyser = null; }
+            const buf = rec.analyser ? new Uint8Array(rec.analyser.fftSize) : null;
+
+            $('recTime').textContent = '0:00';
+            $('recWave').innerHTML = '';
+            document.querySelector('.chat-card').classList.add('recording');
+            rec.timer = setInterval(() => {
+                const ms = Date.now() - rec.start;
+                $('recTime').textContent = fmtDur(ms);
+                let lvl = 0;
+                if (rec.analyser) {
+                    rec.analyser.getByteTimeDomainData(buf);
+                    let sum = 0;
+                    for (const v of buf) { const d = (v - 128) / 128; sum += d * d; }
+                    lvl = Math.sqrt(sum / buf.length);
+                }
+                rec.levels.push(lvl);
+                const recent = rec.levels.slice(-48);
+                const mx = Math.max(0.05, ...recent);
+                $('recWave').innerHTML = recent.map(v => `<i style="height: ${Math.round(10 + Math.min(1, v / mx) * 90)}%"></i>`).join('');
+                if (ms >= VOICE_MAX_MS) finishRecording();
+            }, 100);
+        }
+
+        function stopRecorder(cancelled) {
+            if (!rec.mr) return;
+            rec.cancelled = cancelled;
+            clearInterval(rec.timer);
+            document.querySelector('.chat-card').classList.remove('recording');
+            if (rec.mr.state !== 'inactive') rec.mr.stop(); else onRecordingStop();
+        }
+        function finishRecording() { stopRecorder(false); }
+        function cancelRecording() { stopRecorder(true); }
+
+        async function onRecordingStop() {
+            const { chunks, cancelled, peerId, mr, stream, actx } = rec;
+            const dur = Math.min(Date.now() - rec.start, VOICE_MAX_MS);
+            const peaks = compressPeaks(rec.levels);
+            Object.assign(rec, { mr: null, stream: null, actx: null, analyser: null });
+            if (stream) stream.getTracks().forEach(t => t.stop());
+            if (actx) actx.close().catch(() => {});
+            if (cancelled || !chunks.length) return;
+            if (dur < 700) return showToast('Слишком коротко', 'Запись короче секунды не отправлена.', 3000);
+            const type = (mr && mr.mimeType) || chunks[0].type || 'audio/webm';
+            let data = await blobToDataURL(new Blob(chunks, { type }));
+            data = data.replace(/^data:([^;,]+)[^,]*,/, 'data:$1;base64,');     // убираем параметры вроде ;codecs=opus
+            if (data.length > 1_900_000) return showToast('Голосовое слишком длинное', 'Запишите покороче.', 5000);
+            if (!chat.peer || chat.peer.id !== peerId) return;
+            const p = { tmp: 't' + (++tmpSeq), sender: 'me', body: '', created: Date.now(), state: 'sending',
+                voice: { dur, peaks }, localVoice: data, voiceData: { data, dur, peaks } };
+            chat.pending.push(p);
+            renderChat('own');
+            deliver(p, peerId);
+        }
+
+        // --- воспроизведение ---
+        const player = { audio: new Audio(), key: null, dur: 0, urls: new Map() };
+        player.audio.preload = 'auto';
+        ['play', 'pause', 'ended', 'timeupdate'].forEach(ev => player.audio.addEventListener(ev, updateVoiceUI));
+        player.audio.addEventListener('ended', () => { player.audio.currentTime = 0; updateVoiceUI(); });
+
+        async function voiceSrc(el) {
+            let d = null;
+            if (el.dataset.mid) d = await loadChatVoice(Number(el.dataset.mid));
+            else { const p = chat.pending.find(x => x.tmp === el.dataset.tmp); d = p && p.localVoice; }
+            if (!d) return null;
+            if (!player.urls.has(d)) player.urls.set(d, URL.createObjectURL(await (await fetch(d)).blob()));
+            return { url: player.urls.get(d), type: d.slice(5, d.indexOf(';')) };
+        }
+
+        async function toggleVoice(el) {
+            const key = el.dataset.key;
+            if (player.key === key) {
+                if (player.audio.paused) player.audio.play().catch(() => {}); else player.audio.pause();
+                return;
+            }
+            player.audio.pause();
+            const btn = el.querySelector('.vplay');
+            btn.textContent = '…';
+            const src = await voiceSrc(el).catch(() => null);
+            if (!src) { btn.textContent = '▶'; return showToast('Не удалось загрузить голосовое', 'Проверьте интернет и попробуйте ещё раз.', 4000); }
+            if (player.audio.canPlayType(src.type) === '') {
+                btn.textContent = '▶';
+                return showToast('Формат не поддерживается', 'Голосовое записано на устройстве с другим форматом звука, а этот браузер его не воспроизводит. Обновите браузер.', 7000);
+            }
+            player.key = key;
+            player.dur = Number(el.dataset.dur) || 0;
+            player.audio.src = src.url;
+            try { await player.audio.play(); }
+            catch (e) { showToast('Не удалось воспроизвести', e.message || '', 4000); }
+            updateVoiceUI();
+        }
+
+        function stopVoice() { player.audio.pause(); player.key = null; updateVoiceUI(); }
+
+        function updateVoiceUI() {
+            document.querySelectorAll('#chatBody .voice').forEach(el => {
+                const mine = el.dataset.key === player.key;
+                const playing = mine && !player.audio.paused;
+                const btn = el.querySelector('.vplay');
+                if (btn.textContent !== '…' || mine) btn.textContent = playing ? '⏸' : '▶';
+                btn.setAttribute('aria-label', playing ? 'Пауза' : 'Слушать');
+                const total = Number(el.dataset.dur) || 0;
+                const d = isFinite(player.audio.duration) && player.audio.duration > 0 ? player.audio.duration * 1000 : total;
+                const cur = mine ? player.audio.currentTime * 1000 : 0;
+                const frac = mine && d ? Math.min(1, cur / d) : 0;
+                const bars = el.querySelectorAll('.vwave i');
+                bars.forEach((b, i) => b.classList.toggle('played', i < Math.round(frac * bars.length)));
+                el.querySelector('.vdur').textContent = mine && (playing || cur > 0) ? fmtDur(cur) : fmtDur(total);
+            });
         }
 
         // Сжатие: уменьшаем до 1280 px по длинной стороне и сохраняем как JPEG
@@ -3608,6 +3841,7 @@
                 const kb = Math.round(res.data.length * 0.75 / 1024);
                 $('chatAttachInfo').textContent = `Фото ${res.w}×${res.h}, ≈${kb} КБ. Можно добавить подпись.`;
                 $('chatAttach').classList.add('on');
+                updateSendMode();
                 $('chatText').focus();
             } catch (e) {
                 showToast('Картинка не добавлена', e.message, 5000);
@@ -3618,6 +3852,7 @@
             chat.attach = null;
             $('chatAttach').classList.remove('on');
             $('chatAttachImg').removeAttribute('src');
+            updateSendMode();
         }
 
         function openImageViewer(el) {
@@ -3649,6 +3884,7 @@
             ta.value = '';
             autoGrow(ta);
             clearAttach();
+            updateSendMode();
             const p = { tmp: 't' + (++tmpSeq), sender: 'me', body: text, created: Date.now(), state: 'sending' };
             if (att) { p.img = { w: att.w, h: att.h }; p.localImg = att.data; p.image = att; }
             chat.pending.push(p);
@@ -3660,11 +3896,14 @@
             try {
                 const payload = { to: peerId, text: p.body };
                 if (p.image) payload.image = p.image;
+                if (p.voiceData) payload.voice = p.voiceData;
                 const r = await api('/messages/send', { method: 'POST', body: payload });
                 const m = r.body.message;
-                if (p.image) rememberChatImage(m.id, p.image.data);
+                if (p.image) rememberChatMedia('image', m.id, p.image.data);
+                if (p.voiceData) rememberChatMedia('voice', m.id, p.voiceData.data);
+                if (p.voiceData && player.key === p.tmp) player.key = 'v' + m.id;     // продолжаем играть уже отправленное
                 const f = social.friends.find(x => x.id === peerId);
-                if (f) { f.last = { id: m.id, sender: social.me, body: m.body, created: m.created, img: !!m.img }; social.friends.sort((x, y) => ((y.last ? y.last.created : 0) - (x.last ? x.last.created : 0))); }
+                if (f) { f.last = { id: m.id, sender: social.me, body: m.body, created: m.created, img: !!m.img, voice: m.voice || null }; social.friends.sort((x, y) => ((y.last ? y.last.created : 0) - (x.last ? x.last.created : 0))); }
                 if (!chat.peer || chat.peer.id !== peerId) return;
                 chat.pending = chat.pending.filter(x => x !== p);
                 if (!chat.messages.some(x => x.id === m.id)) chat.messages.push(m);
@@ -3688,7 +3927,8 @@
 
         (function () {
             const ta = $('chatText');
-            ta.addEventListener('input', () => autoGrow(ta));
+            ta.addEventListener('input', () => { autoGrow(ta); updateSendMode(); });
+            updateSendMode();
             ta.addEventListener('paste', e => {
                 const file = [...(e.clipboardData ? e.clipboardData.files : [])].find(f => f.type.startsWith('image/'));
                 if (file) { e.preventDefault(); attachImageFile(file); }
@@ -3768,6 +4008,8 @@
                 if (chat.peer) { startChatPoll(); loadChat(false); }
             } else {
                 stopChatPoll();
+                if (rec.mr) cancelRecording();
+                player.audio.pause();
             }
         }
 
