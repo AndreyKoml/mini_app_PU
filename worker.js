@@ -30,7 +30,12 @@
  *   POST /auth/register | /auth/login | /auth/logout | /auth/password | /auth/delete
  *   GET  /data?since=N  — данные аккаунта (или { unchanged: true }); поле av — версия аватарки
  *   PUT  /data?base=N   — сохранить данные, если на сервере всё ещё версия N (иначе 409)
- *   GET | PUT | DELETE /avatar — аватарка профиля (картинка data:image/…;base64)
+ *   GET | PUT | DELETE /avatar — аватарка профиля (картинка data:image/…;base64); GET /avatar?user=ID — чужая
+ *   GET  /users/search?q=ник   — поиск пользователей по началу ника
+ *   GET  /social               — друзья, заявки, последние сообщения и непрочитанные
+ *   POST /friends/request | accept | decline | remove   { userId }
+ *   GET  /messages?with=ID[&after=N | &before=N]       — переписка с другом
+ *   POST /messages/send { to, text } | /messages/read { with, upTo }
  */
 
 const MAX_REMINDERS = 500;        // напоминаний с одного устройства
@@ -50,8 +55,13 @@ const LOCK_AFTER = 5;                           // после 5 неверных
 const MAX_AVATAR_CHARS = 300_000;               // аватарка 256×256 обычно весит 20–40 КБ
 const AVATAR_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
 
+// Друзья и сообщения
+const MAX_MSG_CHARS = 2000;
+const MSG_PER_MINUTE = 30;         // защита от случайного или намеренного флуда
+const MAX_OUTGOING_REQUESTS = 50;
+
 export default {
-    async fetch(request, env) {
+    async fetch(request, env, ctx) {
         const cors = corsHeaders(env);
         if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
 
@@ -88,7 +98,14 @@ export default {
             if (url.pathname === '/avatar' && ['GET', 'PUT', 'DELETE'].includes(request.method)) {
                 const user = await authUser(request, env);
                 if (!user) return json({ error: 'Сессия истекла — войдите снова' }, 401, cors);
-                return await handleAvatar(env, user, request, cors);
+                return await handleAvatar(env, user, request, url, cors);
+            }
+
+            if ((request.method === 'GET' && ['/users/search', '/social', '/messages'].includes(url.pathname)) ||
+                (request.method === 'POST' && (url.pathname.startsWith('/friends/') || url.pathname.startsWith('/messages/')))) {
+                const user = await authUser(request, env);
+                if (!user) return json({ error: 'Сессия истекла — войдите снова' }, 401, cors);
+                return await handleSocial(url.pathname, request, url, env, user, cors, ctx);
             }
 
             if (request.method === 'GET' && url.pathname === '/vapid') {
@@ -100,7 +117,8 @@ export default {
                 const raw = await request.text();
                 if (raw.length > 300_000) return json({ error: 'too large' }, 413, cors);
                 const body = JSON.parse(raw);
-                const count = await syncDevice(env, body);
+                const user = await authUser(request, env);   // если вошли — привязываем устройство к аккаунту (для push о сообщениях)
+                const count = await syncDevice(env, body, user);
                 return json({ ok: true, count }, 200, cors);
             }
 
@@ -138,7 +156,22 @@ async function ensureSchema(env) {
         env.DB.prepare(`CREATE TABLE IF NOT EXISTS userdata (
             user_id INTEGER PRIMARY KEY, version INTEGER NOT NULL, data TEXT, updated INTEGER NOT NULL)`),
         env.DB.prepare(`CREATE TABLE IF NOT EXISTS avatars (
-            user_id INTEGER PRIMARY KEY, data TEXT NOT NULL, version INTEGER NOT NULL)`)
+            user_id INTEGER PRIMARY KEY, data TEXT NOT NULL, version INTEGER NOT NULL)`),
+        // Дружба хранится одной строкой на пару: a < b
+        env.DB.prepare(`CREATE TABLE IF NOT EXISTS friends (
+            a INTEGER NOT NULL, b INTEGER NOT NULL, status TEXT NOT NULL, requester INTEGER NOT NULL,
+            created INTEGER NOT NULL, PRIMARY KEY (a, b))`),
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_friends_b ON friends (b)'),
+        env.DB.prepare(`CREATE TABLE IF NOT EXISTS messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, a INTEGER NOT NULL, b INTEGER NOT NULL,
+            sender INTEGER NOT NULL, body TEXT NOT NULL, created INTEGER NOT NULL)`),
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_messages_pair ON messages (a, b, id)'),
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_messages_b ON messages (b, id)'),
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages (sender, created)'),
+        env.DB.prepare(`CREATE TABLE IF NOT EXISTS reads (
+            user_id INTEGER NOT NULL, peer_id INTEGER NOT NULL, last_id INTEGER NOT NULL, PRIMARY KEY (user_id, peer_id))`),
+        env.DB.prepare('CREATE TABLE IF NOT EXISTS sub_users (endpoint TEXT PRIMARY KEY, user_id INTEGER NOT NULL)'),
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_sub_users_user ON sub_users (user_id)')
     ]);
     schemaReady = true;
 }
@@ -283,6 +316,10 @@ async function handleAuth(action, request, env, cors) {
             env.DB.prepare('DELETE FROM sessions WHERE user_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM userdata WHERE user_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM avatars WHERE user_id = ?1').bind(me.id),
+            env.DB.prepare('DELETE FROM friends WHERE a = ?1 OR b = ?1').bind(me.id),
+            env.DB.prepare('DELETE FROM messages WHERE a = ?1 OR b = ?1').bind(me.id),
+            env.DB.prepare('DELETE FROM reads WHERE user_id = ?1 OR peer_id = ?1').bind(me.id),
+            env.DB.prepare('DELETE FROM sub_users WHERE user_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM users WHERE id = ?1').bind(me.id)
         ]);
         return json({ ok: true }, 200, cors);
@@ -305,9 +342,11 @@ async function getData(env, user, url, cors) {
 }
 
 // ===================== Аватарка =====================
-async function handleAvatar(env, user, request, cors) {
+async function handleAvatar(env, user, request, url, cors) {
     if (request.method === 'GET') {
-        const row = await env.DB.prepare('SELECT data, version FROM avatars WHERE user_id = ?1').bind(user.id).first();
+        const uid = url.searchParams.has('user') ? Number(url.searchParams.get('user')) : user.id;
+        if (!Number.isSafeInteger(uid)) throw new BadRequest('bad user');
+        const row = await env.DB.prepare('SELECT data, version FROM avatars WHERE user_id = ?1').bind(uid).first();
         return json({ av: row ? row.version : 0, data: row ? row.data : null }, 200, cors);
     }
     if (request.method === 'DELETE') {
@@ -351,7 +390,7 @@ function validSubscription(sub) {
     return PUSH_HOSTS.some(h => u.hostname === h || u.hostname.endsWith('.' + h));
 }
 
-async function syncDevice(env, body) {
+async function syncDevice(env, body, user) {
     const sub = body && body.subscription;
     if (!validSubscription(sub)) throw new BadRequest('bad subscription');
     const now = Date.now();
@@ -379,7 +418,11 @@ async function syncDevice(env, body) {
                    json_extract(value, '$.title'), json_extract(value, '$.body')
             FROM json_each(?2)`).bind(sub.endpoint, JSON.stringify(list)),
         env.DB.prepare('DELETE FROM reminders WHERE endpoint = ?1 AND sent = 1 AND due < ?2')
-            .bind(sub.endpoint, now - 3 * 86400e3)
+            .bind(sub.endpoint, now - 3 * 86400e3),
+        user
+            ? env.DB.prepare(`INSERT INTO sub_users (endpoint, user_id) VALUES (?1, ?2)
+                ON CONFLICT(endpoint) DO UPDATE SET user_id = excluded.user_id`).bind(sub.endpoint, user.id)
+            : env.DB.prepare('DELETE FROM sub_users WHERE endpoint = ?1').bind(sub.endpoint)
     ]);
     return list.length;
 }
@@ -432,8 +475,211 @@ async function sendDue(env) {
         const g = JSON.stringify([...new Set(gone)]);
         stmts.push(env.DB.prepare('DELETE FROM reminders WHERE endpoint IN (SELECT value FROM json_each(?1))').bind(g));
         stmts.push(env.DB.prepare('DELETE FROM subs WHERE endpoint IN (SELECT value FROM json_each(?1))').bind(g));
+        stmts.push(env.DB.prepare('DELETE FROM sub_users WHERE endpoint IN (SELECT value FROM json_each(?1))').bind(g));
     }
     if (stmts.length) await env.DB.batch(stmts);
+}
+
+// ===================== Друзья и сообщения =====================
+const pairOf = (x, y) => (x < y ? [x, y] : [y, x]);
+
+function relation(row, meId) {
+    if (!row || !row.status) return 'none';
+    if (row.status === 'accepted') return 'friend';
+    return row.requester === meId ? 'outgoing' : 'incoming';
+}
+
+async function getFriendRow(env, meId, otherId) {
+    const [a, b] = pairOf(meId, otherId);
+    return env.DB.prepare('SELECT status, requester FROM friends WHERE a = ?1 AND b = ?2').bind(a, b).first();
+}
+
+function readUserId(v) {
+    const n = Number(v);
+    if (!Number.isSafeInteger(n) || n <= 0) throw new BadRequest('bad user');
+    return n;
+}
+
+async function handleSocial(path, request, url, env, me, cors, ctx) {
+    // --- поиск ---
+    if (path === '/users/search') {
+        const q = normLogin(url.searchParams.get('q')).toLowerCase();
+        if ([...q].length < 2) return json({ users: [] }, 200, cors);
+        const like = q.replace(/[\\%_]/g, c => '\\' + c) + '%';
+        const { results } = await env.DB.prepare(`
+            SELECT u.id, u.display AS login, COALESCE(av.version, 0) AS av, f.status, f.requester
+            FROM users u
+            LEFT JOIN avatars av ON av.user_id = u.id
+            LEFT JOIN friends f ON f.a = min(u.id, ?1) AND f.b = max(u.id, ?1)
+            WHERE u.login LIKE ?2 ESCAPE '\\' AND u.id != ?1
+            ORDER BY (u.login = ?3) DESC, length(u.login), u.login
+            LIMIT 20`).bind(me.id, like, q).all();
+        return json({ users: results.map(r => ({ id: r.id, login: r.login, av: r.av, rel: relation(r, me.id) })) }, 200, cors);
+    }
+
+    // --- друзья, заявки, последние сообщения ---
+    if (path === '/social') {
+        const { results: rels } = await env.DB.prepare(`
+            SELECT CASE WHEN f.a = ?1 THEN f.b ELSE f.a END AS id, f.status, f.requester, f.created,
+                   u.display AS login, COALESCE(av.version, 0) AS av
+            FROM friends f
+            JOIN users u ON u.id = (CASE WHEN f.a = ?1 THEN f.b ELSE f.a END)
+            LEFT JOIN avatars av ON av.user_id = u.id
+            WHERE f.a = ?1 OR f.b = ?1`).bind(me.id).all();
+        const { results: last } = await env.DB.prepare(`
+            SELECT m.id, m.a, m.b, m.sender, m.body, m.created FROM messages m
+            JOIN (SELECT MAX(id) AS id FROM messages WHERE a = ?1 OR b = ?1 GROUP BY a, b) t ON t.id = m.id`).bind(me.id).all();
+        const { results: unread } = await env.DB.prepare(`
+            SELECT m.sender AS id, COUNT(*) AS n FROM messages m
+            LEFT JOIN reads r ON r.user_id = ?1 AND r.peer_id = m.sender
+            WHERE (m.a = ?1 OR m.b = ?1) AND m.sender != ?1 AND m.id > COALESCE(r.last_id, 0)
+            GROUP BY m.sender`).bind(me.id).all();
+
+        const lastBy = new Map(last.map(m => [m.a === me.id ? m.b : m.a, { id: m.id, sender: m.sender, body: m.body.slice(0, 200), created: m.created }]));
+        const unreadBy = new Map(unread.map(u => [u.id, u.n]));
+        const person = r => ({ id: r.id, login: r.login, av: r.av });
+        const friends = rels.filter(r => r.status === 'accepted')
+            .map(r => ({ ...person(r), last: lastBy.get(r.id) || null, unread: unreadBy.get(r.id) || 0, since: r.created }))
+            .sort((x, y) => ((y.last ? y.last.created : y.since) - (x.last ? x.last.created : x.since)));
+        return json({
+            me: me.id,
+            friends,
+            incoming: rels.filter(r => r.status === 'pending' && r.requester !== me.id).map(person),
+            outgoing: rels.filter(r => r.status === 'pending' && r.requester === me.id).map(person)
+        }, 200, cors);
+    }
+
+    // --- заявки в друзья ---
+    if (path.startsWith('/friends/')) {
+        const action = path.slice(9);
+        const other = readUserId((await readJson(request)).userId);
+        if (other === me.id) throw new BadRequest('Нельзя добавить в друзья самого себя');
+        const [a, b] = pairOf(me.id, other);
+        const row = await getFriendRow(env, me.id, other);
+        const rel = relation(row, me.id);
+        const now = Date.now();
+
+        if (action === 'request') {
+            if (rel === 'friend' || rel === 'outgoing') return json({ rel }, 200, cors);
+            if (rel === 'incoming') {   // встречная заявка — сразу дружба
+                await env.DB.prepare("UPDATE friends SET status = 'accepted', created = ?3 WHERE a = ?1 AND b = ?2").bind(a, b, now).run();
+                return json({ rel: 'friend' }, 200, cors);
+            }
+            const exists = await env.DB.prepare('SELECT id FROM users WHERE id = ?1').bind(other).first();
+            if (!exists) return json({ error: 'Пользователь не найден' }, 404, cors);
+            const cnt = await env.DB.prepare("SELECT COUNT(*) AS n FROM friends WHERE requester = ?1 AND status = 'pending'").bind(me.id).first();
+            if (cnt.n >= MAX_OUTGOING_REQUESTS) return json({ error: 'Слишком много заявок без ответа. Отмените часть из них.' }, 429, cors);
+            await env.DB.prepare("INSERT OR IGNORE INTO friends (a, b, status, requester, created) VALUES (?1, ?2, 'pending', ?3, ?4)")
+                .bind(a, b, me.id, now).run();
+            return json({ rel: 'outgoing' }, 200, cors);
+        }
+        if (action === 'accept') {
+            if (rel !== 'incoming') return json({ error: 'Заявка не найдена' }, 404, cors);
+            await env.DB.prepare("UPDATE friends SET status = 'accepted', created = ?3 WHERE a = ?1 AND b = ?2").bind(a, b, now).run();
+            return json({ rel: 'friend' }, 200, cors);
+        }
+        if (action === 'decline') {
+            if (rel === 'incoming') await env.DB.prepare('DELETE FROM friends WHERE a = ?1 AND b = ?2').bind(a, b).run();
+            return json({ rel: 'none' }, 200, cors);
+        }
+        if (action === 'remove') {   // удалить из друзей или отменить свою заявку; переписка удаляется у обоих
+            await env.DB.batch([
+                env.DB.prepare('DELETE FROM friends WHERE a = ?1 AND b = ?2').bind(a, b),
+                env.DB.prepare('DELETE FROM messages WHERE a = ?1 AND b = ?2').bind(a, b),
+                env.DB.prepare('DELETE FROM reads WHERE (user_id = ?1 AND peer_id = ?2) OR (user_id = ?2 AND peer_id = ?1)').bind(a, b)
+            ]);
+            return json({ rel: 'none' }, 200, cors);
+        }
+        return json({ error: 'not found' }, 404, cors);
+    }
+
+    // --- переписка ---
+    if (path === '/messages') {
+        const other = readUserId(url.searchParams.get('with'));
+        if (relation(await getFriendRow(env, me.id, other), me.id) !== 'friend') {
+            return json({ error: 'Переписка доступна только с друзьями' }, 403, cors);
+        }
+        const [a, b] = pairOf(me.id, other);
+        const after = Number(url.searchParams.get('after')) || 0;
+        const before = Number(url.searchParams.get('before')) || 0;
+        let messages, hasMore = false;
+        if (after) {
+            ({ results: messages } = await env.DB.prepare(
+                'SELECT id, sender, body, created FROM messages WHERE a = ?1 AND b = ?2 AND id > ?3 ORDER BY id LIMIT 200'
+            ).bind(a, b, after).all());
+        } else {
+            const { results } = await env.DB.prepare(
+                'SELECT id, sender, body, created FROM messages WHERE a = ?1 AND b = ?2 AND id < ?3 ORDER BY id DESC LIMIT 51'
+            ).bind(a, b, before || Number.MAX_SAFE_INTEGER).all();
+            hasMore = results.length > 50;
+            messages = results.slice(0, 50).reverse();
+        }
+        const pr = await env.DB.prepare('SELECT last_id FROM reads WHERE user_id = ?1 AND peer_id = ?2').bind(other, me.id).first();
+        return json({ messages, hasMore, peerRead: pr ? pr.last_id : 0 }, 200, cors);
+    }
+
+    if (path === '/messages/send') {
+        const { to, text } = await readJson(request, 20_000);
+        const other = readUserId(to);
+        const body = String(text || '').replace(/\r\n?/g, '\n').trim();
+        if (!body) throw new BadRequest('Пустое сообщение');
+        if ([...body].length > MAX_MSG_CHARS) return json({ error: `Сообщение длиннее ${MAX_MSG_CHARS} символов` }, 400, cors);
+        if (relation(await getFriendRow(env, me.id, other), me.id) !== 'friend') {
+            return json({ error: 'Писать можно только друзьям' }, 403, cors);
+        }
+        const now = Date.now();
+        const recent = await env.DB.prepare('SELECT COUNT(*) AS n FROM messages WHERE sender = ?1 AND created > ?2').bind(me.id, now - 60000).first();
+        if (recent.n >= MSG_PER_MINUTE) return json({ error: 'Слишком много сообщений подряд — подождите минуту' }, 429, cors);
+        const [a, b] = pairOf(me.id, other);
+        const row = await env.DB.prepare('INSERT INTO messages (a, b, sender, body, created) VALUES (?1, ?2, ?3, ?4, ?5) RETURNING id')
+            .bind(a, b, me.id, body, now).first();
+        const message = { id: row.id, sender: me.id, body, created: now };
+        const preview = [...body].slice(0, 140).join('') + ([...body].length > 140 ? '…' : '');
+        const push = pushToUser(env, other, { kind: 'msg', fromId: me.id, title: me.display, body: preview, tag: 'chat-' + me.id });
+        if (ctx && ctx.waitUntil) ctx.waitUntil(push); else await push;
+        return json({ message }, 200, cors);
+    }
+
+    if (path === '/messages/read') {
+        const { with: w, upTo } = await readJson(request);
+        const other = readUserId(w);
+        const last = Number(upTo);
+        if (!Number.isSafeInteger(last) || last < 0) throw new BadRequest('bad upTo');
+        await env.DB.prepare(`INSERT INTO reads (user_id, peer_id, last_id) VALUES (?1, ?2, ?3)
+            ON CONFLICT(user_id, peer_id) DO UPDATE SET last_id = max(reads.last_id, excluded.last_id)`).bind(me.id, other, last).run();
+        return json({ ok: true }, 200, cors);
+    }
+
+    return json({ error: 'not found' }, 404, cors);
+}
+
+// Push о новом сообщении на все устройства получателя, где он вошёл в аккаунт
+async function pushToUser(env, userId, payload) {
+    try {
+        if (!env.SITE_URL) return;
+        const { results } = await env.DB.prepare(`SELECT s.endpoint, s.p256dh, s.auth FROM sub_users su
+            JOIN subs s ON s.endpoint = su.endpoint WHERE su.user_id = ?1 LIMIT 10`).bind(userId).all();
+        if (!results.length) return;
+        const vapid = await getVapid(env);
+        const body = JSON.stringify(payload);
+        const gone = [];
+        await Promise.all(results.map(async s => {
+            try {
+                const r = await sendPush(s, body, vapid, env.SITE_URL);
+                if (r.status === 404 || r.status === 410) gone.push(s.endpoint);
+            } catch (e) { console.warn('msg push failed', e); }
+        }));
+        if (gone.length) {
+            const g = JSON.stringify(gone);
+            await env.DB.batch([
+                env.DB.prepare('DELETE FROM reminders WHERE endpoint IN (SELECT value FROM json_each(?1))').bind(g),
+                env.DB.prepare('DELETE FROM subs WHERE endpoint IN (SELECT value FROM json_each(?1))').bind(g),
+                env.DB.prepare('DELETE FROM sub_users WHERE endpoint IN (SELECT value FROM json_each(?1))').bind(g)
+            ]);
+        }
+    } catch (e) {
+        console.warn('pushToUser', e);
+    }
 }
 
 // ===================== VAPID-ключи =====================

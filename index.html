@@ -477,6 +477,52 @@
             box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.45); border: 2px solid rgba(255,255,255,0.85);
         }
         .crop-mask { position: absolute; inset: 0; overflow: hidden; border-radius: 16px; pointer-events: none; }
+        /* --- ДРУЗЬЯ И ЧАТ --- */
+        #module-social .soc-out, #module-social .soc-list, #module-social .soc-chat { display: none; }
+        #module-social[data-view="out"] .soc-out,
+        #module-social[data-view="list"] .soc-list,
+        #module-social[data-view="chat"] .soc-chat { display: flex; }
+        .avatar.md { width: 44px; height: 44px; font-size: 18px; }
+        .avatar.other { background-color: var(--c-event); color: #fff; }
+        .soc-section { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.55; margin: 14px 0 8px; }
+        .person {
+            display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 14px;
+            background: var(--soft); margin-bottom: 8px; min-width: 0;
+        }
+        .person.clickable { cursor: pointer; transition: background 0.15s; }
+        .person.clickable:hover { background: rgba(128,128,128,0.15); }
+        .person .info { flex: 1; min-width: 0; }
+        .person .nm { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .person .sub { font-size: 13px; opacity: 0.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; }
+        .person .side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+        .person .when { font-size: 12px; opacity: 0.55; }
+        .person .btns { display: flex; gap: 6px; flex-shrink: 0; }
+        .person .btns .glass-btn { padding: 7px 12px; font-size: 13px; }
+        .unread-badge {
+            background: var(--accent-color); color: #000; font-size: 12px; font-weight: 700;
+            min-width: 20px; height: 20px; border-radius: 10px; padding: 0 6px; box-sizing: border-box;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .chat-card { height: calc(100vh - 210px); height: calc(100dvh - 210px); min-height: 340px; padding: 0 !important; overflow: hidden; }
+        .chat-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--glass-border); }
+        .chat-head .who { flex: 1; min-width: 0; font-weight: 700; font-size: 1.1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .chat-body { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; overscroll-behavior: contain; }
+        .chat-day { align-self: center; font-size: 12px; opacity: 0.6; background: var(--soft); padding: 3px 10px; border-radius: 10px; margin: 10px 0 6px; }
+        .msg { display: flex; }
+        .msg.me { justify-content: flex-end; }
+        .bubble {
+            max-width: 78%; padding: 8px 12px 6px; border-radius: 16px 16px 16px 4px; background: var(--soft);
+            border: 1px solid var(--glass-border); white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.4; font-size: 15px;
+        }
+        .msg.me .bubble { background: var(--accent-color); color: #000; border-color: transparent; border-radius: 16px 16px 4px 16px; }
+        .bubble .meta { display: block; text-align: right; font-size: 11px; opacity: 0.6; margin-top: 2px; white-space: nowrap; }
+        .msg.failed .bubble { background: color-mix(in srgb, var(--danger) 25%, transparent); color: inherit; cursor: pointer; }
+        .chat-more { align-self: center; margin-bottom: 6px; }
+        .chat-empty { margin: auto; text-align: center; opacity: 0.55; font-size: 14px; padding: 20px; }
+        .chat-input { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--glass-border); align-items: flex-end; }
+        .chat-input textarea { margin: 0; resize: none; min-height: 44px; max-height: 140px; line-height: 1.35; flex: 1; }
+        .chat-input .glass-btn { width: 46px; height: 44px; margin: 0; padding: 0; font-size: 18px; flex-shrink: 0; }
+
         .zoom-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: 18px; }
         .zoom-row input { flex: 1; accent-color: var(--accent-color); }
 
@@ -494,6 +540,11 @@
         .sync-line { font-size: 14px; line-height: 1.5; }
         code { font-family: monospace; background: var(--soft); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
 
+        @media (max-width: 380px) {
+            .dock { gap: 1px !important; padding: 7px 8px !important; }
+            .dock-icon { width: 32px !important; height: 32px !important; font-size: 16px !important; }
+        }
+
         @media (max-width: 600px) {
             body { padding-top: 64px; }
             .coin-counter { top: 12px; right: 12px; font-size: 16px; padding: 6px 14px; }
@@ -502,6 +553,7 @@
             .glass-card { padding: 16px; }
             .dock { gap: 3px; padding: 8px 10px; bottom: 16px; }
             .dock-icon { width: 36px; height: 36px; font-size: 17px; }
+            .chat-card { height: calc(100vh - 180px); height: calc(100dvh - 180px); }
             .theme-switch { width: 38px; height: 22px; }
             .theme-switch::after { width: 18px; height: 18px; }
             .theme-switch:checked::after { transform: translateX(16px); }
@@ -706,6 +758,39 @@
             <div id="digitalCardsContainer" class="full-width" style="display: flex; flex-direction: column; gap: 15px; width: 100%;"></div>
         </div>
 
+        <!-- ДРУЗЬЯ -->
+        <div class="dashboard" id="module-social" data-view="out">
+            <div class="glass-card full-width soc-out">
+                <div class="card-header">Друзья</div>
+                <div class="sync-line" id="socOutText">Чтобы находить друзей и переписываться, войдите в аккаунт.</div>
+                <button class="glass-btn" id="socOutBtn" onclick="openAccount()" style="margin: 15px 0 0;">Войти или зарегистрироваться</button>
+            </div>
+
+            <div class="glass-card full-width soc-list">
+                <div class="card-header">Друзья <span class="day-badge" id="socFriendCount"></span></div>
+                <input type="search" id="socSearch" class="glass-input" placeholder="🔍 Найти по никнейму" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="32" oninput="onSocialSearch(this.value)" style="margin-bottom: 0;">
+                <div id="socSearchResults"></div>
+                <div id="socIncoming"></div>
+                <div id="socFriends"></div>
+                <div id="socOutgoing"></div>
+                <div class="form-msg" id="socMsg" style="margin-top: 8px;"></div>
+            </div>
+
+            <div class="glass-card full-width soc-chat chat-card">
+                <div class="chat-head">
+                    <button class="nav-btn" onclick="closeChat()" aria-label="Назад к друзьям">‹</button>
+                    <span class="avatar md other" id="chatAvatar"></span>
+                    <div class="who" id="chatName"></div>
+                    <button class="icon-btn" onclick="removeFriend(chat.peer && chat.peer.id, true)" title="Удалить из друзей">🗑</button>
+                </div>
+                <div class="chat-body" id="chatBody" aria-live="polite"></div>
+                <form class="chat-input" onsubmit="sendMessage(event)">
+                    <textarea id="chatText" class="glass-input" rows="1" placeholder="Сообщение" maxlength="2000" aria-label="Текст сообщения"></textarea>
+                    <button class="glass-btn" type="submit" aria-label="Отправить">➤</button>
+                </form>
+            </div>
+        </div>
+
         <!-- АККАУНТ -->
         <div class="dashboard" id="module-account" data-state="out">
             <div class="glass-card full-width acc-noserver">
@@ -805,6 +890,7 @@
             <div class="dock-icon active" title="Календарь" onclick="switchTab('calendar', this)">📅</div>
             <div class="dock-icon" title="Напоминания" onclick="switchTab('reminders', this)">🔔<span class="dock-badge" id="remDockBadge"></span></div>
             <div class="dock-icon" title="Дневник" onclick="switchTab('diary', this)">📔</div>
+            <div class="dock-icon" title="Друзья и сообщения" onclick="switchTab('social', this)">💬<span class="dock-badge" id="socDockBadge"></span></div>
             <div class="dock-icon" title="Списки" onclick="switchTab('tasks', this)">📋</div>
             <div class="dock-icon" title="Финансы" onclick="switchTab('finance', this)">💰</div>
             <div class="dock-icon" title="Карты" onclick="switchTab('cards', this)">💳</div>
@@ -2275,9 +2361,11 @@
             if (!pushSubscription) return;
             const prev = pushState;
             try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (auth) headers.Authorization = 'Bearer ' + auth.token;
                 const r = await fetch(PUSH_BASE + '/sync', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers,
                     body: JSON.stringify({ subscription: pushSubscription.toJSON(), reminders: pendingReminders() })
                 });
                 if (!r.ok) throw new Error('sync ' + r.status);
@@ -2578,6 +2666,13 @@
 
         function saveAuth() {
             try { auth ? localStorage.setItem('produ_auth', JSON.stringify(auth)) : localStorage.removeItem('produ_auth'); } catch (e) {}
+            if ('indexedDB' in window) SWDB.set('authToken', auth ? auth.token : null).catch(() => {});
+            const who = auth ? normLogin(auth.login) : null;
+            if (who !== socialOwner) {
+                resetSocial(who);
+                if (pushSubscription) pushSyncNow();     // push о сообщениях — только для того, кто сейчас вошёл
+                if (auth) loadSocial();
+            }
             renderAccount();
         }
 
@@ -2665,6 +2760,7 @@
             }
             $('accountPill').hidden = !SERVER_BASE;
             renderAvatars();
+            updateSocialView();
         }
 
         // ================= АВАТАРКА =================
@@ -2823,7 +2919,11 @@
         }
 
         async function saveAvatar() {
-            if (!crop.img || !auth) return;
+            if (!crop.img || !auth) {
+                closeAvatarModal();
+                if (!auth) setMsg('accAvMsg', 'Войдите в аккаунт, чтобы сохранить фото.');
+                return;
+            }
             const out = document.createElement('canvas');
             out.width = out.height = AVATAR_SIZE;
             const ctx = out.getContext('2d');
@@ -2989,6 +3089,439 @@
             }
         }
 
+        // ================= ДРУЗЬЯ И СООБЩЕНИЯ =================
+        let socialOwner = auth ? normLogin(auth.login) : null;
+        let social = { me: null, friends: [], incoming: [], outgoing: [] };
+        try {
+            const c = JSON.parse(localStorage.getItem('produ_social'));
+            if (c && c.owner === socialOwner && c.data) social = c.data;
+        } catch (e) {}
+        let socialLoading = null, socialLoadedAt = 0;
+        let searchSeq = 0, searchTimer = null, searchResults = null;
+        let tmpSeq = 0;
+        const chat = { peer: null, messages: [], pending: [], hasMore: false, peerRead: 0, lastReadSent: 0, timer: null, loading: false };
+        let othersAv = {};
+        try { othersAv = JSON.parse(localStorage.getItem('produ_avatars')) || {}; } catch (e) {}
+        const avFetching = new Set();
+        const socialActive = () => $('module-social').classList.contains('active');
+        const dockIcon = name => document.querySelector(`.dock-icon[onclick*="'${name}'"]`);
+        const firstChar = s => [...String(s || '?')][0] || '?';
+
+        function resetSocial(owner) {
+            socialOwner = owner;
+            social = { me: null, friends: [], incoming: [], outgoing: [] };
+            searchResults = null;
+            $('socSearch').value = '';
+            closeChat(true);
+            try { localStorage.removeItem('produ_social'); } catch (e) {}
+            renderSocial();
+        }
+
+        function socialView() {
+            if (!SERVER_BASE || location.protocol === 'file:' || !auth) return 'out';
+            return chat.peer ? 'chat' : 'list';
+        }
+
+        function updateSocialView() {
+            const mod = $('module-social');
+            if (!mod) return;
+            mod.dataset.view = socialView();
+            const noServer = !SERVER_BASE || location.protocol === 'file:';
+            $('socOutText').textContent = noServer
+                ? 'Для друзей и сообщений нужен сервер — те же настройки, что и для аккаунта.'
+                : 'Чтобы находить друзей и переписываться, войдите в аккаунт.';
+            $('socOutBtn').hidden = noServer;
+        }
+
+        function shortWhen(ts) {
+            const d = new Date(ts);
+            if (ymd(d) === todayStr()) return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            if (ymd(d) === ymd(addDays(new Date(), -1))) return 'вчера';
+            if (Date.now() - ts < 6 * 86400e3) return WD_SHORT[(d.getDay() + 6) % 7];
+            return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}`;
+        }
+
+        // --- аватарки других людей ---
+        function personAvatar(p, size = 'md') {
+            return `<span class="avatar ${size} other" data-uid="${Number(p.id)}" data-av="${Number(p.av) || 0}" data-name="${esc(p.login)}">${esc(firstChar(p.login))}</span>`;
+        }
+
+        function paintOthers(root = document) {
+            root.querySelectorAll('.avatar[data-uid]').forEach(el => {
+                const id = el.dataset.uid, av = Number(el.dataset.av) || 0;
+                const c = othersAv[id];
+                const letter = () => { el.style.backgroundImage = ''; el.textContent = firstChar(el.dataset.name); };
+                if (av && c && c.av >= av) {
+                    if (c.data) { el.style.backgroundImage = `url("${c.data}")`; el.textContent = ''; }
+                    else letter();
+                } else if (av) {
+                    fetchOtherAvatar(id);
+                } else {
+                    letter();
+                }
+            });
+        }
+
+        async function fetchOtherAvatar(id) {
+            if (avFetching.has(id) || !auth) return;
+            avFetching.add(id);
+            try {
+                const r = await api('/avatar?user=' + encodeURIComponent(id));
+                othersAv[id] = { av: r.body.av || 0, data: r.body.data || null };
+                const keys = Object.keys(othersAv);
+                if (keys.length > 100) delete othersAv[keys[0]];
+                try { localStorage.setItem('produ_avatars', JSON.stringify(othersAv)); } catch (e) {}
+                paintOthers();
+            } catch (e) {
+            } finally {
+                avFetching.delete(id);
+            }
+        }
+
+        // --- список друзей и заявки ---
+        function loadSocial() {
+            if (!auth || !SERVER_BASE) return Promise.resolve();
+            if (socialLoading) return socialLoading;
+            socialLoading = (async () => {
+                try {
+                    const r = await api('/social');
+                    if (!auth) return;
+                    social = r.body;
+                    socialLoadedAt = Date.now();
+                    try { localStorage.setItem('produ_social', JSON.stringify({ owner: socialOwner, data: social })); } catch (e) {}
+                    setMsg('socMsg', '');
+                    if (chat.peer && !social.friends.some(f => f.id === chat.peer.id)) {
+                        closeChat(true);
+                        showToast('Переписка закрыта', 'Этот пользователь больше не в списке ваших друзей.', 5000);
+                    }
+                    renderSocial();
+                } catch (e) {
+                    if (!e.offline && e.status !== 401) setMsg('socMsg', e.message);
+                } finally {
+                    socialLoading = null;
+                }
+            })();
+            return socialLoading;
+        }
+
+        function renderSocial() {
+            updateSocialView();
+            const total = social.friends.reduce((s, f) => s + (f.unread || 0), 0) + social.incoming.length;
+            $('socDockBadge').textContent = auth && total ? (total > 99 ? '99+' : total) : '';
+            $('socFriendCount').textContent = social.friends.length || '';
+
+            $('socIncoming').innerHTML = social.incoming.length
+                ? '<div class="soc-section">Заявки в друзья</div>' + social.incoming.map(p => `
+                    <div class="person">${personAvatar(p)}
+                        <div class="info"><div class="nm">${esc(p.login)}</div><div class="sub">хочет добавить вас в друзья</div></div>
+                        <div class="btns">
+                            <button class="glass-btn compact" onclick="friendAction('accept', ${p.id})">Принять</button>
+                            <button class="glass-btn secondary compact" onclick="friendAction('decline', ${p.id})" aria-label="Отклонить заявку">✕</button>
+                        </div>
+                    </div>`).join('')
+                : '';
+
+            $('socFriends').innerHTML = '<div class="soc-section">Друзья</div>' + (social.friends.length
+                ? social.friends.map(f => `
+                    <div class="person clickable" onclick="openChat(${f.id})" role="button" tabindex="0" onkeydown="if (event.key === 'Enter') openChat(${f.id})">
+                        ${personAvatar(f)}
+                        <div class="info">
+                            <div class="nm">${esc(f.login)}</div>
+                            <div class="sub">${f.last
+                                ? (f.last.sender === social.me ? 'Вы: ' : '') + esc(f.last.body.split('\n')[0])
+                                : 'Напишите первое сообщение'}</div>
+                        </div>
+                        <div class="side">
+                            ${f.last ? `<span class="when">${shortWhen(f.last.created)}</span>` : ''}
+                            ${f.unread ? `<span class="unread-badge">${f.unread > 99 ? '99+' : f.unread}</span>` : ''}
+                        </div>
+                    </div>`).join('')
+                : '<div class="empty-state" style="padding: 10px;">Пока никого нет. Найдите друзей по никнейму через поиск выше.</div>');
+
+            $('socOutgoing').innerHTML = social.outgoing.length
+                ? '<div class="soc-section">Ожидают ответа</div>' + social.outgoing.map(p => `
+                    <div class="person">${personAvatar(p)}
+                        <div class="info"><div class="nm">${esc(p.login)}</div><div class="sub">заявка отправлена</div></div>
+                        <div class="btns"><button class="glass-btn secondary compact" onclick="friendAction('remove', ${p.id})">Отменить</button></div>
+                    </div>`).join('')
+                : '';
+
+            renderSearchResults();
+            paintOthers($('module-social'));
+            if (chat.peer) renderChatHead();
+        }
+
+        // --- поиск ---
+        function onSocialSearch(v) {
+            clearTimeout(searchTimer);
+            const q = v.trim();
+            if ([...q].length < 2) {
+                searchSeq++;
+                searchResults = q ? { hint: 'Введите хотя бы 2 символа' } : null;
+                renderSearchResults();
+                return;
+            }
+            searchTimer = setTimeout(async () => {
+                const my = ++searchSeq;
+                try {
+                    const r = await api('/users/search?q=' + encodeURIComponent(q));
+                    if (my === searchSeq) searchResults = r.body.users;
+                } catch (e) {
+                    if (my === searchSeq) searchResults = { error: e.offline ? 'Нет связи с сервером' : e.message };
+                }
+                if (my === searchSeq) renderSearchResults();
+            }, 300);
+        }
+
+        function relationOf(u) {
+            if (social.friends.some(f => f.id === u.id)) return 'friend';
+            if (social.incoming.some(f => f.id === u.id)) return 'incoming';
+            if (social.outgoing.some(f => f.id === u.id)) return 'outgoing';
+            return u.rel || 'none';
+        }
+
+        function renderSearchResults() {
+            const box = $('socSearchResults');
+            if (!searchResults) { box.innerHTML = ''; return; }
+            if (searchResults.hint || searchResults.error) {
+                box.innerHTML = `<div class="hint">${esc(searchResults.hint || searchResults.error)}</div>`;
+                return;
+            }
+            box.innerHTML = '<div class="soc-section">Результаты поиска</div>' + (searchResults.length
+                ? searchResults.map(u => {
+                    const rel = relationOf(u);
+                    const btn = {
+                        none: `<button class="glass-btn compact" onclick="friendAction('request', ${u.id})">Добавить</button>`,
+                        outgoing: `<button class="glass-btn secondary compact" onclick="friendAction('remove', ${u.id})">Отменить</button>`,
+                        incoming: `<button class="glass-btn compact" onclick="friendAction('accept', ${u.id})">Принять</button>`,
+                        friend: `<button class="glass-btn secondary compact" onclick="openChat(${u.id})">Написать</button>`
+                    }[rel];
+                    const sub = { none: '', outgoing: 'заявка отправлена', incoming: 'хочет добавить вас в друзья', friend: 'в друзьях' }[rel];
+                    return `<div class="person">${personAvatar(u)}
+                        <div class="info"><div class="nm">${esc(u.login)}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div>
+                        <div class="btns">${btn}</div></div>`;
+                }).join('')
+                : '<div class="empty-state" style="padding: 10px;">Никого не нашлось</div>');
+            paintOthers(box);
+        }
+
+        async function friendAction(action, id) {
+            setMsg('socMsg', '');
+            try {
+                const r = await api('/friends/' + action, { method: 'POST', body: { userId: id } });
+                if (Array.isArray(searchResults)) searchResults.forEach(u => { if (u.id === id) u.rel = r.body.rel; });
+                if (r.body.rel === 'friend' && action !== 'remove') showToast('🤝 Теперь вы друзья', 'Можно переписываться.', 4000);
+                await loadSocial();
+                renderSearchResults();
+            } catch (e) {
+                setMsg('socMsg', e.offline ? 'Нет связи с сервером' : e.message);
+            }
+        }
+
+        async function removeFriend(id) {
+            if (!id) return;
+            const f = social.friends.find(x => x.id === id);
+            if (!confirm(`Удалить ${f ? '«' + f.login + '»' : 'пользователя'} из друзей?\n\nПереписка удалится у вас обоих.`)) return;
+            try {
+                await api('/friends/remove', { method: 'POST', body: { userId: id } });
+                if (Array.isArray(searchResults)) searchResults.forEach(u => { if (u.id === id) u.rel = 'none'; });
+                if (chat.peer && chat.peer.id === id) closeChat(true);
+                await loadSocial();
+            } catch (e) {
+                showToast('Не получилось', e.offline ? 'Нет связи с сервером' : e.message, 5000);
+            }
+        }
+
+        // --- переписка ---
+        function openChat(id) {
+            id = Number(id);
+            const f = social.friends.find(x => x.id === id);
+            if (!f) { setMsg('socMsg', 'Переписка доступна только с друзьями.'); return; }
+            if (!socialActive()) switchTab('social', dockIcon('social'));
+            if (!chat.peer || chat.peer.id !== id) {
+                Object.assign(chat, { peer: { id, login: f.login }, messages: [], pending: [], hasMore: false, peerRead: 0, lastReadSent: 0 });
+                $('chatBody').innerHTML = '<div class="chat-empty">Загрузка…</div>';
+                $('chatText').value = '';
+                autoGrow($('chatText'));
+            }
+            f.unread = 0;
+            renderSocial();
+            loadChat(true);
+            startChatPoll();
+            if (matchMedia('(pointer: fine)').matches) setTimeout(() => $('chatText').focus(), 50);
+            window.scrollTo(0, 0);
+        }
+
+        function openChatWhenReady(id) {
+            if (!auth || !id) return;
+            if (social.friends.some(f => f.id === id)) openChat(id);
+            else loadSocial().then(() => openChat(id));
+        }
+
+        function closeChat(silent) {
+            stopChatPoll();
+            chat.peer = null;
+            chat.messages = [];
+            chat.pending = [];
+            updateSocialView();
+            if (!silent) loadSocial();
+        }
+
+        function renderChatHead() {
+            const f = social.friends.find(x => x.id === chat.peer.id);
+            $('chatName').textContent = chat.peer.login;
+            const a = $('chatAvatar');
+            if (a.dataset.uid !== String(chat.peer.id)) { a.style.backgroundImage = ''; a.textContent = firstChar(chat.peer.login); }
+            a.dataset.uid = chat.peer.id;
+            a.dataset.av = f ? f.av : 0;
+            a.dataset.name = chat.peer.login;
+            paintOthers(a.parentElement);
+        }
+
+        function startChatPoll() {
+            stopChatPoll();
+            chat.timer = setInterval(() => {
+                if (!document.hidden && chat.peer && socialActive()) loadChat(false);
+            }, 4000);
+        }
+        function stopChatPoll() { clearInterval(chat.timer); chat.timer = null; }
+
+        async function loadChat(initial) {
+            if (!chat.peer || chat.loading) return;
+            chat.loading = true;
+            const peerId = chat.peer.id;
+            try {
+                const lastId = chat.messages.length ? chat.messages[chat.messages.length - 1].id : 0;
+                const r = await api(`/messages?with=${peerId}` + (lastId ? `&after=${lastId}` : ''));
+                if (!chat.peer || chat.peer.id !== peerId) return;
+                const known = new Set(chat.messages.map(m => m.id));
+                const fresh = r.body.messages.filter(m => !known.has(m.id));
+                if (!lastId) chat.hasMore = r.body.hasMore;
+                chat.messages.push(...fresh);
+                chat.messages.sort((x, y) => x.id - y.id);
+                const readChanged = chat.peerRead !== r.body.peerRead;
+                chat.peerRead = r.body.peerRead;
+                if (initial) renderChat('bottom');
+                else if (fresh.length) renderChat('new');
+                else if (readChanged) renderChat(null);
+                markChatRead();
+            } catch (e) {
+                if (e.status === 403 && chat.peer && chat.peer.id === peerId) { closeChat(true); loadSocial(); }
+                else if (initial && chat.peer && !chat.messages.length) {
+                    $('chatBody').innerHTML = `<div class="chat-empty">${esc(e.offline ? 'Нет связи с сервером' : e.message)}</div>`;
+                }
+            } finally {
+                chat.loading = false;
+            }
+        }
+
+        async function loadOlder() {
+            if (!chat.peer || !chat.messages.length) return;
+            const body = $('chatBody');
+            const fromBottom = body.scrollHeight - body.scrollTop;
+            try {
+                const r = await api(`/messages?with=${chat.peer.id}&before=${chat.messages[0].id}`);
+                chat.messages.unshift(...r.body.messages);
+                chat.hasMore = r.body.hasMore;
+                renderChat(null);
+                body.scrollTop = body.scrollHeight - fromBottom;
+            } catch (e) {
+                showToast('Не получилось', e.offline ? 'Нет связи с сервером' : e.message, 4000);
+            }
+        }
+
+        function markChatRead() {
+            if (!chat.peer || document.hidden || !socialActive()) return;
+            const peerId = chat.peer.id;
+            let lastIn = null;
+            for (let i = chat.messages.length - 1; i >= 0; i--) if (chat.messages[i].sender === peerId) { lastIn = chat.messages[i]; break; }
+            const f = social.friends.find(x => x.id === peerId);
+            if (f && f.unread) { f.unread = 0; renderSocial(); }
+            if (!lastIn || lastIn.id <= chat.lastReadSent) return;
+            chat.lastReadSent = lastIn.id;
+            api('/messages/read', { method: 'POST', body: { with: peerId, upTo: lastIn.id } }).catch(() => { chat.lastReadSent = 0; });
+        }
+
+        function renderChat(scrollMode) {
+            if (!chat.peer) return;
+            const body = $('chatBody');
+            const nearBottom = body.scrollHeight - body.scrollTop - body.clientHeight < 120;
+            const all = [...chat.messages, ...chat.pending];
+            let html = chat.hasMore ? '<button class="glass-btn secondary compact chat-more" onclick="loadOlder()">Показать раньше</button>' : '';
+            if (!all.length) html += `<div class="chat-empty">Здесь пока пусто.<br>Напишите ${esc(chat.peer.login)} первым!</div>`;
+            let lastDay = '';
+            for (const m of all) {
+                const d = new Date(m.created);
+                const day = ymd(d);
+                if (day !== lastDay) { html += `<div class="chat-day">${prettyDate(day)}</div>`; lastDay = day; }
+                const mine = m.sender !== chat.peer.id;
+                let meta = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                if (m.state === 'sending') meta += ' ⏳';
+                else if (m.state === 'failed') meta = '⚠️ Не отправлено — нажмите, чтобы повторить';
+                else if (mine) meta += m.id <= chat.peerRead ? ' ✓✓' : ' ✓';
+                const failed = m.state === 'failed';
+                html += `<div class="msg ${mine ? 'me' : ''} ${failed ? 'failed' : ''}"${failed ? ` onclick="retryMessage('${m.tmp}')"` : ''}>` +
+                    `<div class="bubble">${esc(m.body)}<span class="meta" title="${mine && !m.state ? (m.id <= chat.peerRead ? 'Прочитано' : 'Доставлено') : ''}">${meta}</span></div></div>`;
+            }
+            body.innerHTML = html;
+            if (scrollMode === 'bottom' || scrollMode === 'own' || (scrollMode === 'new' && nearBottom)) body.scrollTop = body.scrollHeight;
+        }
+
+        function autoGrow(ta) {
+            ta.style.height = 'auto';
+            ta.style.height = Math.min(ta.scrollHeight + 2, 140) + 'px';
+        }
+
+        function sendMessage(ev) {
+            if (ev) ev.preventDefault();
+            if (!chat.peer) return;
+            const ta = $('chatText');
+            const text = ta.value.trim();
+            if (!text) return;
+            ta.value = '';
+            autoGrow(ta);
+            const p = { tmp: 't' + (++tmpSeq), sender: 'me', body: text, created: Date.now(), state: 'sending' };
+            chat.pending.push(p);
+            renderChat('own');
+            deliver(p, chat.peer.id);
+        }
+
+        async function deliver(p, peerId) {
+            try {
+                const r = await api('/messages/send', { method: 'POST', body: { to: peerId, text: p.body } });
+                const m = r.body.message;
+                const f = social.friends.find(x => x.id === peerId);
+                if (f) { f.last = { id: m.id, sender: social.me, body: m.body, created: m.created }; social.friends.sort((x, y) => ((y.last ? y.last.created : 0) - (x.last ? x.last.created : 0))); }
+                if (!chat.peer || chat.peer.id !== peerId) return;
+                chat.pending = chat.pending.filter(x => x !== p);
+                if (!chat.messages.some(x => x.id === m.id)) chat.messages.push(m);
+                chat.messages.sort((x, y) => x.id - y.id);
+                renderChat('own');
+            } catch (e) {
+                p.state = 'failed';
+                if (chat.peer && chat.peer.id === peerId) renderChat(null);
+                if (!e.offline) showToast('Сообщение не отправлено', e.message, 5000);
+                if (e.status === 403) loadSocial();
+            }
+        }
+
+        function retryMessage(tmp) {
+            const p = chat.pending.find(x => x.tmp === tmp);
+            if (!p || !chat.peer) return;
+            p.state = 'sending';
+            renderChat(null);
+            deliver(p, chat.peer.id);
+        }
+
+        (function () {
+            const ta = $('chatText');
+            ta.addEventListener('input', () => autoGrow(ta));
+            ta.addEventListener('keydown', e => {
+                // На компьютере Enter отправляет, Shift+Enter — новая строка. На телефоне Enter — новая строка.
+                if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && matchMedia('(pointer: fine)').matches) sendMessage(e);
+            });
+        })();
+
         // ================= БАЗА ДАННЫХ =================
         let data = null;
         try { data = JSON.parse(localStorage.getItem('produ_v6_data')); } catch (e) { data = null; }
@@ -3044,6 +3577,13 @@
             if (moduleName !== 'cards') stopCardScanner();
             if (moduleName === 'reminders') { renderReminders(); renderNotifStatus(); }
             if (moduleName === 'account') { renderAccount(); loadServerConfig(); }
+            if (moduleName === 'social') {
+                renderSocial();
+                loadSocial();
+                if (chat.peer) { startChatPoll(); loadChat(false); }
+            } else {
+                stopChatPoll();
+            }
         }
 
         // ================= КАЛЕНДАРЬ =================
@@ -3752,6 +4292,38 @@
         setInterval(() => { if (!document.hidden) syncNow(); }, 60000);
         document.addEventListener('visibilitychange', () => { if (!document.hidden) syncNow(); });
         window.addEventListener('online', () => syncNow());
+
+        // Друзья: список обновляется раз в 20 секунд, пока вкладка открыта, и раз в минуту в фоне
+        renderSocial();
+        loadSocial();
+        setInterval(() => {
+            if (!auth || document.hidden) return;
+            if (socialActive() || Date.now() - socialLoadedAt > 60000) loadSocial();
+        }, 20000);
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden || !auth) return;
+            loadSocial();
+            if (chat.peer && socialActive()) loadChat(false);
+        });
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', e => {
+                const m = e.data || {};
+                if (m.type === 'social') {
+                    loadSocial();
+                    if (chat.peer && m.fromId === chat.peer.id) loadChat(false);
+                }
+                if (m.type === 'openChat') openChatWhenReady(Number(m.id));
+            });
+        }
+        // Открытие чата по нажатию на уведомление (ссылка вида index.html#chat=ID)
+        function handleChatHash() {
+            const m = /^#chat=(\d+)$/.exec(location.hash);
+            if (!m) return;
+            history.replaceState(null, '', location.pathname + location.search);
+            openChatWhenReady(Number(m[1]));
+        }
+        handleChatHash();
+        window.addEventListener('hashchange', handleChatHash);
     </script>
 </body>
 </html>

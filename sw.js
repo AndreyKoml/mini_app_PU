@@ -11,7 +11,7 @@
  *     при закрытой странице нужен сервер, который пришлёт push в нужное время).
  */
 
-const CACHE = 'produ-v2';
+const CACHE = 'produ-v3';
 const PRECACHE = ['./', './index.html', './manifest.json', './icon_newyear.png', './icon-192.png', './icon-512.png'];
 
 // ---------- IndexedDB (страница кладёт сюда список напоминаний) ----------
@@ -123,11 +123,30 @@ self.addEventListener('periodicsync', event => {
     if (event.tag === 'produ-reminders') event.waitUntil(checkDueReminders());
 });
 
-// ---------- Push от сервера (для будущего сервера напоминаний) ----------
+// ---------- Push от сервера: напоминания и новые сообщения ----------
+async function handleMessagePush(payload) {
+    const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    list.forEach(c => c.postMessage({ type: 'social', fromId: payload.fromId }));
+    // Если приложение открыто на экране — сообщение и так появится, системное уведомление не нужно
+    if (list.some(c => c.visibilityState === 'visible')) return;
+    await self.registration.showNotification('💬 ' + (payload.title || 'Новое сообщение'), {
+        body: payload.body || '',
+        tag: payload.tag || 'chat',
+        renotify: true,
+        icon: 'icon_newyear.png',
+        data: { url: './index.html#chat=' + payload.fromId, chat: payload.fromId }
+    });
+}
+
 self.addEventListener('push', event => {
     let payload = {};
     try { payload = event.data ? event.data.json() : {}; }
     catch (e) { payload = { body: event.data ? event.data.text() : '' }; }
+
+    if (payload.kind === 'msg') {
+        event.waitUntil(handleMessagePush(payload));
+        return;
+    }
 
     const tasks = [
         self.registration.showNotification(payload.title || 'ProdU', {
@@ -159,9 +178,12 @@ self.addEventListener('pushsubscriptionchange', event => {
             applicationServerKey: b64uToBytes(cfg.publicKey)
         });
         const reminders = (await idbGet('reminders')) || [];
+        const token = await idbGet('authToken');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers.Authorization = 'Bearer ' + token;
         await fetch(cfg.server + '/sync', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({ subscription: sub.toJSON(), reminders })
         });
     })().catch(() => {}));
@@ -170,11 +192,15 @@ self.addEventListener('pushsubscriptionchange', event => {
 // ---------- Нажатие на уведомление: открыть или показать приложение ----------
 self.addEventListener('notificationclick', event => {
     event.notification.close();
-    const target = (event.notification.data && event.notification.data.url) || './index.html';
+    const data = event.notification.data || {};
+    const target = data.url || './index.html';
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
             for (const client of list) {
-                if ('focus' in client) return client.focus();
+                if ('focus' in client) {
+                    if (data.chat) client.postMessage({ type: 'openChat', id: data.chat });
+                    return client.focus();
+                }
             }
             return self.clients.openWindow(target);
         })
