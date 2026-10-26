@@ -522,6 +522,27 @@
         .chat-input { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--glass-border); align-items: flex-end; }
         .chat-input textarea { margin: 0; resize: none; min-height: 44px; max-height: 140px; line-height: 1.35; flex: 1; }
         .chat-input .glass-btn { width: 46px; height: 44px; margin: 0; padding: 0; font-size: 18px; flex-shrink: 0; }
+        .chat-input .attach-btn { background: transparent; border: 1px solid var(--glass-border); color: inherit; font-weight: normal; }
+        .chat-attach { display: none; align-items: center; gap: 10px; padding: 10px 12px 0; }
+        .chat-attach.on { display: flex; }
+        .chat-attach img { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; border: 1px solid var(--glass-border); }
+        .chat-attach .info { flex: 1; font-size: 13px; opacity: 0.7; }
+        .chat-card.dropping { outline: 3px dashed var(--accent-color); outline-offset: -6px; }
+        .bubble.has-img { padding: 4px 4px 6px; }
+        .bubble.has-img .cap { padding: 4px 8px 0; }
+        .bubble.has-img .meta { padding: 0 8px; }
+        .chat-img {
+            display: block; width: 260px; max-width: 100%; height: auto; border-radius: 12px; cursor: zoom-in;
+            background: rgba(128,128,128,0.25); object-fit: cover;
+        }
+        .img-viewer {
+            position: fixed; inset: 0; z-index: 950; background: rgba(0,0,0,0.9);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 16px; box-sizing: border-box;
+        }
+        .img-viewer[hidden] { display: none; }
+        .img-viewer img { max-width: 100%; max-height: calc(100% - 70px); object-fit: contain; border-radius: 8px; }
+        .img-viewer .bar { display: flex; gap: 10px; }
+        .img-viewer .glass-btn { width: auto; margin: 0; }
 
         .zoom-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: 18px; }
         .zoom-row input { flex: 1; accent-color: var(--accent-color); }
@@ -576,6 +597,15 @@
     </div>
 
     <div id="toastContainer"></div>
+
+    <!-- Просмотр картинки из чата -->
+    <div class="img-viewer" id="imgViewer" hidden onclick="if (event.target === this) closeImageViewer()">
+        <img id="imgViewerImg" alt="Картинка из чата" onclick="closeImageViewer()">
+        <div class="bar">
+            <a class="glass-btn" id="imgViewerSave" download="photo.jpg">Скачать</a>
+            <button class="glass-btn secondary" onclick="closeImageViewer()">Закрыть</button>
+        </div>
+    </div>
 
     <!-- Выбор области для аватарки -->
     <div class="modal" id="avatarModal" hidden onclick="if (event.target === this) closeAvatarModal()">
@@ -784,10 +814,17 @@
                     <button class="icon-btn" onclick="removeFriend(chat.peer && chat.peer.id, true)" title="Удалить из друзей">🗑</button>
                 </div>
                 <div class="chat-body" id="chatBody" aria-live="polite"></div>
+                <div class="chat-attach" id="chatAttach">
+                    <img id="chatAttachImg" alt="Выбранная картинка">
+                    <div class="info" id="chatAttachInfo"></div>
+                    <button type="button" class="icon-btn" onclick="clearAttach()" aria-label="Убрать картинку">✕</button>
+                </div>
                 <form class="chat-input" onsubmit="sendMessage(event)">
+                    <button type="button" class="glass-btn attach-btn" onclick="pickChatImage()" title="Прикрепить картинку" aria-label="Прикрепить картинку">📎</button>
                     <textarea id="chatText" class="glass-input" rows="1" placeholder="Сообщение" maxlength="2000" aria-label="Текст сообщения"></textarea>
                     <button class="glass-btn" type="submit" aria-label="Отправить">➤</button>
                 </form>
+                <input type="file" id="chatImageFile" accept="image/*" hidden onchange="onChatImageFile(this)">
             </div>
         </div>
 
@@ -3228,7 +3265,7 @@
                         <div class="info">
                             <div class="nm">${esc(f.login)}</div>
                             <div class="sub">${f.last
-                                ? (f.last.sender === social.me ? 'Вы: ' : '') + esc(f.last.body.split('\n')[0])
+                                ? (f.last.sender === social.me ? 'Вы: ' : '') + (f.last.img ? '📷 Фото' + (f.last.body ? ' · ' : '') : '') + esc(f.last.body.split('\n')[0])
                                 : 'Напишите первое сообщение'}</div>
                         </div>
                         <div class="side">
@@ -3343,6 +3380,7 @@
                 $('chatBody').innerHTML = '<div class="chat-empty">Загрузка…</div>';
                 $('chatText').value = '';
                 autoGrow($('chatText'));
+                clearAttach();
             }
             f.unread = 0;
             renderSocial();
@@ -3460,12 +3498,141 @@
                 else if (m.state === 'failed') meta = '⚠️ Не отправлено — нажмите, чтобы повторить';
                 else if (mine) meta += m.id <= chat.peerRead ? ' ✓✓' : ' ✓';
                 const failed = m.state === 'failed';
+                let inner;
+                if (m.img) {
+                    const src = m.localImg || imgMem.get(m.id) || '';
+                    const ratio = `${m.img.w} / ${m.img.h}`;
+                    inner = `<img class="chat-img" alt="Фото" ${m.id ? `data-mid="${m.id}"` : ''} width="${m.img.w}" height="${m.img.h}" style="aspect-ratio: ${ratio}"` +
+                        `${src ? ` src="${src}"` : ''} onclick="event.stopPropagation(); openImageViewer(this)">` +
+                        (m.body ? `<div class="cap">${esc(m.body)}</div>` : '');
+                } else {
+                    inner = esc(m.body);
+                }
                 html += `<div class="msg ${mine ? 'me' : ''} ${failed ? 'failed' : ''}"${failed ? ` onclick="retryMessage('${m.tmp}')"` : ''}>` +
-                    `<div class="bubble">${esc(m.body)}<span class="meta" title="${mine && !m.state ? (m.id <= chat.peerRead ? 'Прочитано' : 'Доставлено') : ''}">${meta}</span></div></div>`;
+                    `<div class="bubble${m.img ? ' has-img' : ''}">${inner}<span class="meta" title="${mine && !m.state ? (m.id <= chat.peerRead ? 'Прочитано' : 'Доставлено') : ''}">${meta}</span></div></div>`;
             }
             body.innerHTML = html;
             if (scrollMode === 'bottom' || scrollMode === 'own' || (scrollMode === 'new' && nearBottom)) body.scrollTop = body.scrollHeight;
+            body.querySelectorAll('img.chat-img[data-mid]:not([src])').forEach(el => {
+                const id = Number(el.dataset.mid);
+                loadChatImage(id).then(src => {
+                    if (!src) return;
+                    document.querySelectorAll(`#chatBody img.chat-img[data-mid="${id}"]`).forEach(x => { x.src = src; });
+                });
+            });
         }
+
+        // --- картинки в чате ---
+        const imgMem = new Map();          // id сообщения → data URL
+        const imgLoading = new Map();
+        const IMG_CACHE = 'produ-chat-img-v1';
+        const CHAT_IMG_MAX = 1280;         // длинная сторона после сжатия
+
+        function loadChatImage(id) {
+            if (imgMem.has(id)) return Promise.resolve(imgMem.get(id));
+            if (imgLoading.has(id)) return imgLoading.get(id);
+            const key = `${SERVER_BASE}/messages/image?id=${id}`;
+            const pr = (async () => {
+                try {
+                    // сначала ищем на устройстве — картинка однажды скачанная больше не тратит трафик
+                    if ('caches' in window) {
+                        const c = await caches.open(IMG_CACHE);
+                        const hit = await c.match(key);
+                        if (hit) { const d = await hit.text(); imgMem.set(id, d); return d; }
+                    }
+                    const r = await api('/messages/image?id=' + id);
+                    const d = r.body.data;
+                    if (!d) return null;
+                    imgMem.set(id, d);
+                    if ('caches' in window) caches.open(IMG_CACHE).then(c => c.put(key, new Response(d))).catch(() => {});
+                    return d;
+                } catch (e) {
+                    return null;
+                } finally {
+                    imgLoading.delete(id);
+                }
+            })();
+            imgLoading.set(id, pr);
+            return pr;
+        }
+
+        function rememberChatImage(id, d) {
+            imgMem.set(id, d);
+            if ('caches' in window) caches.open(IMG_CACHE).then(c => c.put(`${SERVER_BASE}/messages/image?id=${id}`, new Response(d))).catch(() => {});
+        }
+
+        // Сжатие: уменьшаем до 1280 px по длинной стороне и сохраняем как JPEG
+        function compressImage(file) {
+            return new Promise((resolve, reject) => {
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => {
+                    URL.revokeObjectURL(url);
+                    const k = Math.min(1, CHAT_IMG_MAX / Math.max(img.naturalWidth, img.naturalHeight));
+                    const w = Math.max(1, Math.round(img.naturalWidth * k)), h = Math.max(1, Math.round(img.naturalHeight * k));
+                    const c = document.createElement('canvas');
+                    c.width = w; c.height = h;
+                    const ctx = c.getContext('2d');
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(0, 0, w, h);
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, 0, 0, w, h);
+                    let data = c.toDataURL('image/jpeg', 0.82);
+                    if (data.length > 1_400_000) data = c.toDataURL('image/jpeg', 0.6);
+                    resolve({ data, w, h });
+                };
+                img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Не удалось открыть картинку. Попробуйте фото в формате JPG или PNG.')); };
+                img.src = url;
+            });
+        }
+
+        function pickChatImage() {
+            const f = $('chatImageFile');
+            f.value = '';
+            f.click();
+        }
+
+        function onChatImageFile(input) {
+            const file = input.files && input.files[0];
+            input.value = '';
+            if (file) attachImageFile(file);
+        }
+
+        async function attachImageFile(file) {
+            if (!chat.peer) return;
+            if (file.type && !file.type.startsWith('image/')) return showToast('Это не картинка', 'Можно отправлять только изображения.', 4000);
+            try {
+                const res = await compressImage(file);
+                chat.attach = res;
+                $('chatAttachImg').src = res.data;
+                const kb = Math.round(res.data.length * 0.75 / 1024);
+                $('chatAttachInfo').textContent = `Фото ${res.w}×${res.h}, ≈${kb} КБ. Можно добавить подпись.`;
+                $('chatAttach').classList.add('on');
+                $('chatText').focus();
+            } catch (e) {
+                showToast('Картинка не добавлена', e.message, 5000);
+            }
+        }
+
+        function clearAttach() {
+            chat.attach = null;
+            $('chatAttach').classList.remove('on');
+            $('chatAttachImg').removeAttribute('src');
+        }
+
+        function openImageViewer(el) {
+            if (!el.src) return;
+            $('imgViewerImg').src = el.src;
+            const a = $('imgViewerSave');
+            a.href = el.src;
+            a.download = `photo-${el.dataset.mid || Date.now()}.jpg`;
+            $('imgViewer').hidden = false;
+        }
+        function closeImageViewer() {
+            $('imgViewer').hidden = true;
+            $('imgViewerImg').removeAttribute('src');
+        }
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('imgViewer').hidden) closeImageViewer(); });
 
         function autoGrow(ta) {
             ta.style.height = 'auto';
@@ -3477,10 +3644,13 @@
             if (!chat.peer) return;
             const ta = $('chatText');
             const text = ta.value.trim();
-            if (!text) return;
+            const att = chat.attach;
+            if (!text && !att) return;
             ta.value = '';
             autoGrow(ta);
+            clearAttach();
             const p = { tmp: 't' + (++tmpSeq), sender: 'me', body: text, created: Date.now(), state: 'sending' };
+            if (att) { p.img = { w: att.w, h: att.h }; p.localImg = att.data; p.image = att; }
             chat.pending.push(p);
             renderChat('own');
             deliver(p, chat.peer.id);
@@ -3488,10 +3658,13 @@
 
         async function deliver(p, peerId) {
             try {
-                const r = await api('/messages/send', { method: 'POST', body: { to: peerId, text: p.body } });
+                const payload = { to: peerId, text: p.body };
+                if (p.image) payload.image = p.image;
+                const r = await api('/messages/send', { method: 'POST', body: payload });
                 const m = r.body.message;
+                if (p.image) rememberChatImage(m.id, p.image.data);
                 const f = social.friends.find(x => x.id === peerId);
-                if (f) { f.last = { id: m.id, sender: social.me, body: m.body, created: m.created }; social.friends.sort((x, y) => ((y.last ? y.last.created : 0) - (x.last ? x.last.created : 0))); }
+                if (f) { f.last = { id: m.id, sender: social.me, body: m.body, created: m.created, img: !!m.img }; social.friends.sort((x, y) => ((y.last ? y.last.created : 0) - (x.last ? x.last.created : 0))); }
                 if (!chat.peer || chat.peer.id !== peerId) return;
                 chat.pending = chat.pending.filter(x => x !== p);
                 if (!chat.messages.some(x => x.id === m.id)) chat.messages.push(m);
@@ -3516,6 +3689,18 @@
         (function () {
             const ta = $('chatText');
             ta.addEventListener('input', () => autoGrow(ta));
+            ta.addEventListener('paste', e => {
+                const file = [...(e.clipboardData ? e.clipboardData.files : [])].find(f => f.type.startsWith('image/'));
+                if (file) { e.preventDefault(); attachImageFile(file); }
+            });
+            const card = document.querySelector('.chat-card');
+            card.addEventListener('dragover', e => { if (chat.peer && [...e.dataTransfer.types].includes('Files')) { e.preventDefault(); card.classList.add('dropping'); } });
+            card.addEventListener('dragleave', e => { if (!card.contains(e.relatedTarget)) card.classList.remove('dropping'); });
+            card.addEventListener('drop', e => {
+                card.classList.remove('dropping');
+                const file = [...e.dataTransfer.files].find(f => f.type.startsWith('image/'));
+                if (file) { e.preventDefault(); attachImageFile(file); }
+            });
             ta.addEventListener('keydown', e => {
                 // На компьютере Enter отправляет, Shift+Enter — новая строка. На телефоне Enter — новая строка.
                 if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && matchMedia('(pointer: fine)').matches) sendMessage(e);

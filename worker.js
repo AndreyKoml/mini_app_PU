@@ -35,7 +35,8 @@
  *   GET  /social               — друзья, заявки, последние сообщения и непрочитанные
  *   POST /friends/request | accept | decline | remove   { userId }
  *   GET  /messages?with=ID[&after=N | &before=N]       — переписка с другом
- *   POST /messages/send { to, text } | /messages/read { with, upTo }
+ *   POST /messages/send { to, text, image? } | /messages/read { with, upTo }
+ *   GET  /messages/image?id=N  — картинка из сообщения (data:image/jpeg;base64,…)
  */
 
 const MAX_REMINDERS = 500;        // напоминаний с одного устройства
@@ -59,6 +60,9 @@ const AVATAR_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
 const MAX_MSG_CHARS = 2000;
 const MSG_PER_MINUTE = 30;         // защита от случайного или намеренного флуда
 const MAX_OUTGOING_REQUESTS = 50;
+const MAX_IMAGE_CHARS = 1_500_000;  // ≈ 1,1 МБ JPEG; приложение сжимает фото до 150–300 КБ
+const IMAGES_PER_DAY = 100;         // на одного пользователя — чтобы не переполнить бесплатные 500 МБ базы
+const IMAGE_RE = /^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/;
 
 export default {
     async fetch(request, env, ctx) {
@@ -74,9 +78,12 @@ export default {
                 if (!env.SITE_URL) return text('Не задана переменная SITE_URL (Settings → Variables).', 500, cors);
                 const { publicKey } = await getVapid(env);
                 const stats = await env.DB.prepare(
-                    'SELECT (SELECT COUNT(*) FROM subs) AS devices, (SELECT COUNT(*) FROM reminders WHERE sent = 0) AS pending, (SELECT COUNT(*) FROM users) AS users'
+                    `SELECT (SELECT COUNT(*) FROM subs) AS devices, (SELECT COUNT(*) FROM reminders WHERE sent = 0) AS pending,
+                        (SELECT COUNT(*) FROM users) AS users, (SELECT COUNT(*) FROM msg_images) AS images,
+                        (SELECT COALESCE(SUM(length(data)), 0) FROM msg_images) AS image_bytes`
                 ).first();
-                return text(`ProdU push: OK\nАккаунтов: ${stats.users}\nУстройств с push: ${stats.devices}\nОжидают отправки: ${stats.pending}\nКлюч: ${publicKey.slice(0, 16)}…`, 200, cors);
+                const mb = (stats.image_bytes / 1048576).toFixed(1);
+                return text(`ProdU push: OK\nАккаунтов: ${stats.users}\nУстройств с push: ${stats.devices}\nОжидают отправки: ${stats.pending}\nКартинок в чатах: ${stats.images} (${mb} МБ из 500 МБ бесплатной базы)\nКлюч: ${publicKey.slice(0, 16)}…`, 200, cors);
             }
 
             if (request.method === 'GET' && url.pathname === '/config') {
@@ -101,7 +108,7 @@ export default {
                 return await handleAvatar(env, user, request, url, cors);
             }
 
-            if ((request.method === 'GET' && ['/users/search', '/social', '/messages'].includes(url.pathname)) ||
+            if ((request.method === 'GET' && ['/users/search', '/social', '/messages', '/messages/image'].includes(url.pathname)) ||
                 (request.method === 'POST' && (url.pathname.startsWith('/friends/') || url.pathname.startsWith('/messages/')))) {
                 const user = await authUser(request, env);
                 if (!user) return json({ error: 'Сессия истекла — войдите снова' }, 401, cors);
@@ -171,6 +178,8 @@ async function ensureSchema(env) {
         env.DB.prepare(`CREATE TABLE IF NOT EXISTS reads (
             user_id INTEGER NOT NULL, peer_id INTEGER NOT NULL, last_id INTEGER NOT NULL, PRIMARY KEY (user_id, peer_id))`),
         env.DB.prepare('CREATE TABLE IF NOT EXISTS sub_users (endpoint TEXT PRIMARY KEY, user_id INTEGER NOT NULL)'),
+        env.DB.prepare(`CREATE TABLE IF NOT EXISTS msg_images (
+            msg_id INTEGER PRIMARY KEY, data TEXT NOT NULL, w INTEGER NOT NULL, h INTEGER NOT NULL)`),
         env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_sub_users_user ON sub_users (user_id)')
     ]);
     schemaReady = true;
@@ -317,6 +326,7 @@ async function handleAuth(action, request, env, cors) {
             env.DB.prepare('DELETE FROM userdata WHERE user_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM avatars WHERE user_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM friends WHERE a = ?1 OR b = ?1').bind(me.id),
+            env.DB.prepare('DELETE FROM msg_images WHERE msg_id IN (SELECT id FROM messages WHERE a = ?1 OR b = ?1)').bind(me.id),
             env.DB.prepare('DELETE FROM messages WHERE a = ?1 OR b = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM reads WHERE user_id = ?1 OR peer_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM sub_users WHERE user_id = ?1').bind(me.id),
@@ -527,7 +537,7 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
             LEFT JOIN avatars av ON av.user_id = u.id
             WHERE f.a = ?1 OR f.b = ?1`).bind(me.id).all();
         const { results: last } = await env.DB.prepare(`
-            SELECT m.id, m.a, m.b, m.sender, m.body, m.created FROM messages m
+            SELECT m.id, m.a, m.b, m.sender, m.body, m.created, EXISTS(SELECT 1 FROM msg_images i WHERE i.msg_id = m.id) AS img FROM messages m
             JOIN (SELECT MAX(id) AS id FROM messages WHERE a = ?1 OR b = ?1 GROUP BY a, b) t ON t.id = m.id`).bind(me.id).all();
         const { results: unread } = await env.DB.prepare(`
             SELECT m.sender AS id, COUNT(*) AS n FROM messages m
@@ -535,7 +545,7 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
             WHERE (m.a = ?1 OR m.b = ?1) AND m.sender != ?1 AND m.id > COALESCE(r.last_id, 0)
             GROUP BY m.sender`).bind(me.id).all();
 
-        const lastBy = new Map(last.map(m => [m.a === me.id ? m.b : m.a, { id: m.id, sender: m.sender, body: m.body.slice(0, 200), created: m.created }]));
+        const lastBy = new Map(last.map(m => [m.a === me.id ? m.b : m.a, { id: m.id, sender: m.sender, body: m.body.slice(0, 200), created: m.created, img: !!m.img }]));
         const unreadBy = new Map(unread.map(u => [u.id, u.n]));
         const person = r => ({ id: r.id, login: r.login, av: r.av });
         const friends = rels.filter(r => r.status === 'accepted')
@@ -585,6 +595,7 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
         if (action === 'remove') {   // удалить из друзей или отменить свою заявку; переписка удаляется у обоих
             await env.DB.batch([
                 env.DB.prepare('DELETE FROM friends WHERE a = ?1 AND b = ?2').bind(a, b),
+                env.DB.prepare('DELETE FROM msg_images WHERE msg_id IN (SELECT id FROM messages WHERE a = ?1 AND b = ?2)').bind(a, b),
                 env.DB.prepare('DELETE FROM messages WHERE a = ?1 AND b = ?2').bind(a, b),
                 env.DB.prepare('DELETE FROM reads WHERE (user_id = ?1 AND peer_id = ?2) OR (user_id = ?2 AND peer_id = ?1)').bind(a, b)
             ]);
@@ -605,24 +616,51 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
         let messages, hasMore = false;
         if (after) {
             ({ results: messages } = await env.DB.prepare(
-                'SELECT id, sender, body, created FROM messages WHERE a = ?1 AND b = ?2 AND id > ?3 ORDER BY id LIMIT 200'
+                `SELECT m.id, m.sender, m.body, m.created, i.w, i.h FROM messages m LEFT JOIN msg_images i ON i.msg_id = m.id
+                 WHERE m.a = ?1 AND m.b = ?2 AND m.id > ?3 ORDER BY m.id LIMIT 200`
             ).bind(a, b, after).all());
         } else {
             const { results } = await env.DB.prepare(
-                'SELECT id, sender, body, created FROM messages WHERE a = ?1 AND b = ?2 AND id < ?3 ORDER BY id DESC LIMIT 51'
+                `SELECT m.id, m.sender, m.body, m.created, i.w, i.h FROM messages m LEFT JOIN msg_images i ON i.msg_id = m.id
+                 WHERE m.a = ?1 AND m.b = ?2 AND m.id < ?3 ORDER BY m.id DESC LIMIT 51`
             ).bind(a, b, before || Number.MAX_SAFE_INTEGER).all();
             hasMore = results.length > 50;
             messages = results.slice(0, 50).reverse();
         }
+        messages = messages.map(m => {
+            const out = { id: m.id, sender: m.sender, body: m.body, created: m.created };
+            if (m.w) out.img = { w: m.w, h: m.h };
+            return out;
+        });
         const pr = await env.DB.prepare('SELECT last_id FROM reads WHERE user_id = ?1 AND peer_id = ?2').bind(other, me.id).first();
         return json({ messages, hasMore, peerRead: pr ? pr.last_id : 0 }, 200, cors);
     }
 
+    if (path === '/messages/image') {
+        const id = readUserId(url.searchParams.get('id'));
+        const row = await env.DB.prepare(`SELECT i.data FROM msg_images i JOIN messages m ON m.id = i.msg_id
+            WHERE i.msg_id = ?1 AND (m.a = ?2 OR m.b = ?2)`).bind(id, me.id).first();
+        if (!row) return json({ error: 'Картинка не найдена' }, 404, cors);
+        return new Response(JSON.stringify({ data: row.data }), {
+            status: 200,
+            headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'private, max-age=31536000, immutable' }
+        });
+    }
+
     if (path === '/messages/send') {
-        const { to, text } = await readJson(request, 20_000);
+        const { to, text, image } = await readJson(request, MAX_IMAGE_CHARS + 30_000);
         const other = readUserId(to);
         const body = String(text || '').replace(/\r\n?/g, '\n').trim();
-        if (!body) throw new BadRequest('Пустое сообщение');
+        let img = null;
+        if (image) {
+            const data = String(image.data || '');
+            const w = Number(image.w), h = Number(image.h);
+            if (data.length > MAX_IMAGE_CHARS) return json({ error: 'Картинка слишком большая' }, 413, cors);
+            if (!IMAGE_RE.test(data)) throw new BadRequest('Это не похоже на картинку JPEG');
+            if (!Number.isInteger(w) || !Number.isInteger(h) || w < 1 || h < 1 || w > 4096 || h > 4096) throw new BadRequest('bad size');
+            img = { data, w, h };
+        }
+        if (!body && !img) throw new BadRequest('Пустое сообщение');
         if ([...body].length > MAX_MSG_CHARS) return json({ error: `Сообщение длиннее ${MAX_MSG_CHARS} символов` }, 400, cors);
         if (relation(await getFriendRow(env, me.id, other), me.id) !== 'friend') {
             return json({ error: 'Писать можно только друзьям' }, 403, cors);
@@ -630,11 +668,26 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
         const now = Date.now();
         const recent = await env.DB.prepare('SELECT COUNT(*) AS n FROM messages WHERE sender = ?1 AND created > ?2').bind(me.id, now - 60000).first();
         if (recent.n >= MSG_PER_MINUTE) return json({ error: 'Слишком много сообщений подряд — подождите минуту' }, 429, cors);
+        if (img) {
+            const today = await env.DB.prepare(`SELECT COUNT(*) AS n FROM msg_images i JOIN messages m ON m.id = i.msg_id
+                WHERE m.sender = ?1 AND m.created > ?2`).bind(me.id, now - 86400e3).first();
+            if (today.n >= IMAGES_PER_DAY) return json({ error: `Можно отправить не больше ${IMAGES_PER_DAY} картинок в сутки` }, 429, cors);
+        }
         const [a, b] = pairOf(me.id, other);
         const row = await env.DB.prepare('INSERT INTO messages (a, b, sender, body, created) VALUES (?1, ?2, ?3, ?4, ?5) RETURNING id')
             .bind(a, b, me.id, body, now).first();
+        if (img) {
+            try {
+                await env.DB.prepare('INSERT INTO msg_images (msg_id, data, w, h) VALUES (?1, ?2, ?3, ?4)').bind(row.id, img.data, img.w, img.h).run();
+            } catch (e) {
+                await env.DB.prepare('DELETE FROM messages WHERE id = ?1').bind(row.id).run();
+                throw e;
+            }
+        }
         const message = { id: row.id, sender: me.id, body, created: now };
-        const preview = [...body].slice(0, 140).join('') + ([...body].length > 140 ? '…' : '');
+        if (img) message.img = { w: img.w, h: img.h };
+        const textPreview = [...body].slice(0, 140).join('') + ([...body].length > 140 ? '…' : '');
+        const preview = img ? '📷 Фото' + (textPreview ? ' · ' + textPreview : '') : textPreview;
         const push = pushToUser(env, other, { kind: 'msg', fromId: me.id, title: me.display, body: preview, tag: 'chat-' + me.id });
         if (ctx && ctx.waitUntil) ctx.waitUntil(push); else await push;
         return json({ message }, 200, cors);
