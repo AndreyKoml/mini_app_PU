@@ -28,8 +28,9 @@
  *   GET  /vapid   — публичный ключ для подписки
  *   POST /sync    — { subscription, reminders: [{ id, due, title, body }] }
  *   POST /auth/register | /auth/login | /auth/logout | /auth/password | /auth/delete
- *   GET  /data?since=N  — данные аккаунта (или { unchanged: true })
+ *   GET  /data?since=N  — данные аккаунта (или { unchanged: true }); поле av — версия аватарки
  *   PUT  /data?base=N   — сохранить данные, если на сервере всё ещё версия N (иначе 409)
+ *   GET | PUT | DELETE /avatar — аватарка профиля (картинка data:image/…;base64)
  */
 
 const MAX_REMINDERS = 500;        // напоминаний с одного устройства
@@ -46,6 +47,8 @@ const KEY_RE = /^[A-Za-z0-9_-]{43}$/;          // 32 байта в base64url —
 const SESSION_IDLE_MS = 180 * 86400e3;          // сессия забывается после 180 дней без входа
 const MAX_DATA_BYTES = 1_800_000;               // предел строки D1 — 2 МБ
 const LOCK_AFTER = 5;                           // после 5 неверных паролей подряд — пауза
+const MAX_AVATAR_CHARS = 300_000;               // аватарка 256×256 обычно весит 20–40 КБ
+const AVATAR_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
 
 export default {
     async fetch(request, env) {
@@ -80,6 +83,12 @@ export default {
                 return request.method === 'GET'
                     ? await getData(env, user, url, cors)
                     : await putData(env, user, url, request, cors);
+            }
+
+            if (url.pathname === '/avatar' && ['GET', 'PUT', 'DELETE'].includes(request.method)) {
+                const user = await authUser(request, env);
+                if (!user) return json({ error: 'Сессия истекла — войдите снова' }, 401, cors);
+                return await handleAvatar(env, user, request, cors);
             }
 
             if (request.method === 'GET' && url.pathname === '/vapid') {
@@ -127,7 +136,9 @@ async function ensureSchema(env) {
             token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL, created INTEGER NOT NULL, last_used INTEGER NOT NULL)`),
         env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions (user_id)'),
         env.DB.prepare(`CREATE TABLE IF NOT EXISTS userdata (
-            user_id INTEGER PRIMARY KEY, version INTEGER NOT NULL, data TEXT, updated INTEGER NOT NULL)`)
+            user_id INTEGER PRIMARY KEY, version INTEGER NOT NULL, data TEXT, updated INTEGER NOT NULL)`),
+        env.DB.prepare(`CREATE TABLE IF NOT EXISTS avatars (
+            user_id INTEGER PRIMARY KEY, data TEXT NOT NULL, version INTEGER NOT NULL)`)
     ]);
     schemaReady = true;
 }
@@ -271,6 +282,7 @@ async function handleAuth(action, request, env, cors) {
         await env.DB.batch([
             env.DB.prepare('DELETE FROM sessions WHERE user_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM userdata WHERE user_id = ?1').bind(me.id),
+            env.DB.prepare('DELETE FROM avatars WHERE user_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM users WHERE id = ?1').bind(me.id)
         ]);
         return json({ ok: true }, 200, cors);
@@ -282,10 +294,33 @@ async function handleAuth(action, request, env, cors) {
 // ===================== Данные аккаунта =====================
 // Сервер не разбирает данные — хранит их как есть. Объединяет изменения с разных устройств само приложение.
 async function getData(env, user, url, cors) {
-    const row = await env.DB.prepare('SELECT version, data FROM userdata WHERE user_id = ?1').bind(user.id).first();
-    const version = row ? row.version : 0;
-    if (url.searchParams.get('since') === String(version)) return json({ version, unchanged: true }, 200, cors);
-    return json({ version, data: row ? row.data : null }, 200, cors);
+    const row = await env.DB.prepare(`SELECT
+            (SELECT version FROM userdata WHERE user_id = ?1) AS version,
+            (SELECT version FROM avatars WHERE user_id = ?1) AS av`).bind(user.id).first();
+    const version = row.version || 0;
+    const av = row.av || 0;
+    if (url.searchParams.get('since') === String(version)) return json({ version, av, unchanged: true }, 200, cors);
+    const d = await env.DB.prepare('SELECT data FROM userdata WHERE user_id = ?1').bind(user.id).first();
+    return json({ version, av, data: d ? d.data : null }, 200, cors);
+}
+
+// ===================== Аватарка =====================
+async function handleAvatar(env, user, request, cors) {
+    if (request.method === 'GET') {
+        const row = await env.DB.prepare('SELECT data, version FROM avatars WHERE user_id = ?1').bind(user.id).first();
+        return json({ av: row ? row.version : 0, data: row ? row.data : null }, 200, cors);
+    }
+    if (request.method === 'DELETE') {
+        await env.DB.prepare('DELETE FROM avatars WHERE user_id = ?1').bind(user.id).run();
+        return json({ av: 0 }, 200, cors);
+    }
+    const raw = (await request.text()).trim();
+    if (raw.length > MAX_AVATAR_CHARS) return json({ error: 'Картинка слишком большая' }, 413, cors);
+    if (!AVATAR_RE.test(raw)) throw new BadRequest('Это не похоже на картинку');
+    const av = Date.now();
+    await env.DB.prepare(`INSERT INTO avatars (user_id, data, version) VALUES (?1, ?2, ?3)
+        ON CONFLICT(user_id) DO UPDATE SET data = excluded.data, version = excluded.version`).bind(user.id, raw, av).run();
+    return json({ av }, 200, cors);
 }
 
 async function putData(env, user, url, request, cors) {
@@ -508,7 +543,7 @@ function corsHeaders(env) {
     try { if (env.SITE_URL && !env.SITE_URL.startsWith('mailto:')) origin = new URL(env.SITE_URL).origin; } catch {}
     return {
         'Access-Control-Allow-Origin': origin,
-        'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Max-Age': '86400',
         'Vary': 'Origin'

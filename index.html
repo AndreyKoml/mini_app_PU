@@ -439,6 +439,47 @@
         .sync-dot[data-s="error"], .sync-dot[data-s="offline"] { background: var(--danger); }
         .sync-dot[data-s="none"] { display: none; }
 
+        /* --- АВАТАРКА --- */
+        .avatar {
+            width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+            display: inline-flex; align-items: center; justify-content: center;
+            background: var(--accent-color) center / cover no-repeat; color: #000;
+            font-weight: 700; font-size: 13px; text-transform: uppercase; overflow: hidden;
+        }
+        .avatar.empty { background-color: transparent; font-size: 16px; }
+        .avatar.lg { width: 72px; height: 72px; font-size: 32px; box-shadow: 0 4px 16px var(--glass-shadow); }
+        .account-pill .avatar { margin: -4px 0 -4px -6px; }
+        .profile-head { display: flex; align-items: center; gap: 16px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--glass-border); }
+        .profile-head .who { min-width: 0; flex: 1; }
+        .profile-head .who .nick { font-weight: 700; font-size: 1.3rem; overflow-wrap: anywhere; }
+        .profile-head .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+        .avatar-wrap { position: relative; cursor: pointer; border: none; padding: 0; background: none; border-radius: 50%; }
+        .avatar-wrap::after {
+            content: '📷'; position: absolute; right: -2px; bottom: -2px; width: 26px; height: 26px; border-radius: 50%;
+            background: var(--bg-color); border: 1px solid var(--glass-border);
+            display: flex; align-items: center; justify-content: center; font-size: 13px;
+        }
+
+        .modal {
+            position: fixed; inset: 0; z-index: 900; display: flex; align-items: center; justify-content: center;
+            background: rgba(0, 0, 0, 0.55); padding: 16px; box-sizing: border-box;
+        }
+        .modal[hidden] { display: none; }
+        .modal-card {
+            background: var(--bg-color); border: 1px solid var(--glass-border); border-radius: 20px;
+            padding: 20px; width: min(100%, 340px); box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+        }
+        .crop-box { width: 260px; height: 260px; margin: 0 auto 14px; position: relative; max-width: 100%; }
+        #avCanvas { width: 100%; height: 100%; display: block; border-radius: 16px; background: #000; touch-action: none; cursor: grab; }
+        #avCanvas:active { cursor: grabbing; }
+        .crop-ring {
+            position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+            box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.45); border: 2px solid rgba(255,255,255,0.85);
+        }
+        .crop-mask { position: absolute; inset: 0; overflow: hidden; border-radius: 16px; pointer-events: none; }
+        .zoom-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; font-size: 18px; }
+        .zoom-row input { flex: 1; accent-color: var(--accent-color); }
+
         #module-account .acc-in, #module-account .acc-out, #module-account .acc-noserver { display: none; }
         #module-account[data-state="in"] .acc-in,
         #module-account[data-state="out"] .acc-out,
@@ -475,7 +516,7 @@
     <div class="bg-logo">U</div>
 
     <button class="account-pill" id="accountPill" onclick="openAccount()" title="Аккаунт и синхронизация">
-        👤 <span class="name" id="accountPillName">Войти</span><span class="sync-dot" id="syncDot" data-s="none"></span>
+        <span class="avatar empty" id="pillAvatar">👤</span><span class="name" id="accountPillName">Войти</span><span class="sync-dot" id="syncDot" data-s="none"></span>
     </button>
 
     <div class="coin-counter" id="coinCounter">
@@ -483,6 +524,27 @@
     </div>
 
     <div id="toastContainer"></div>
+
+    <!-- Выбор области для аватарки -->
+    <div class="modal" id="avatarModal" hidden onclick="if (event.target === this) closeAvatarModal()">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="avModalTitle">
+            <div class="card-header" id="avModalTitle">Фото профиля</div>
+            <div class="crop-box">
+                <canvas id="avCanvas"></canvas>
+                <div class="crop-mask"><div class="crop-ring"></div></div>
+            </div>
+            <div class="zoom-row">
+                <span aria-hidden="true">−</span>
+                <input type="range" id="avZoom" min="1" max="4" step="0.01" value="1" aria-label="Масштаб" oninput="avSetZoom(+this.value)">
+                <span aria-hidden="true">+</span>
+            </div>
+            <div class="hint" style="margin: 0 0 14px; text-align: center;">Перетащите фото и приблизьте его, чтобы выбрать область</div>
+            <div class="flex-row">
+                <button class="glass-btn" id="avSave" onclick="saveAvatar()" style="margin-bottom: 0;">Сохранить</button>
+                <button class="glass-btn secondary" onclick="closeAvatarModal()" style="margin-bottom: 0;">Отмена</button>
+            </div>
+        </div>
+    </div>
 
     <div id="mainAppContainer" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
 
@@ -670,7 +732,20 @@
             </div>
 
             <div class="glass-card full-width acc-in">
-                <div class="card-header"><span class="item-text">👤 <span id="accName"></span></span></div>
+                <div class="profile-head">
+                    <button type="button" class="avatar-wrap" onclick="pickAvatar()" title="Сменить фото профиля">
+                        <span class="avatar lg" id="accAvatar"></span>
+                    </button>
+                    <div class="who">
+                        <div class="nick" id="accName"></div>
+                        <div class="actions">
+                            <button type="button" class="glass-btn secondary compact" onclick="pickAvatar()" id="accAvBtn">📷 Загрузить фото</button>
+                            <button type="button" class="glass-btn secondary compact" onclick="removeAvatar()" id="accAvRemove" hidden>Убрать</button>
+                        </div>
+                    </div>
+                </div>
+                <input type="file" id="avatarFile" accept="image/*" hidden onchange="onAvatarFile(this)">
+                <div class="form-msg" id="accAvMsg"></div>
                 <div class="sync-line" id="accSyncText"></div>
                 <div class="flex-row" style="margin-top: 15px;">
                     <button class="glass-btn" id="accSyncBtn" onclick="syncNow()" style="margin-bottom: 0;">Синхронизировать</button>
@@ -2451,6 +2526,7 @@
                     if (canonical(data) !== raw0) changedHere = true;
                     const g = await api('/data?since=' + (meta.version || 0));
                     if (!auth) return;
+                    checkAvatarVersion(g.body.av);
                     const version = g.body.version || 0;
                     const seqAtStart = changeSeq;
                     let needPush;
@@ -2588,6 +2664,201 @@
                 dot.dataset.s = 'none';
             }
             $('accountPill').hidden = !SERVER_BASE;
+            renderAvatars();
+        }
+
+        // ================= АВАТАРКА =================
+        // Картинка обрезается до квадрата 256×256 прямо в браузере и хранится в аккаунте на сервере.
+        // На устройстве лежит копия, поэтому аватарка видна и без интернета.
+        let avatarCache = null;          // { login, av, data }
+        try { avatarCache = JSON.parse(localStorage.getItem('produ_avatar')); } catch (e) {}
+        let avatarFetching = false;
+        const AVATAR_SIZE = 256;
+
+        function saveAvatarCache(c) {
+            avatarCache = c;
+            try { c ? localStorage.setItem('produ_avatar', JSON.stringify(c)) : localStorage.removeItem('produ_avatar'); } catch (e) {}
+            renderAvatars();
+        }
+
+        function myAvatar() {
+            return auth && avatarCache && avatarCache.login === normLogin(auth.login) && avatarCache.data ? avatarCache.data : null;
+        }
+
+        function paintAvatar(el) {
+            const img = myAvatar();
+            el.style.backgroundImage = img ? `url("${img}")` : '';
+            el.classList.toggle('empty', !auth);
+            el.textContent = img ? '' : (auth ? [...auth.login][0] : '👤');
+        }
+
+        function renderAvatars() {
+            ['pillAvatar', 'accAvatar'].forEach(id => { const el = $(id); if (el) paintAvatar(el); });
+            const has = !!myAvatar();
+            $('accAvRemove').hidden = !has;
+            $('accAvBtn').textContent = has ? '📷 Сменить фото' : '📷 Загрузить фото';
+        }
+
+        // Сервер при каждой синхронизации сообщает версию аватарки; если она новая — скачиваем
+        async function checkAvatarVersion(av) {
+            if (!auth || av === undefined || avatarFetching) return;
+            const me = normLogin(auth.login);
+            const mine = avatarCache && avatarCache.login === me ? avatarCache.av : -1;
+            if (mine === av) return;
+            if (!av) { saveAvatarCache({ login: me, av: 0, data: null }); return; }
+            avatarFetching = true;
+            try {
+                const r = await api('/avatar');
+                if (auth && normLogin(auth.login) === me) saveAvatarCache({ login: me, av: r.body.av || 0, data: r.body.data || null });
+            } catch (e) {
+            } finally {
+                avatarFetching = false;
+            }
+        }
+
+        function pickAvatar() {
+            if (!auth) return;
+            setMsg('accAvMsg', '');
+            const f = $('avatarFile');
+            f.value = '';
+            f.click();
+        }
+
+        const crop = { img: null, w: 0, h: 0, zoom: 1, ox: 0, oy: 0, V: 260 };
+        const cropScale = () => crop.V / Math.min(crop.w, crop.h) * crop.zoom;
+
+        function onAvatarFile(input) {
+            const file = input.files && input.files[0];
+            input.value = '';     // чтобы тот же файл можно было выбрать ещё раз
+            if (!file) return;
+            if (file.type && !file.type.startsWith('image/')) return setMsg('accAvMsg', 'Выберите файл с картинкой.');
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => { URL.revokeObjectURL(url); openCrop(img); };
+            img.onerror = () => { URL.revokeObjectURL(url); setMsg('accAvMsg', 'Не удалось открыть картинку. Попробуйте фото в формате JPG или PNG.'); };
+            img.src = url;
+        }
+
+        function openCrop(img) {
+            Object.assign(crop, { img, w: img.naturalWidth, h: img.naturalHeight, zoom: 1 });
+            $('avZoom').value = 1;
+            $('avatarModal').hidden = false;
+            crop.V = $('avCanvas').clientWidth || 260;
+            const s = cropScale();
+            crop.ox = (crop.V - crop.w * s) / 2;
+            crop.oy = (crop.V - crop.h * s) / 2;
+            drawCrop();
+            $('avSave').focus();
+        }
+
+        function drawCrop() {
+            if (!crop.img) return;
+            const s = cropScale();
+            // фото всегда закрывает всю область
+            crop.ox = Math.min(0, Math.max(crop.V - crop.w * s, crop.ox));
+            crop.oy = Math.min(0, Math.max(crop.V - crop.h * s, crop.oy));
+            const c = $('avCanvas');
+            const dpr = window.devicePixelRatio || 1;
+            const px = Math.round(crop.V * dpr);
+            if (c.width !== px) { c.width = px; c.height = px; }
+            const ctx = c.getContext('2d');
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, crop.V, crop.V);
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(crop.img, crop.ox, crop.oy, crop.w * s, crop.h * s);
+        }
+
+        function avSetZoom(z) {
+            if (!crop.img) return;
+            z = Math.min(4, Math.max(1, z));
+            const s0 = cropScale();
+            const cx = (crop.V / 2 - crop.ox) / s0, cy = (crop.V / 2 - crop.oy) / s0;   // точка в центре остаётся на месте
+            crop.zoom = z;
+            const s1 = cropScale();
+            crop.ox = crop.V / 2 - cx * s1;
+            crop.oy = crop.V / 2 - cy * s1;
+            $('avZoom').value = z;
+            drawCrop();
+        }
+
+        // Перетаскивание пальцем или мышью, щипок двумя пальцами, колесо мыши
+        (function () {
+            const c = $('avCanvas');
+            const pts = new Map();
+            let pinch = 0;
+            const dist = () => { const [a, b] = [...pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+            c.addEventListener('pointerdown', e => {
+                pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                try { c.setPointerCapture(e.pointerId); } catch (err) {}
+                if (pts.size === 2) pinch = dist();
+            });
+            c.addEventListener('pointermove', e => {
+                const p = pts.get(e.pointerId);
+                if (!p) return;
+                const k = crop.V / c.clientWidth;
+                if (pts.size === 1) {
+                    crop.ox += (e.clientX - p.x) * k;
+                    crop.oy += (e.clientY - p.y) * k;
+                    drawCrop();
+                }
+                p.x = e.clientX; p.y = e.clientY;
+                if (pts.size === 2 && pinch) {
+                    const d = dist();
+                    avSetZoom(crop.zoom * d / pinch);
+                    pinch = d;
+                }
+            });
+            const end = e => { pts.delete(e.pointerId); pinch = pts.size === 2 ? dist() : 0; };
+            c.addEventListener('pointerup', end);
+            c.addEventListener('pointercancel', end);
+            c.addEventListener('wheel', e => { e.preventDefault(); avSetZoom(crop.zoom * (e.deltaY < 0 ? 1.08 : 1 / 1.08)); }, { passive: false });
+        })();
+
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('avatarModal').hidden) closeAvatarModal(); });
+
+        function closeAvatarModal() {
+            $('avatarModal').hidden = true;
+            crop.img = null;
+        }
+
+        async function saveAvatar() {
+            if (!crop.img || !auth) return;
+            const out = document.createElement('canvas');
+            out.width = out.height = AVATAR_SIZE;
+            const ctx = out.getContext('2d');
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, AVATAR_SIZE, AVATAR_SIZE);
+            ctx.imageSmoothingQuality = 'high';
+            const k = AVATAR_SIZE / crop.V, s = cropScale();
+            ctx.drawImage(crop.img, crop.ox * k, crop.oy * k, crop.w * s * k, crop.h * s * k);
+            const dataUrl = out.toDataURL('image/jpeg', 0.85);
+
+            const btn = $('avSave');
+            btn.disabled = true;
+            btn.textContent = 'Сохраняем…';
+            try {
+                const r = await api('/avatar', { method: 'PUT', raw: true, body: dataUrl });
+                saveAvatarCache({ login: normLogin(auth.login), av: r.body.av, data: dataUrl });
+                closeAvatarModal();
+                setMsg('accAvMsg', '');
+            } catch (e) {
+                closeAvatarModal();
+                setMsg('accAvMsg', e.offline ? 'Нет связи с сервером, фото не сохранилось. Попробуйте позже.' : e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Сохранить';
+            }
+        }
+
+        async function removeAvatar() {
+            if (!auth || !confirm('Убрать фото профиля?')) return;
+            try {
+                await api('/avatar', { method: 'DELETE' });
+                saveAvatarCache({ login: normLogin(auth.login), av: 0, data: null });
+            } catch (e) {
+                setMsg('accAvMsg', e.message);
+            }
         }
 
         function openAccount() { switchTab('account', null); }
@@ -2640,7 +2911,7 @@
                 ['accPassword', 'accPassword2', 'accInvite'].forEach(id => { $(id).value = ''; });
                 setMsg('accMsg', '');
                 await syncNow();
-                showToast(isReg ? '🎉 Аккаунт создан' : '👋 Вы вошли', 'Синхронизация включена.');
+                showToast(isReg ? '🎉 Аккаунт создан' : '👋 Вы вошли', 'Синхронизация включена.', 4000);
             } catch (e) {
                 setMsg('accMsg', e.message);
             } finally {
@@ -2657,6 +2928,7 @@
             api('/auth/logout', { method: 'POST', body: {} }).catch(() => {});
             auth = null;
             saveAuth();
+            saveAvatarCache(null);
             resetLocalData();
             persist(false);
             renderAll();
@@ -2703,12 +2975,13 @@
                 await api('/auth/delete', { method: 'POST', body: { key } });
                 auth = null;
                 saveAuth();
+                saveAvatarCache(null);
                 data._meta.owner = null;
                 data._meta.version = 0;
                 persist(false);
                 form.reset();
                 setSyncState('idle');
-                showToast('Аккаунт удалён', 'Данные на этом устройстве сохранены.');
+                showToast('Аккаунт удалён', 'Данные на этом устройстве сохранены.', 6000);
             } catch (e) {
                 setMsg('accDelMsg', e.message);
             } finally {
@@ -3065,14 +3338,14 @@
             } catch (e) { /* без service worker на Android не работает — останется уведомление на странице */ }
         }
 
-        function showToast(title, body) {
+        function showToast(title, body, ms = 20000) {
             const c = document.getElementById('toastContainer');
             const t = document.createElement('div');
             t.className = 'toast';
             t.innerHTML = `<div style="flex: 1; min-width: 0;"><div class="toast-title">${esc(title)}</div><div class="toast-body">${esc(body)}</div></div><button class="icon-btn" aria-label="Закрыть">✕</button>`;
             t.querySelector('button').onclick = () => t.remove();
             c.appendChild(t);
-            setTimeout(() => t.remove(), 20000);
+            setTimeout(() => t.remove(), ms);
         }
 
         let audioCtx = null;
