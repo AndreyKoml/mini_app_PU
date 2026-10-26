@@ -15,7 +15,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 
     <style>
         /* --- CSS ПЕРЕМЕННЫЕ И ТЕМЫ --- */
@@ -425,9 +424,39 @@
             border: 2px solid var(--accent-color);
         }
 
+        /* --- АККАУНТ --- */
+        .account-pill {
+            position: fixed; top: 20px; left: 30px; z-index: 10;
+            display: flex; align-items: center; gap: 8px; max-width: 45vw;
+            font-family: inherit; font-weight: 600; font-size: 15px; line-height: 1.2; color: var(--text-color);
+            background: var(--glass-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            padding: 11px 16px; border-radius: 20px; border: 1px solid var(--glass-border); cursor: pointer;
+        }
+        .account-pill.active { border-color: var(--accent-color); box-shadow: 0 0 0 1px var(--accent-color); }
+        .account-pill .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c-task); flex-shrink: 0; }
+        .sync-dot[data-s="syncing"], .sync-dot[data-s="pending"] { background: var(--c-reminder); }
+        .sync-dot[data-s="error"], .sync-dot[data-s="offline"] { background: var(--danger); }
+        .sync-dot[data-s="none"] { display: none; }
+
+        #module-account .acc-in, #module-account .acc-out, #module-account .acc-noserver { display: none; }
+        #module-account[data-state="in"] .acc-in,
+        #module-account[data-state="out"] .acc-out,
+        #module-account[data-state="noserver"] .acc-noserver { display: flex; }
+        #accForm:not([data-mode="register"]) .reg-only { display: none; }
+        #accForm:not([data-invite="1"]) .invite-only { display: none; }
+        .form-msg { font-size: 13px; color: var(--danger); min-height: 0; line-height: 1.4; }
+        .form-msg:not(:empty) { margin-bottom: 8px; }
+        .form-msg.ok { color: inherit; opacity: 0.8; }
+        .glass-btn.danger { background: var(--danger); color: #fff; }
+        .glass-btn:disabled { opacity: 0.5; cursor: progress; }
+        .sync-line { font-size: 14px; line-height: 1.5; }
+        code { font-family: monospace; background: var(--soft); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
+
         @media (max-width: 600px) {
             body { padding-top: 64px; }
             .coin-counter { top: 12px; right: 12px; font-size: 16px; padding: 6px 14px; }
+            .account-pill { top: 12px; left: 12px; font-size: 14px; padding: 8px 12px; max-width: calc(100vw - 150px); }
             .dashboard { width: calc(100% - 24px); }
             .glass-card { padding: 16px; }
             .dock { gap: 3px; padding: 8px 10px; bottom: 16px; }
@@ -444,6 +473,10 @@
 <body>
 
     <div class="bg-logo">U</div>
+
+    <button class="account-pill" id="accountPill" onclick="openAccount()" title="Аккаунт и синхронизация">
+        👤 <span class="name" id="accountPillName">Войти</span><span class="sync-dot" id="syncDot" data-s="none"></span>
+    </button>
 
     <div class="coin-counter" id="coinCounter">
         🪙 <span id="coinValue">0</span>
@@ -611,6 +644,65 @@
             <div id="digitalCardsContainer" class="full-width" style="display: flex; flex-direction: column; gap: 15px; width: 100%;"></div>
         </div>
 
+        <!-- АККАУНТ -->
+        <div class="dashboard" id="module-account" data-state="out">
+            <div class="glass-card full-width acc-noserver">
+                <div class="card-header">Аккаунт</div>
+                <div class="sync-line" id="accNoServerText"></div>
+            </div>
+
+            <div class="glass-card full-width acc-out">
+                <div class="card-header">Аккаунт</div>
+                <div class="segmented" id="accModeSwitch" style="margin-bottom: 15px;">
+                    <button type="button" data-mode="login" class="active" onclick="setAuthMode('login')">Вход</button>
+                    <button type="button" data-mode="register" onclick="setAuthMode('register')">Регистрация</button>
+                </div>
+                <form id="accForm" data-mode="login" onsubmit="submitAuth(event)" autocomplete="on">
+                    <input id="accLogin" name="username" class="glass-input" placeholder="Логин (никнейм)" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="32">
+                    <input id="accPassword" name="password" type="password" class="glass-input" placeholder="Пароль" autocomplete="current-password">
+                    <input id="accPassword2" type="password" class="glass-input reg-only" placeholder="Повторите пароль" autocomplete="new-password">
+                    <input id="accInvite" class="glass-input reg-only invite-only" placeholder="Код приглашения" autocomplete="off" autocapitalize="off">
+                    <div class="form-msg" id="accMsg"></div>
+                    <button class="glass-btn" id="accSubmit" type="submit" style="margin-bottom: 0;">Войти</button>
+                </form>
+                <div class="hint">Аккаунт синхронизирует календарь, напоминания, дневник, списки, финансы, карты и монеты между вашими устройствами.<br>
+                    Восстановить пароль нельзя, поэтому сохраните его в надёжном месте.</div>
+            </div>
+
+            <div class="glass-card full-width acc-in">
+                <div class="card-header"><span class="item-text">👤 <span id="accName"></span></span></div>
+                <div class="sync-line" id="accSyncText"></div>
+                <div class="flex-row" style="margin-top: 15px;">
+                    <button class="glass-btn" id="accSyncBtn" onclick="syncNow()" style="margin-bottom: 0;">Синхронизировать</button>
+                    <button class="glass-btn secondary" onclick="logout()" style="margin-bottom: 0;">Выйти</button>
+                </div>
+                <div class="hint">Изменения отправляются сами через пару секунд, а изменения с других устройств подтягиваются раз в минуту и при открытии приложения.</div>
+            </div>
+
+            <div class="glass-card acc-in">
+                <div class="card-header">Смена пароля</div>
+                <form onsubmit="changePassword(event)" autocomplete="on">
+                    <input type="text" id="accPwUser" name="username" autocomplete="username" hidden>
+                    <input id="accOldPw" type="password" class="glass-input" placeholder="Текущий пароль" autocomplete="current-password">
+                    <input id="accNewPw" type="password" class="glass-input" placeholder="Новый пароль" autocomplete="new-password">
+                    <input id="accNewPw2" type="password" class="glass-input" placeholder="Повторите новый пароль" autocomplete="new-password">
+                    <div class="form-msg" id="accPwMsg"></div>
+                    <button class="glass-btn" type="submit" style="margin-bottom: 0;">Сменить пароль</button>
+                </form>
+                <div class="hint">На других устройствах после смены нужно будет войти заново.</div>
+            </div>
+
+            <div class="glass-card acc-in">
+                <div class="card-header">Удаление аккаунта</div>
+                <form onsubmit="deleteAccount(event)">
+                    <input id="accDelPw" type="password" class="glass-input" placeholder="Пароль для подтверждения" autocomplete="current-password">
+                    <div class="form-msg" id="accDelMsg"></div>
+                    <button class="glass-btn danger" type="submit" style="margin-bottom: 0;">Удалить аккаунт</button>
+                </form>
+                <div class="hint">Аккаунт и все данные удалятся с сервера. На этом устройстве данные останутся.</div>
+            </div>
+        </div>
+
         <!-- ФИНАНСЫ -->
         <div class="dashboard" id="module-finance">
             <div class="glass-card full-width">
@@ -645,6 +737,1294 @@
             <input type="checkbox" class="theme-switch" id="themeToggle" title="Смена темы">
         </div>
     </div>
+
+    <script>
+        // ===================== Генератор QR-кодов (встроен, без внешних библиотек) =====================
+        // QRCode for JavaScript — Copyright (c) 2009 Kazuhiko Arase, MIT license, http://www.d-project.com/
+        // (версия из пакета qrcode-terminal 0.12.0). «QR Code» — зарегистрированная торговая марка DENSO WAVE INCORPORATED.
+        const QRGen = (function () {
+          const defs = {}, cache = {};
+          function req(name) {
+            name = name.replace(/^\.\/(\.\.\/)?/, './').replace(/\/index$/, '').replace(/^\.\/vendor\/QRCode/, './index');
+            if (name === '.' || name === './') name = './index';
+            if (cache[name]) return cache[name].exports;
+            const module = { exports: {} };
+            cache[name] = module;
+            defs[name](module, module.exports, req);
+            return module.exports;
+          }
+          defs['./QRMode'] = function (module, exports, require) {
+        module.exports = {
+            MODE_NUMBER :       1 << 0,
+            MODE_ALPHA_NUM :    1 << 1,
+            MODE_8BIT_BYTE :    1 << 2,
+            MODE_KANJI :        1 << 3
+        };
+
+          };
+          defs['./QRErrorCorrectLevel'] = function (module, exports, require) {
+        module.exports = {
+        	L : 1,
+        	M : 0,
+        	Q : 3,
+        	H : 2
+        };
+
+
+          };
+          defs['./QRMaskPattern'] = function (module, exports, require) {
+        module.exports = {
+        	PATTERN000 : 0,
+        	PATTERN001 : 1,
+        	PATTERN010 : 2,
+        	PATTERN011 : 3,
+        	PATTERN100 : 4,
+        	PATTERN101 : 5,
+        	PATTERN110 : 6,
+        	PATTERN111 : 7
+        };
+
+          };
+          defs['./QRMath'] = function (module, exports, require) {
+        var QRMath = {
+
+        	glog : function(n) {
+        	
+        		if (n < 1) {
+        			throw new Error("glog(" + n + ")");
+        		}
+        		
+        		return QRMath.LOG_TABLE[n];
+        	},
+        	
+        	gexp : function(n) {
+        	
+        		while (n < 0) {
+        			n += 255;
+        		}
+        	
+        		while (n >= 256) {
+        			n -= 255;
+        		}
+        	
+        		return QRMath.EXP_TABLE[n];
+        	},
+        	
+        	EXP_TABLE : new Array(256),
+        	
+        	LOG_TABLE : new Array(256)
+
+        };
+        	
+        for (var i = 0; i < 8; i++) {
+        	QRMath.EXP_TABLE[i] = 1 << i;
+        }
+        for (var i = 8; i < 256; i++) {
+        	QRMath.EXP_TABLE[i] = QRMath.EXP_TABLE[i - 4]
+        		^ QRMath.EXP_TABLE[i - 5]
+        		^ QRMath.EXP_TABLE[i - 6]
+        		^ QRMath.EXP_TABLE[i - 8];
+        }
+        for (var i = 0; i < 255; i++) {
+        	QRMath.LOG_TABLE[QRMath.EXP_TABLE[i] ] = i;
+        }
+
+        module.exports = QRMath;
+
+          };
+          defs['./QRPolynomial'] = function (module, exports, require) {
+        var QRMath = require('./QRMath');
+
+        function QRPolynomial(num, shift) {
+        	if (num.length === undefined) {
+        		throw new Error(num.length + "/" + shift);
+        	}
+
+        	var offset = 0;
+
+        	while (offset < num.length && num[offset] === 0) {
+        		offset++;
+        	}
+
+        	this.num = new Array(num.length - offset + shift);
+        	for (var i = 0; i < num.length - offset; i++) {
+        		this.num[i] = num[i + offset];
+        	}
+        }
+
+        QRPolynomial.prototype = {
+
+        	get : function(index) {
+        		return this.num[index];
+        	},
+        	
+        	getLength : function() {
+        		return this.num.length;
+        	},
+        	
+        	multiply : function(e) {
+        	
+        		var num = new Array(this.getLength() + e.getLength() - 1);
+        	
+        		for (var i = 0; i < this.getLength(); i++) {
+        			for (var j = 0; j < e.getLength(); j++) {
+        				num[i + j] ^= QRMath.gexp(QRMath.glog(this.get(i) ) + QRMath.glog(e.get(j) ) );
+        			}
+        		}
+        	
+        		return new QRPolynomial(num, 0);
+        	},
+        	
+        	mod : function(e) {
+        	
+        		if (this.getLength() - e.getLength() < 0) {
+        			return this;
+        		}
+        	
+        		var ratio = QRMath.glog(this.get(0) ) - QRMath.glog(e.get(0) );
+        	
+        		var num = new Array(this.getLength() );
+        		
+        		for (var i = 0; i < this.getLength(); i++) {
+        			num[i] = this.get(i);
+        		}
+        		
+        		for (var x = 0; x < e.getLength(); x++) {
+        			num[x] ^= QRMath.gexp(QRMath.glog(e.get(x) ) + ratio);
+        		}
+        	
+        		// recursive call
+        		return new QRPolynomial(num, 0).mod(e);
+        	}
+        };
+
+        module.exports = QRPolynomial;
+
+          };
+          defs['./QRRSBlock'] = function (module, exports, require) {
+        var QRErrorCorrectLevel = require('./QRErrorCorrectLevel');
+
+        function QRRSBlock(totalCount, dataCount) {
+        	this.totalCount = totalCount;
+        	this.dataCount  = dataCount;
+        }
+
+        QRRSBlock.RS_BLOCK_TABLE = [
+
+        	// L
+        	// M
+        	// Q
+        	// H
+
+        	// 1
+        	[1, 26, 19],
+        	[1, 26, 16],
+        	[1, 26, 13],
+        	[1, 26, 9],
+        	
+        	// 2
+        	[1, 44, 34],
+        	[1, 44, 28],
+        	[1, 44, 22],
+        	[1, 44, 16],
+
+        	// 3
+        	[1, 70, 55],
+        	[1, 70, 44],
+        	[2, 35, 17],
+        	[2, 35, 13],
+
+        	// 4		
+        	[1, 100, 80],
+        	[2, 50, 32],
+        	[2, 50, 24],
+        	[4, 25, 9],
+        	
+        	// 5
+        	[1, 134, 108],
+        	[2, 67, 43],
+        	[2, 33, 15, 2, 34, 16],
+        	[2, 33, 11, 2, 34, 12],
+        	
+        	// 6
+        	[2, 86, 68],
+        	[4, 43, 27],
+        	[4, 43, 19],
+        	[4, 43, 15],
+        	
+        	// 7		
+        	[2, 98, 78],
+        	[4, 49, 31],
+        	[2, 32, 14, 4, 33, 15],
+        	[4, 39, 13, 1, 40, 14],
+        	
+        	// 8
+        	[2, 121, 97],
+        	[2, 60, 38, 2, 61, 39],
+        	[4, 40, 18, 2, 41, 19],
+        	[4, 40, 14, 2, 41, 15],
+        	
+        	// 9
+        	[2, 146, 116],
+        	[3, 58, 36, 2, 59, 37],
+        	[4, 36, 16, 4, 37, 17],
+        	[4, 36, 12, 4, 37, 13],
+        	
+        	// 10		
+        	[2, 86, 68, 2, 87, 69],
+        	[4, 69, 43, 1, 70, 44],
+        	[6, 43, 19, 2, 44, 20],
+        	[6, 43, 15, 2, 44, 16],
+
+        	// 11
+        	[4, 101, 81],
+        	[1, 80, 50, 4, 81, 51],
+        	[4, 50, 22, 4, 51, 23],
+        	[3, 36, 12, 8, 37, 13],
+
+        	// 12
+        	[2, 116, 92, 2, 117, 93],
+        	[6, 58, 36, 2, 59, 37],
+        	[4, 46, 20, 6, 47, 21],
+        	[7, 42, 14, 4, 43, 15],
+
+        	// 13
+        	[4, 133, 107],
+        	[8, 59, 37, 1, 60, 38],
+        	[8, 44, 20, 4, 45, 21],
+        	[12, 33, 11, 4, 34, 12],
+
+        	// 14
+        	[3, 145, 115, 1, 146, 116],
+        	[4, 64, 40, 5, 65, 41],
+        	[11, 36, 16, 5, 37, 17],
+        	[11, 36, 12, 5, 37, 13],
+
+        	// 15
+        	[5, 109, 87, 1, 110, 88],
+        	[5, 65, 41, 5, 66, 42],
+        	[5, 54, 24, 7, 55, 25],
+        	[11, 36, 12],
+
+        	// 16
+        	[5, 122, 98, 1, 123, 99],
+        	[7, 73, 45, 3, 74, 46],
+        	[15, 43, 19, 2, 44, 20],
+        	[3, 45, 15, 13, 46, 16],
+
+        	// 17
+        	[1, 135, 107, 5, 136, 108],
+        	[10, 74, 46, 1, 75, 47],
+        	[1, 50, 22, 15, 51, 23],
+        	[2, 42, 14, 17, 43, 15],
+
+        	// 18
+        	[5, 150, 120, 1, 151, 121],
+        	[9, 69, 43, 4, 70, 44],
+        	[17, 50, 22, 1, 51, 23],
+        	[2, 42, 14, 19, 43, 15],
+
+        	// 19
+        	[3, 141, 113, 4, 142, 114],
+        	[3, 70, 44, 11, 71, 45],
+        	[17, 47, 21, 4, 48, 22],
+        	[9, 39, 13, 16, 40, 14],
+
+        	// 20
+        	[3, 135, 107, 5, 136, 108],
+        	[3, 67, 41, 13, 68, 42],
+        	[15, 54, 24, 5, 55, 25],
+        	[15, 43, 15, 10, 44, 16],
+
+        	// 21
+        	[4, 144, 116, 4, 145, 117],
+        	[17, 68, 42],
+        	[17, 50, 22, 6, 51, 23],
+        	[19, 46, 16, 6, 47, 17],
+
+        	// 22
+        	[2, 139, 111, 7, 140, 112],
+        	[17, 74, 46],
+        	[7, 54, 24, 16, 55, 25],
+        	[34, 37, 13],
+
+        	// 23
+        	[4, 151, 121, 5, 152, 122],
+        	[4, 75, 47, 14, 76, 48],
+        	[11, 54, 24, 14, 55, 25],
+        	[16, 45, 15, 14, 46, 16],
+
+        	// 24
+        	[6, 147, 117, 4, 148, 118],
+        	[6, 73, 45, 14, 74, 46],
+        	[11, 54, 24, 16, 55, 25],
+        	[30, 46, 16, 2, 47, 17],
+
+        	// 25
+        	[8, 132, 106, 4, 133, 107],
+        	[8, 75, 47, 13, 76, 48],
+        	[7, 54, 24, 22, 55, 25],
+        	[22, 45, 15, 13, 46, 16],
+
+        	// 26
+        	[10, 142, 114, 2, 143, 115],
+        	[19, 74, 46, 4, 75, 47],
+        	[28, 50, 22, 6, 51, 23],
+        	[33, 46, 16, 4, 47, 17],
+
+        	// 27
+        	[8, 152, 122, 4, 153, 123],
+        	[22, 73, 45, 3, 74, 46],
+        	[8, 53, 23, 26, 54, 24],
+        	[12, 45, 15, 28, 46, 16],
+
+        	// 28
+        	[3, 147, 117, 10, 148, 118],
+        	[3, 73, 45, 23, 74, 46],
+        	[4, 54, 24, 31, 55, 25],
+        	[11, 45, 15, 31, 46, 16],
+
+        	// 29
+        	[7, 146, 116, 7, 147, 117],
+        	[21, 73, 45, 7, 74, 46],
+        	[1, 53, 23, 37, 54, 24],
+        	[19, 45, 15, 26, 46, 16],
+
+        	// 30
+        	[5, 145, 115, 10, 146, 116],
+        	[19, 75, 47, 10, 76, 48],
+        	[15, 54, 24, 25, 55, 25],
+        	[23, 45, 15, 25, 46, 16],
+
+        	// 31
+        	[13, 145, 115, 3, 146, 116],
+        	[2, 74, 46, 29, 75, 47],
+        	[42, 54, 24, 1, 55, 25],
+        	[23, 45, 15, 28, 46, 16],
+
+        	// 32
+        	[17, 145, 115],
+        	[10, 74, 46, 23, 75, 47],
+        	[10, 54, 24, 35, 55, 25],
+        	[19, 45, 15, 35, 46, 16],
+
+        	// 33
+        	[17, 145, 115, 1, 146, 116],
+        	[14, 74, 46, 21, 75, 47],
+        	[29, 54, 24, 19, 55, 25],
+        	[11, 45, 15, 46, 46, 16],
+
+        	// 34
+        	[13, 145, 115, 6, 146, 116],
+        	[14, 74, 46, 23, 75, 47],
+        	[44, 54, 24, 7, 55, 25],
+        	[59, 46, 16, 1, 47, 17],
+
+        	// 35
+        	[12, 151, 121, 7, 152, 122],
+        	[12, 75, 47, 26, 76, 48],
+        	[39, 54, 24, 14, 55, 25],
+        	[22, 45, 15, 41, 46, 16],
+
+        	// 36
+        	[6, 151, 121, 14, 152, 122],
+        	[6, 75, 47, 34, 76, 48],
+        	[46, 54, 24, 10, 55, 25],
+        	[2, 45, 15, 64, 46, 16],
+
+        	// 37
+        	[17, 152, 122, 4, 153, 123],
+        	[29, 74, 46, 14, 75, 47],
+        	[49, 54, 24, 10, 55, 25],
+        	[24, 45, 15, 46, 46, 16],
+
+        	// 38
+        	[4, 152, 122, 18, 153, 123],
+        	[13, 74, 46, 32, 75, 47],
+        	[48, 54, 24, 14, 55, 25],
+        	[42, 45, 15, 32, 46, 16],
+
+        	// 39
+        	[20, 147, 117, 4, 148, 118],
+        	[40, 75, 47, 7, 76, 48],
+        	[43, 54, 24, 22, 55, 25],
+        	[10, 45, 15, 67, 46, 16],
+
+        	// 40
+        	[19, 148, 118, 6, 149, 119],
+        	[18, 75, 47, 31, 76, 48],
+        	[34, 54, 24, 34, 55, 25],
+        	[20, 45, 15, 61, 46, 16]
+        ];
+
+        QRRSBlock.getRSBlocks = function(typeNumber, errorCorrectLevel) {
+        	
+        	var rsBlock = QRRSBlock.getRsBlockTable(typeNumber, errorCorrectLevel);
+        	
+        	if (rsBlock === undefined) {
+        		throw new Error("bad rs block @ typeNumber:" + typeNumber + "/errorCorrectLevel:" + errorCorrectLevel);
+        	}
+
+        	var length = rsBlock.length / 3;
+        	
+        	var list = [];
+        	
+        	for (var i = 0; i < length; i++) {
+
+        		var count = rsBlock[i * 3 + 0];
+        		var totalCount = rsBlock[i * 3 + 1];
+        		var dataCount  = rsBlock[i * 3 + 2];
+
+        		for (var j = 0; j < count; j++) {
+        			list.push(new QRRSBlock(totalCount, dataCount) );	
+        		}
+        	}
+        	
+        	return list;
+        };
+
+        QRRSBlock.getRsBlockTable = function(typeNumber, errorCorrectLevel) {
+
+        	switch(errorCorrectLevel) {
+        	case QRErrorCorrectLevel.L :
+        		return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 0];
+        	case QRErrorCorrectLevel.M :
+        		return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 1];
+        	case QRErrorCorrectLevel.Q :
+        		return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 2];
+        	case QRErrorCorrectLevel.H :
+        		return QRRSBlock.RS_BLOCK_TABLE[(typeNumber - 1) * 4 + 3];
+        	default :
+        		return undefined;
+        	}
+        };
+
+        module.exports = QRRSBlock;
+
+          };
+          defs['./QRBitBuffer'] = function (module, exports, require) {
+        function QRBitBuffer() {
+        	this.buffer = [];
+        	this.length = 0;
+        }
+
+        QRBitBuffer.prototype = {
+
+        	get : function(index) {
+        		var bufIndex = Math.floor(index / 8);
+        		return ( (this.buffer[bufIndex] >>> (7 - index % 8) ) & 1) == 1;
+        	},
+        	
+        	put : function(num, length) {
+        		for (var i = 0; i < length; i++) {
+        			this.putBit( ( (num >>> (length - i - 1) ) & 1) == 1);
+        		}
+        	},
+        	
+        	getLengthInBits : function() {
+        		return this.length;
+        	},
+        	
+        	putBit : function(bit) {
+        	
+        		var bufIndex = Math.floor(this.length / 8);
+        		if (this.buffer.length <= bufIndex) {
+        			this.buffer.push(0);
+        		}
+        	
+        		if (bit) {
+        			this.buffer[bufIndex] |= (0x80 >>> (this.length % 8) );
+        		}
+        	
+        		this.length++;
+        	}
+        };
+
+        module.exports = QRBitBuffer;
+
+          };
+          defs['./QR8bitByte'] = function (module, exports, require) {
+        var QRMode = require('./QRMode');
+
+        function QR8bitByte(data) {
+        	this.mode = QRMode.MODE_8BIT_BYTE;
+        	this.data = data;
+        }
+
+        QR8bitByte.prototype = {
+
+        	getLength : function() {
+        		return this.data.length;
+        	},
+        	
+        	write : function(buffer) {
+        		for (var i = 0; i < this.data.length; i++) {
+        			// not JIS ...
+        			buffer.put(this.data.charCodeAt(i), 8);
+        		}
+        	}
+        };
+
+        module.exports = QR8bitByte;
+
+          };
+          defs['./QRUtil'] = function (module, exports, require) {
+        var QRMode = require('./QRMode');
+        var QRPolynomial = require('./QRPolynomial');
+        var QRMath = require('./QRMath');
+        var QRMaskPattern = require('./QRMaskPattern');
+
+        var QRUtil = {
+
+            PATTERN_POSITION_TABLE : [
+                [],
+                [6, 18],
+                [6, 22],
+                [6, 26],
+                [6, 30],
+                [6, 34],
+                [6, 22, 38],
+                [6, 24, 42],
+                [6, 26, 46],
+                [6, 28, 50],
+                [6, 30, 54],        
+                [6, 32, 58],
+                [6, 34, 62],
+                [6, 26, 46, 66],
+                [6, 26, 48, 70],
+                [6, 26, 50, 74],
+                [6, 30, 54, 78],
+                [6, 30, 56, 82],
+                [6, 30, 58, 86],
+                [6, 34, 62, 90],
+                [6, 28, 50, 72, 94],
+                [6, 26, 50, 74, 98],
+                [6, 30, 54, 78, 102],
+                [6, 28, 54, 80, 106],
+                [6, 32, 58, 84, 110],
+                [6, 30, 58, 86, 114],
+                [6, 34, 62, 90, 118],
+                [6, 26, 50, 74, 98, 122],
+                [6, 30, 54, 78, 102, 126],
+                [6, 26, 52, 78, 104, 130],
+                [6, 30, 56, 82, 108, 134],
+                [6, 34, 60, 86, 112, 138],
+                [6, 30, 58, 86, 114, 142],
+                [6, 34, 62, 90, 118, 146],
+                [6, 30, 54, 78, 102, 126, 150],
+                [6, 24, 50, 76, 102, 128, 154],
+                [6, 28, 54, 80, 106, 132, 158],
+                [6, 32, 58, 84, 110, 136, 162],
+                [6, 26, 54, 82, 110, 138, 166],
+                [6, 30, 58, 86, 114, 142, 170]
+            ],
+
+            G15 : (1 << 10) | (1 << 8) | (1 << 5) | (1 << 4) | (1 << 2) | (1 << 1) | (1 << 0),
+            G18 : (1 << 12) | (1 << 11) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 5) | (1 << 2) | (1 << 0),
+            G15_MASK : (1 << 14) | (1 << 12) | (1 << 10)    | (1 << 4) | (1 << 1),
+
+            getBCHTypeInfo : function(data) {
+                var d = data << 10;
+                while (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G15) >= 0) {
+                    d ^= (QRUtil.G15 << (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G15) ) );    
+                }
+                return ( (data << 10) | d) ^ QRUtil.G15_MASK;
+            },
+
+            getBCHTypeNumber : function(data) {
+                var d = data << 12;
+                while (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G18) >= 0) {
+                    d ^= (QRUtil.G18 << (QRUtil.getBCHDigit(d) - QRUtil.getBCHDigit(QRUtil.G18) ) );    
+                }
+                return (data << 12) | d;
+            },
+
+            getBCHDigit : function(data) {
+
+                var digit = 0;
+
+                while (data !== 0) {
+                    digit++;
+                    data >>>= 1;
+                }
+
+                return digit;
+            },
+
+            getPatternPosition : function(typeNumber) {
+                return QRUtil.PATTERN_POSITION_TABLE[typeNumber - 1];
+            },
+
+            getMask : function(maskPattern, i, j) {
+                
+                switch (maskPattern) {
+                    
+                case QRMaskPattern.PATTERN000 : return (i + j) % 2 === 0;
+                case QRMaskPattern.PATTERN001 : return i % 2 === 0;
+                case QRMaskPattern.PATTERN010 : return j % 3 === 0;
+                case QRMaskPattern.PATTERN011 : return (i + j) % 3 === 0;
+                case QRMaskPattern.PATTERN100 : return (Math.floor(i / 2) + Math.floor(j / 3) ) % 2 === 0;
+                case QRMaskPattern.PATTERN101 : return (i * j) % 2 + (i * j) % 3 === 0;
+                case QRMaskPattern.PATTERN110 : return ( (i * j) % 2 + (i * j) % 3) % 2 === 0;
+                case QRMaskPattern.PATTERN111 : return ( (i * j) % 3 + (i + j) % 2) % 2 === 0;
+
+                default :
+                    throw new Error("bad maskPattern:" + maskPattern);
+                }
+            },
+
+            getErrorCorrectPolynomial : function(errorCorrectLength) {
+
+                var a = new QRPolynomial([1], 0);
+
+                for (var i = 0; i < errorCorrectLength; i++) {
+                    a = a.multiply(new QRPolynomial([1, QRMath.gexp(i)], 0) );
+                }
+
+                return a;
+            },
+
+            getLengthInBits : function(mode, type) {
+
+                if (1 <= type && type < 10) {
+
+                    // 1 - 9
+
+                    switch(mode) {
+                    case QRMode.MODE_NUMBER     : return 10;
+                    case QRMode.MODE_ALPHA_NUM  : return 9;
+                    case QRMode.MODE_8BIT_BYTE  : return 8;
+                    case QRMode.MODE_KANJI      : return 8;
+                    default :
+                        throw new Error("mode:" + mode);
+                    }
+
+                } else if (type < 27) {
+
+                    // 10 - 26
+
+                    switch(mode) {
+                    case QRMode.MODE_NUMBER     : return 12;
+                    case QRMode.MODE_ALPHA_NUM  : return 11;
+                    case QRMode.MODE_8BIT_BYTE  : return 16;
+                    case QRMode.MODE_KANJI      : return 10;
+                    default :
+                        throw new Error("mode:" + mode);
+                    }
+
+                } else if (type < 41) {
+
+                    // 27 - 40
+
+                    switch(mode) {
+                    case QRMode.MODE_NUMBER     : return 14;
+                    case QRMode.MODE_ALPHA_NUM  : return 13;
+                    case QRMode.MODE_8BIT_BYTE  : return 16;
+                    case QRMode.MODE_KANJI      : return 12;
+                    default :
+                        throw new Error("mode:" + mode);
+                    }
+
+                } else {
+                    throw new Error("type:" + type);
+                }
+            },
+
+            getLostPoint : function(qrCode) {
+                
+                var moduleCount = qrCode.getModuleCount();
+                var lostPoint = 0;
+                var row = 0; 
+                var col = 0;
+
+                
+                // LEVEL1
+                
+                for (row = 0; row < moduleCount; row++) {
+
+                    for (col = 0; col < moduleCount; col++) {
+
+                        var sameCount = 0;
+                        var dark = qrCode.isDark(row, col);
+
+                        for (var r = -1; r <= 1; r++) {
+
+                            if (row + r < 0 || moduleCount <= row + r) {
+                                continue;
+                            }
+
+                            for (var c = -1; c <= 1; c++) {
+
+                                if (col + c < 0 || moduleCount <= col + c) {
+                                    continue;
+                                }
+
+                                if (r === 0 && c === 0) {
+                                    continue;
+                                }
+
+                                if (dark === qrCode.isDark(row + r, col + c) ) {
+                                    sameCount++;
+                                }
+                            }
+                        }
+
+                        if (sameCount > 5) {
+                            lostPoint += (3 + sameCount - 5);
+                        }
+                    }
+                }
+
+                // LEVEL2
+
+                for (row = 0; row < moduleCount - 1; row++) {
+                    for (col = 0; col < moduleCount - 1; col++) {
+                        var count = 0;
+                        if (qrCode.isDark(row,     col    ) ) count++;
+                        if (qrCode.isDark(row + 1, col    ) ) count++;
+                        if (qrCode.isDark(row,     col + 1) ) count++;
+                        if (qrCode.isDark(row + 1, col + 1) ) count++;
+                        if (count === 0 || count === 4) {
+                            lostPoint += 3;
+                        }
+                    }
+                }
+
+                // LEVEL3
+
+                for (row = 0; row < moduleCount; row++) {
+                    for (col = 0; col < moduleCount - 6; col++) {
+                        if (qrCode.isDark(row, col) && 
+                                !qrCode.isDark(row, col + 1) && 
+                                 qrCode.isDark(row, col + 2) && 
+                                 qrCode.isDark(row, col + 3) && 
+                                 qrCode.isDark(row, col + 4) && 
+                                !qrCode.isDark(row, col + 5) && 
+                                 qrCode.isDark(row, col + 6) ) {
+                            lostPoint += 40;
+                        }
+                    }
+                }
+
+                for (col = 0; col < moduleCount; col++) {
+                    for (row = 0; row < moduleCount - 6; row++) {
+                        if (qrCode.isDark(row, col) &&
+                                !qrCode.isDark(row + 1, col) &&
+                                 qrCode.isDark(row + 2, col) &&
+                                 qrCode.isDark(row + 3, col) &&
+                                 qrCode.isDark(row + 4, col) &&
+                                !qrCode.isDark(row + 5, col) &&
+                                 qrCode.isDark(row + 6, col) ) {
+                            lostPoint += 40;
+                        }
+                    }
+                }
+
+                // LEVEL4
+                
+                var darkCount = 0;
+
+                for (col = 0; col < moduleCount; col++) {
+                    for (row = 0; row < moduleCount; row++) {
+                        if (qrCode.isDark(row, col) ) {
+                            darkCount++;
+                        }
+                    }
+                }
+                
+                var ratio = Math.abs(100 * darkCount / moduleCount / moduleCount - 50) / 5;
+                lostPoint += ratio * 10;
+
+                return lostPoint;       
+            }
+
+        };
+
+        module.exports = QRUtil;
+
+          };
+          defs['./index'] = function (module, exports, require) {
+
+        var QR8bitByte = require('./QR8bitByte');
+        var QRUtil = require('./QRUtil');
+        var QRPolynomial = require('./QRPolynomial');
+        var QRRSBlock = require('./QRRSBlock');
+        var QRBitBuffer = require('./QRBitBuffer');
+
+        function QRCode(typeNumber, errorCorrectLevel) {
+        	this.typeNumber = typeNumber;
+        	this.errorCorrectLevel = errorCorrectLevel;
+        	this.modules = null;
+        	this.moduleCount = 0;
+        	this.dataCache = null;
+        	this.dataList = [];
+        }
+
+        QRCode.prototype = {
+        	
+        	addData : function(data) {
+        		var newData = new QR8bitByte(data);
+        		this.dataList.push(newData);
+        		this.dataCache = null;
+        	},
+        	
+        	isDark : function(row, col) {
+        		if (row < 0 || this.moduleCount <= row || col < 0 || this.moduleCount <= col) {
+        			throw new Error(row + "," + col);
+        		}
+        		return this.modules[row][col];
+        	},
+
+        	getModuleCount : function() {
+        		return this.moduleCount;
+        	},
+        	
+        	make : function() {
+        		// Calculate automatically typeNumber if provided is < 1
+        		if (this.typeNumber < 1 ){
+        			var typeNumber = 1;
+        			for (typeNumber = 1; typeNumber < 40; typeNumber++) {
+        				var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, this.errorCorrectLevel);
+
+        				var buffer = new QRBitBuffer();
+        				var totalDataCount = 0;
+        				for (var i = 0; i < rsBlocks.length; i++) {
+        					totalDataCount += rsBlocks[i].dataCount;
+        				}
+
+        				for (var x = 0; x < this.dataList.length; x++) {
+        					var data = this.dataList[x];
+        					buffer.put(data.mode, 4);
+        					buffer.put(data.getLength(), QRUtil.getLengthInBits(data.mode, typeNumber) );
+        					data.write(buffer);
+        				}
+        				if (buffer.getLengthInBits() <= totalDataCount * 8)
+        					break;
+        			}
+        			this.typeNumber = typeNumber;
+        		}
+        		this.makeImpl(false, this.getBestMaskPattern() );
+        	},
+        	
+        	makeImpl : function(test, maskPattern) {
+        		
+        		this.moduleCount = this.typeNumber * 4 + 17;
+        		this.modules = new Array(this.moduleCount);
+        		
+        		for (var row = 0; row < this.moduleCount; row++) {
+        			
+        			this.modules[row] = new Array(this.moduleCount);
+        			
+        			for (var col = 0; col < this.moduleCount; col++) {
+        				this.modules[row][col] = null;//(col + row) % 3;
+        			}
+        		}
+        	
+        		this.setupPositionProbePattern(0, 0);
+        		this.setupPositionProbePattern(this.moduleCount - 7, 0);
+        		this.setupPositionProbePattern(0, this.moduleCount - 7);
+        		this.setupPositionAdjustPattern();
+        		this.setupTimingPattern();
+        		this.setupTypeInfo(test, maskPattern);
+        		
+        		if (this.typeNumber >= 7) {
+        			this.setupTypeNumber(test);
+        		}
+        	
+        		if (this.dataCache === null) {
+        			this.dataCache = QRCode.createData(this.typeNumber, this.errorCorrectLevel, this.dataList);
+        		}
+        	
+        		this.mapData(this.dataCache, maskPattern);
+        	},
+
+        	setupPositionProbePattern : function(row, col)  {
+        		
+        		for (var r = -1; r <= 7; r++) {
+        			
+        			if (row + r <= -1 || this.moduleCount <= row + r) continue;
+        			
+        			for (var c = -1; c <= 7; c++) {
+        				
+        				if (col + c <= -1 || this.moduleCount <= col + c) continue;
+        				
+        				if ( (0 <= r && r <= 6 && (c === 0 || c === 6) ) || 
+                             (0 <= c && c <= 6 && (r === 0 || r === 6) ) || 
+                             (2 <= r && r <= 4 && 2 <= c && c <= 4) ) {
+        					this.modules[row + r][col + c] = true;
+        				} else {
+        					this.modules[row + r][col + c] = false;
+        				}
+        			}		
+        		}		
+        	},
+        	
+        	getBestMaskPattern : function() {
+        	
+        		var minLostPoint = 0;
+        		var pattern = 0;
+        	
+        		for (var i = 0; i < 8; i++) {
+        			
+        			this.makeImpl(true, i);
+        	
+        			var lostPoint = QRUtil.getLostPoint(this);
+        	
+        			if (i === 0 || minLostPoint >  lostPoint) {
+        				minLostPoint = lostPoint;
+        				pattern = i;
+        			}
+        		}
+        	
+        		return pattern;
+        	},
+        	
+        	createMovieClip : function(target_mc, instance_name, depth) {
+        	
+        		var qr_mc = target_mc.createEmptyMovieClip(instance_name, depth);
+        		var cs = 1;
+        	
+        		this.make();
+
+        		for (var row = 0; row < this.modules.length; row++) {
+        			
+        			var y = row * cs;
+        			
+        			for (var col = 0; col < this.modules[row].length; col++) {
+        	
+        				var x = col * cs;
+        				var dark = this.modules[row][col];
+        			
+        				if (dark) {
+        					qr_mc.beginFill(0, 100);
+        					qr_mc.moveTo(x, y);
+        					qr_mc.lineTo(x + cs, y);
+        					qr_mc.lineTo(x + cs, y + cs);
+        					qr_mc.lineTo(x, y + cs);
+        					qr_mc.endFill();
+        				}
+        			}
+        		}
+        		
+        		return qr_mc;
+        	},
+
+        	setupTimingPattern : function() {
+        		
+        		for (var r = 8; r < this.moduleCount - 8; r++) {
+        			if (this.modules[r][6] !== null) {
+        				continue;
+        			}
+        			this.modules[r][6] = (r % 2 === 0);
+        		}
+        	
+        		for (var c = 8; c < this.moduleCount - 8; c++) {
+        			if (this.modules[6][c] !== null) {
+        				continue;
+        			}
+        			this.modules[6][c] = (c % 2 === 0);
+        		}
+        	},
+        	
+        	setupPositionAdjustPattern : function() {
+        	
+        		var pos = QRUtil.getPatternPosition(this.typeNumber);
+        		
+        		for (var i = 0; i < pos.length; i++) {
+        		
+        			for (var j = 0; j < pos.length; j++) {
+        			
+        				var row = pos[i];
+        				var col = pos[j];
+        				
+        				if (this.modules[row][col] !== null) {
+        					continue;
+        				}
+        				
+        				for (var r = -2; r <= 2; r++) {
+        				
+        					for (var c = -2; c <= 2; c++) {
+        					
+        						if (Math.abs(r) === 2 || 
+                                    Math.abs(c) === 2 ||
+                                    (r === 0 && c === 0) ) {
+        							this.modules[row + r][col + c] = true;
+        						} else {
+        							this.modules[row + r][col + c] = false;
+        						}
+        					}
+        				}
+        			}
+        		}
+        	},
+        	
+        	setupTypeNumber : function(test) {
+        	
+        		var bits = QRUtil.getBCHTypeNumber(this.typeNumber);
+                var mod;
+        	
+        		for (var i = 0; i < 18; i++) {
+        			mod = (!test && ( (bits >> i) & 1) === 1);
+        			this.modules[Math.floor(i / 3)][i % 3 + this.moduleCount - 8 - 3] = mod;
+        		}
+        	
+        		for (var x = 0; x < 18; x++) {
+        			mod = (!test && ( (bits >> x) & 1) === 1);
+        			this.modules[x % 3 + this.moduleCount - 8 - 3][Math.floor(x / 3)] = mod;
+        		}
+        	},
+        	
+        	setupTypeInfo : function(test, maskPattern) {
+        	
+        		var data = (this.errorCorrectLevel << 3) | maskPattern;
+        		var bits = QRUtil.getBCHTypeInfo(data);
+                var mod;
+        	
+        		// vertical		
+        		for (var v = 0; v < 15; v++) {
+        	
+        			mod = (!test && ( (bits >> v) & 1) === 1);
+        	
+        			if (v < 6) {
+        				this.modules[v][8] = mod;
+        			} else if (v < 8) {
+        				this.modules[v + 1][8] = mod;
+        			} else {
+        				this.modules[this.moduleCount - 15 + v][8] = mod;
+        			}
+        		}
+        	
+        		// horizontal
+        		for (var h = 0; h < 15; h++) {
+        	
+        			mod = (!test && ( (bits >> h) & 1) === 1);
+        			
+        			if (h < 8) {
+        				this.modules[8][this.moduleCount - h - 1] = mod;
+        			} else if (h < 9) {
+        				this.modules[8][15 - h - 1 + 1] = mod;
+        			} else {
+        				this.modules[8][15 - h - 1] = mod;
+        			}
+        		}
+        	
+        		// fixed module
+        		this.modules[this.moduleCount - 8][8] = (!test);
+        	
+        	},
+        	
+        	mapData : function(data, maskPattern) {
+        		
+        		var inc = -1;
+        		var row = this.moduleCount - 1;
+        		var bitIndex = 7;
+        		var byteIndex = 0;
+        		
+        		for (var col = this.moduleCount - 1; col > 0; col -= 2) {
+        	
+        			if (col === 6) col--;
+        	
+        			while (true) {
+        	
+        				for (var c = 0; c < 2; c++) {
+        					
+        					if (this.modules[row][col - c] === null) {
+        						
+        						var dark = false;
+        	
+        						if (byteIndex < data.length) {
+        							dark = ( ( (data[byteIndex] >>> bitIndex) & 1) === 1);
+        						}
+        	
+        						var mask = QRUtil.getMask(maskPattern, row, col - c);
+        	
+        						if (mask) {
+        							dark = !dark;
+        						}
+        						
+        						this.modules[row][col - c] = dark;
+        						bitIndex--;
+        	
+        						if (bitIndex === -1) {
+        							byteIndex++;
+        							bitIndex = 7;
+        						}
+        					}
+        				}
+        								
+        				row += inc;
+        	
+        				if (row < 0 || this.moduleCount <= row) {
+        					row -= inc;
+        					inc = -inc;
+        					break;
+        				}
+        			}
+        		}
+        		
+        	}
+
+        };
+
+        QRCode.PAD0 = 0xEC;
+        QRCode.PAD1 = 0x11;
+
+        QRCode.createData = function(typeNumber, errorCorrectLevel, dataList) {
+        	
+        	var rsBlocks = QRRSBlock.getRSBlocks(typeNumber, errorCorrectLevel);
+        	
+        	var buffer = new QRBitBuffer();
+        	
+        	for (var i = 0; i < dataList.length; i++) {
+        		var data = dataList[i];
+        		buffer.put(data.mode, 4);
+        		buffer.put(data.getLength(), QRUtil.getLengthInBits(data.mode, typeNumber) );
+        		data.write(buffer);
+        	}
+
+        	// calc num max data.
+        	var totalDataCount = 0;
+        	for (var x = 0; x < rsBlocks.length; x++) {
+        		totalDataCount += rsBlocks[x].dataCount;
+        	}
+
+        	if (buffer.getLengthInBits() > totalDataCount * 8) {
+        		throw new Error("code length overflow. (" + 
+                    buffer.getLengthInBits() + 
+                    ">" +  
+                    totalDataCount * 8 + 
+                    ")");
+        	}
+
+        	// end code
+        	if (buffer.getLengthInBits() + 4 <= totalDataCount * 8) {
+        		buffer.put(0, 4);
+        	}
+
+        	// padding
+        	while (buffer.getLengthInBits() % 8 !== 0) {
+        		buffer.putBit(false);
+        	}
+
+        	// padding
+        	while (true) {
+        		
+        		if (buffer.getLengthInBits() >= totalDataCount * 8) {
+        			break;
+        		}
+        		buffer.put(QRCode.PAD0, 8);
+        		
+        		if (buffer.getLengthInBits() >= totalDataCount * 8) {
+        			break;
+        		}
+        		buffer.put(QRCode.PAD1, 8);
+        	}
+
+        	return QRCode.createBytes(buffer, rsBlocks);
+        };
+
+        QRCode.createBytes = function(buffer, rsBlocks) {
+
+        	var offset = 0;
+        	
+        	var maxDcCount = 0;
+        	var maxEcCount = 0;
+        	
+        	var dcdata = new Array(rsBlocks.length);
+        	var ecdata = new Array(rsBlocks.length);
+        	
+        	for (var r = 0; r < rsBlocks.length; r++) {
+
+        		var dcCount = rsBlocks[r].dataCount;
+        		var ecCount = rsBlocks[r].totalCount - dcCount;
+
+        		maxDcCount = Math.max(maxDcCount, dcCount);
+        		maxEcCount = Math.max(maxEcCount, ecCount);
+        		
+        		dcdata[r] = new Array(dcCount);
+        		
+        		for (var i = 0; i < dcdata[r].length; i++) {
+        			dcdata[r][i] = 0xff & buffer.buffer[i + offset];
+        		}
+        		offset += dcCount;
+        		
+        		var rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount);
+        		var rawPoly = new QRPolynomial(dcdata[r], rsPoly.getLength() - 1);
+
+        		var modPoly = rawPoly.mod(rsPoly);
+        		ecdata[r] = new Array(rsPoly.getLength() - 1);
+        		for (var x = 0; x < ecdata[r].length; x++) {
+                    var modIndex = x + modPoly.getLength() - ecdata[r].length;
+        			ecdata[r][x] = (modIndex >= 0)? modPoly.get(modIndex) : 0;
+        		}
+
+        	}
+        	
+        	var totalCodeCount = 0;
+        	for (var y = 0; y < rsBlocks.length; y++) {
+        		totalCodeCount += rsBlocks[y].totalCount;
+        	}
+
+        	var data = new Array(totalCodeCount);
+        	var index = 0;
+
+        	for (var z = 0; z < maxDcCount; z++) {
+        		for (var s = 0; s < rsBlocks.length; s++) {
+        			if (z < dcdata[s].length) {
+        				data[index++] = dcdata[s][z];
+        			}
+        		}
+        	}
+
+        	for (var xx = 0; xx < maxEcCount; xx++) {
+        		for (var t = 0; t < rsBlocks.length; t++) {
+        			if (xx < ecdata[t].length) {
+        				data[index++] = ecdata[t][xx];
+        			}
+        		}
+        	}
+
+        	return data;
+
+        };
+
+        module.exports = QRCode;
+
+          };
+          const QRCode = req('./index');
+          const ECL = req('./QRErrorCorrectLevel');
+
+          // Текст → UTF-8 байты (генератор кодирует по одному байту на символ)
+          function toBinaryString(text) {
+            const bytes = new TextEncoder().encode(String(text));
+            let s = '';
+            for (const b of bytes) s += String.fromCharCode(b);
+            return s;
+          }
+
+          // Рисует QR на canvas и возвращает картинку (data URL)
+          function toDataURL(text, size = 360, margin = 4) {
+            const qr = new QRCode(-1, ECL.M);
+            qr.addData(toBinaryString(text));
+            qr.make();
+            const n = qr.getModuleCount();
+            const total = n + margin * 2;
+            const scale = Math.max(1, Math.floor(size / total));
+            const canvas = document.createElement('canvas');
+            canvas.width = canvas.height = total * scale;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#000000';
+            for (let r = 0; r < n; r++)
+              for (let c = 0; c < n; c++)
+                if (qr.isDark(r, c)) ctx.fillRect((c + margin) * scale, (r + margin) * scale, scale, scale);
+            return canvas.toDataURL('image/png');
+          }
+
+          return { toDataURL, _QRCode: QRCode, _ECL: ECL, _toBinaryString: toBinaryString };
+        })();
+    </script>
 
     <script>
         // ================= ТЕМА =================
@@ -762,13 +2142,14 @@
             SWDB.set('reminders', pendingReminders()).catch(() => {});
         }
 
-        // ================= СЕРВЕР PUSH-УВЕДОМЛЕНИЙ =================
+        // ================= СЕРВЕР (Cloudflare Worker) =================
         // Вставьте сюда адрес вашего Cloudflare Worker, например:
-        // const PUSH_SERVER = 'https://produ-push.ваше-имя.workers.dev';
-        // Пока строка пустая, сервер не используется.
-        const PUSH_SERVER = 'https://red-grass-1361.aerogool-frost-12.workers.dev/';
+        // const SERVER_URL = 'https://produ-push.ваше-имя.workers.dev';
+        // Он нужен для push-уведомлений и для аккаунтов. Пока строка пустая, сервер не используется.
+        const SERVER_URL = 'https://red-grass-1361.aerogool-frost-12.workers.dev/';
 
-        const PUSH_BASE = PUSH_SERVER.trim().replace(/\/+$/, '');
+        const SERVER_BASE = SERVER_URL.trim().replace(/\/+$/, '');
+        const PUSH_BASE = SERVER_BASE;
         let pushState = 'off';          // off | on | error | unsupported
         let pushSubscription = null;
         let pushSyncTimer = null;
@@ -897,6 +2278,444 @@
             renderNotifStatus();
         }
 
+        // ================= АККАУНТ И СИНХРОНИЗАЦИЯ =================
+        // Пароль не уходит на сервер: из него (вместе с логином) получается ключ PBKDF2.
+        // Число итераций нельзя менять, когда аккаунты уже созданы, иначе старые пароли перестанут подходить.
+        const KDF_ITERATIONS = 300000;
+        const SYNC_KEYS = ['lists', 'events', 'finance', 'digitalCards', 'diary'];
+        const TOMB_TTL = 120 * 86400e3;           // сколько помнить об удалённых записях
+        const LOGIN_RE = /^[\p{L}\p{N}_.-]{3,32}$/u;
+
+        let auth = null;
+        try { auth = JSON.parse(localStorage.getItem('produ_auth')); } catch (e) {}
+        if (!auth || !auth.token) auth = null;
+
+        let deviceId = null;
+        try { deviceId = localStorage.getItem('produ_device'); } catch (e) {}
+        if (!deviceId) {
+            deviceId = bytesToB64u(crypto.getRandomValues(new Uint8Array(9)));
+            try { localStorage.setItem('produ_device', deviceId); } catch (e) {}
+        }
+
+        let syncState = 'idle';      // idle | syncing | ok | pending | offline | error
+        let syncMessage = '';
+        let lastSyncAt = 0;
+        let syncPromise = null, syncAgain = false, syncTimer = null, changeSeq = 0;
+        let serverConfig = null;
+        let authMode = 'login';
+        let authBusy = false;
+
+        const normLogin = s => String(s || '').trim().normalize('NFC').toLowerCase();
+        const byIdAsc = (a, b) => a.id - b.id;
+        const byIdDesc = (a, b) => b.id - a.id;
+
+        // --- отметки изменений, удалений и монеты ---
+        function touch(obj) { obj._u = Date.now(); return obj; }
+        function tomb(key) { data._deleted[key] = Date.now(); }
+        function addCoins(n) { data.coinLedger[deviceId] = (data.coinLedger[deviceId] || 0) + n; recomputeCoins(); }
+        function recomputeCoins() { data.coins = Object.values(data.coinLedger).reduce((s, v) => s + (Number(v) || 0), 0); }
+        function hasData() { return SYNC_KEYS.some(k => data[k].length) || data.coins > 0; }
+
+        // --- объединение данных двух устройств ---
+        const pickNewer = (a, b) => ((a._u || 0) > (b._u || 0) ? a : b);
+        const isDead = (tombs, key, x) => key in tombs && tombs[key] >= (x._u || 0);
+
+        function mergeById(local, remote, tombs, prefix, onBoth) {
+            const map = new Map();
+            (remote || []).forEach(r => map.set(r.id, r));
+            (local || []).forEach(l => {
+                const r = map.get(l.id);
+                map.set(l.id, r ? (onBoth ? onBoth(l, r) : pickNewer(l, r)) : l);
+            });
+            return [...map.values()].filter(x => !isDead(tombs, prefix + x.id, x));
+        }
+
+        function sortObj(o) { const r = {}; Object.keys(o || {}).sort().forEach(k => { r[k] = o[k]; }); return r; }
+
+        function mergeData(local, remote) {
+            const tombs = {};
+            [remote._deleted || {}, local._deleted || {}].forEach(src => {
+                for (const [k, t] of Object.entries(src)) if (!(tombs[k] >= t)) tombs[k] = t;
+            });
+            const cutoff = Date.now() - TOMB_TTL;
+            for (const k of Object.keys(tombs)) if (tombs[k] < cutoff) delete tombs[k];
+
+            const keepRewarded = (a, b) => ((a.rewarded || b.rewarded) ? { rewarded: true } : {});
+            const eventBoth = (a, b) => ({ ...pickNewer(a, b), ...keepRewarded(a, b), notified: !!(a.notified || b.notified) });
+            const itemBoth = (a, b) => ({ ...pickNewer(a, b), ...keepRewarded(a, b) });
+            const listBoth = (a, b) => ({ ...pickNewer(a, b), items: mergeById(a.items, b.items, tombs, `lists:${a.id}:`, itemBoth) });
+
+            const coinLedger = {};
+            [remote.coinLedger || {}, local.coinLedger || {}].forEach(src => {
+                for (const [k, v] of Object.entries(src)) coinLedger[k] = Math.max(coinLedger[k] || 0, Number(v) || 0);
+            });
+
+            return {
+                lists: mergeById(local.lists, remote.lists, tombs, 'lists:', listBoth)
+                    .map(l => ({ ...l, items: (l.items || []).filter(i => !isDead(tombs, `lists:${l.id}:${i.id}`, i)).sort(byIdAsc) }))
+                    .sort(byIdDesc),
+                events: mergeById(local.events, remote.events, tombs, 'events:', eventBoth).sort(byIdAsc),
+                finance: mergeById(local.finance, remote.finance, tombs, 'finance:').sort(byIdAsc),
+                digitalCards: mergeById(local.digitalCards, remote.digitalCards, tombs, 'digitalCards:').sort(byIdDesc),
+                diary: mergeById(local.diary, remote.diary, tombs, 'diary:').sort(byIdDesc),
+                coinLedger: sortObj(coinLedger),
+                _deleted: sortObj(tombs)
+            };
+        }
+
+        // То, что уходит на сервер (порядок ключей фиксирован, чтобы одинаковые данные давали одинаковую строку)
+        function canonical(d) {
+            return JSON.stringify({
+                v: 1, lists: d.lists, events: d.events, finance: d.finance, digitalCards: d.digitalCards,
+                diary: d.diary, coinLedger: sortObj(d.coinLedger), _deleted: sortObj(d._deleted)
+            });
+        }
+
+        function applyMerged(m) {
+            SYNC_KEYS.forEach(k => { data[k] = m[k]; });
+            data.coinLedger = m.coinLedger;
+            data._deleted = m._deleted;
+            recomputeCoins();
+        }
+
+        function resetLocalData() {
+            SYNC_KEYS.forEach(k => { data[k] = []; });
+            data.coinLedger = {};
+            data._deleted = {};
+            data.coins = 0;
+            data._meta = { version: 0, owner: null, dirty: false };
+        }
+
+        // --- запросы к серверу ---
+        async function api(path, { method = 'GET', body, raw = false, useAuth = true } = {}) {
+            const headers = {};
+            if (body !== undefined) headers['Content-Type'] = raw ? 'text/plain;charset=UTF-8' : 'application/json';
+            if (useAuth && auth) headers.Authorization = 'Bearer ' + auth.token;
+            let r;
+            try {
+                r = await fetch(SERVER_BASE + path, { method, headers, body: body === undefined ? undefined : (raw ? body : JSON.stringify(body)) });
+            } catch (e) {
+                const err = new Error('Нет связи с сервером');
+                err.offline = true;
+                throw err;
+            }
+            let j = null;
+            try { j = await r.json(); } catch (e) {}
+            if (r.status === 401 && useAuth) sessionExpired();
+            if (!r.ok && r.status !== 409) {
+                const err = new Error((j && j.error) || ('Ошибка сервера ' + r.status));
+                err.status = r.status;
+                throw err;
+            }
+            return { status: r.status, body: j || {} };
+        }
+
+        async function deriveAuthKey(login, password) {
+            if (!window.crypto || !crypto.subtle) throw new Error('Вход работает только на сайте с https');
+            const te = new TextEncoder();
+            const base = await crypto.subtle.importKey('raw', te.encode(password.normalize('NFC')), 'PBKDF2', false, ['deriveBits']);
+            const bits = await crypto.subtle.deriveBits(
+                { name: 'PBKDF2', hash: 'SHA-256', salt: te.encode('produ-auth-v1:' + normLogin(login)), iterations: KDF_ITERATIONS },
+                base, 256);
+            return bytesToB64u(bits);
+        }
+
+        // --- синхронизация ---
+        function scheduleSync(delay = 2000) {
+            if (!auth || !SERVER_BASE) return;
+            clearTimeout(syncTimer);
+            syncTimer = setTimeout(syncNow, delay);
+        }
+
+        function syncNow() {
+            if (!auth || !SERVER_BASE) return Promise.resolve();
+            clearTimeout(syncTimer);
+            if (syncPromise) { syncAgain = true; return syncPromise; }
+            syncPromise = runSync().finally(() => {
+                syncPromise = null;
+                if (syncAgain) { syncAgain = false; syncNow(); }
+            });
+            return syncPromise;
+        }
+
+        async function runSync() {
+            setSyncState('syncing');
+            let changedHere = false;
+            try {
+                let done = false;
+                for (let attempt = 0; attempt < 5 && !done && auth; attempt++) {
+                    const meta = data._meta;
+                    // Приводим локальные данные к единому порядку, чтобы разные устройства давали одинаковую строку
+                    const raw0 = canonical(data);
+                    applyMerged(mergeData(data, {}));
+                    if (canonical(data) !== raw0) changedHere = true;
+                    const g = await api('/data?since=' + (meta.version || 0));
+                    if (!auth) return;
+                    const version = g.body.version || 0;
+                    const seqAtStart = changeSeq;
+                    let needPush;
+
+                    if (g.body.unchanged || !g.body.data) {
+                        needPush = meta.dirty || (version === 0 && hasData());
+                    } else {
+                        let remote = {};
+                        try { remote = JSON.parse(g.body.data) || {}; } catch (e) {}
+                        const before = canonical(data);
+                        applyMerged(mergeData(data, remote));
+                        const after = canonical(data);
+                        if (after !== before) changedHere = true;
+                        needPush = after !== g.body.data;
+                    }
+                    meta.version = version;
+
+                    if (!needPush) {
+                        if (changeSeq === seqAtStart) meta.dirty = false;
+                        done = true;
+                        break;
+                    }
+                    const p = await api('/data?base=' + version, { method: 'PUT', raw: true, body: canonical(data) });
+                    if (p.status === 409) continue;      // другое устройство успело раньше — забираем его версию и объединяем
+                    meta.version = p.body.version;
+                    if (changeSeq === seqAtStart) meta.dirty = false;
+                    done = true;
+                }
+                if (!auth) return;
+                persist(false);
+                if (changedHere) renderAll();
+                if (!done) throw new Error('Не удалось сохранить: данные одновременно меняются на нескольких устройствах. Попробуйте ещё раз.');
+                lastSyncAt = Date.now();
+                setSyncState(data._meta.dirty ? 'pending' : 'ok');
+            } catch (e) {
+                if (!auth) return;
+                if (changedHere) { persist(false); renderAll(); }
+                setSyncState(e.offline ? 'offline' : 'error', e.message);
+            }
+        }
+
+        function sessionExpired() {
+            if (!auth) return;
+            auth = null;
+            saveAuth();
+            setSyncState('idle');
+            showToast('Сессия завершена', 'Войдите в аккаунт снова, чтобы продолжить синхронизацию.');
+        }
+
+        function saveAuth() {
+            try { auth ? localStorage.setItem('produ_auth', JSON.stringify(auth)) : localStorage.removeItem('produ_auth'); } catch (e) {}
+            renderAccount();
+        }
+
+        function setSyncState(s, msg = '') {
+            syncState = s;
+            syncMessage = msg;
+            renderAccount();
+        }
+
+        // --- экран аккаунта ---
+        const $ = id => document.getElementById(id);
+
+        function setAuthMode(mode) {
+            if (mode === 'register' && serverConfig && !serverConfig.registration) {
+                setMsg('accMsg', 'Регистрация новых аккаунтов на этом сервере закрыта.');
+                return;
+            }
+            authMode = mode;
+            $('accForm').dataset.mode = mode;
+            document.querySelectorAll('#accModeSwitch button').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+            $('accPassword').autocomplete = mode === 'register' ? 'new-password' : 'current-password';
+            $('accSubmit').textContent = mode === 'register' ? 'Создать аккаунт' : 'Войти';
+            setMsg('accMsg', '');
+        }
+
+        function setMsg(id, text, ok = false) {
+            const el = $(id);
+            el.textContent = text;
+            el.classList.toggle('ok', ok);
+        }
+
+        function setBusy(form, busy) {
+            authBusy = busy;
+            form.querySelectorAll('button, input').forEach(el => { el.disabled = busy; });
+        }
+
+        async function loadServerConfig() {
+            if (!SERVER_BASE || serverConfig) return;
+            try {
+                const r = await fetch(SERVER_BASE + '/config');
+                if (!r.ok) return;
+                serverConfig = await r.json();
+                $('accForm').dataset.invite = serverConfig.inviteRequired ? '1' : '0';
+                if (!serverConfig.registration && authMode === 'register') setAuthMode('login');
+            } catch (e) {}
+        }
+
+        function renderAccount() {
+            const mod = $('module-account');
+            if (!mod) return;
+            let state = 'out';
+            if (!SERVER_BASE) state = 'noserver';
+            else if (location.protocol === 'file:') state = 'noserver';
+            else if (auth) state = 'in';
+            mod.dataset.state = state;
+
+            if (state === 'noserver') {
+                $('accNoServerText').innerHTML = !SERVER_BASE
+                    ? 'Для аккаунтов нужен сервер. Впишите адрес вашего Cloudflare Worker в строку <code>const SERVER_URL = \'\'</code> в файле index.html.'
+                    : 'Страница открыта как файл с компьютера. Вход в аккаунт работает, только если открыть приложение через сайт по https.';
+            }
+
+            const pillName = $('accountPillName');
+            const dot = $('syncDot');
+            if (auth) {
+                pillName.textContent = auth.login;
+                dot.dataset.s = ['idle', 'ok'].includes(syncState) ? (data && data._meta && data._meta.dirty ? 'pending' : 'ok') : syncState;
+                $('accName').textContent = auth.login;
+                $('accPwUser').value = auth.login;
+                const t = lastSyncAt ? new Date(lastSyncAt) : null;
+                const at = t ? `${pad(t.getHours())}:${pad(t.getMinutes())}` : '';
+                const texts = {
+                    idle: 'Синхронизация включена.',
+                    syncing: '🔄 Синхронизация…',
+                    ok: `✅ Всё сохранено${at ? ' · ' + at : ''}`,
+                    pending: '⏳ Есть изменения, которые ещё не отправлены',
+                    offline: '📴 Нет связи с сервером. Изменения сохранятся на устройстве и отправятся, когда связь появится.',
+                    error: '⚠️ ' + (syncMessage || 'Ошибка синхронизации')
+                };
+                $('accSyncText').textContent = texts[syncState] || texts.idle;
+                $('accSyncBtn').disabled = syncState === 'syncing';
+            } else {
+                pillName.textContent = 'Войти';
+                dot.dataset.s = 'none';
+            }
+            $('accountPill').hidden = !SERVER_BASE;
+        }
+
+        function openAccount() { switchTab('account', null); }
+
+        async function submitAuth(ev) {
+            if (ev) ev.preventDefault();
+            if (authBusy || !SERVER_BASE) return;
+            const isReg = authMode === 'register';
+            const login = $('accLogin').value.trim().normalize('NFC');
+            const pw = $('accPassword').value;
+            setMsg('accMsg', '');
+            if (!LOGIN_RE.test(login)) return setMsg('accMsg', 'Логин: от 3 до 32 символов — буквы, цифры, «_», «.», «-».');
+            if (isReg) {
+                if (pw.length < 8) return setMsg('accMsg', 'Пароль должен быть не короче 8 символов.');
+                if (pw !== $('accPassword2').value) return setMsg('accMsg', 'Пароли не совпадают.');
+            } else if (!pw) {
+                return setMsg('accMsg', 'Введите пароль.');
+            }
+
+            // Что делать с данными, которые уже есть на этом устройстве
+            const owner = data._meta.owner;
+            const target = normLogin(login);
+            let mode = 'merge';
+            if (owner && owner !== target) {
+                if (!confirm(`На этом устройстве сохранены данные аккаунта «${owner}». После входа в «${login}» они будут заменены. Продолжить?`)) return;
+                mode = 'replace';
+            } else if (!owner && hasData() && !isReg) {
+                mode = confirm('На этом устройстве уже есть данные. Добавить их в аккаунт?\n\nОК — объединить с данными аккаунта.\nОтмена — заменить данными из аккаунта.')
+                    ? 'merge' : 'replace';
+            }
+
+            const form = $('accForm');
+            setBusy(form, true);
+            setMsg('accMsg', isReg ? 'Создаём аккаунт…' : 'Входим…', true);
+            try {
+                const key = await deriveAuthKey(login, pw);
+                const body = { login, key };
+                if (isReg) body.invite = $('accInvite').value.trim();
+                const r = await api(isReg ? '/auth/register' : '/auth/login', { method: 'POST', body, useAuth: false });
+
+                if (mode === 'replace') resetLocalData();
+                const newOwner = normLogin(r.body.login);
+                if (data._meta.owner !== newOwner) data._meta.version = 0;
+                data._meta.owner = newOwner;
+                persist(false);
+                renderAll();
+
+                auth = { login: r.body.login, token: r.body.token };
+                saveAuth();
+                ['accPassword', 'accPassword2', 'accInvite'].forEach(id => { $(id).value = ''; });
+                setMsg('accMsg', '');
+                await syncNow();
+                showToast(isReg ? '🎉 Аккаунт создан' : '👋 Вы вошли', 'Синхронизация включена.');
+            } catch (e) {
+                setMsg('accMsg', e.message);
+            } finally {
+                setBusy(form, false);
+                renderAccount();
+            }
+        }
+
+        async function logout() {
+            if (!auth) return;
+            if (!confirm('Выйти из аккаунта?\n\nДанные останутся в аккаунте, а с этого устройства будут удалены.')) return;
+            await syncNow();
+            if (data._meta.dirty && !confirm('Последние изменения не удалось отправить на сервер, после выхода они пропадут. Всё равно выйти?')) return;
+            api('/auth/logout', { method: 'POST', body: {} }).catch(() => {});
+            auth = null;
+            saveAuth();
+            resetLocalData();
+            persist(false);
+            renderAll();
+            setSyncState('idle');
+        }
+
+        async function changePassword(ev) {
+            ev.preventDefault();
+            if (!auth || authBusy) return;
+            const oldPw = $('accOldPw').value, newPw = $('accNewPw').value;
+            setMsg('accPwMsg', '');
+            if (!oldPw) return setMsg('accPwMsg', 'Введите текущий пароль.');
+            if (newPw.length < 8) return setMsg('accPwMsg', 'Новый пароль должен быть не короче 8 символов.');
+            if (newPw !== $('accNewPw2').value) return setMsg('accPwMsg', 'Новые пароли не совпадают.');
+            const form = ev.target;
+            setBusy(form, true);
+            setMsg('accPwMsg', 'Меняем пароль…', true);
+            try {
+                const [key, newKey] = await Promise.all([deriveAuthKey(auth.login, oldPw), deriveAuthKey(auth.login, newPw)]);
+                const r = await api('/auth/password', { method: 'POST', body: { key, newKey } });
+                auth = { login: r.body.login, token: r.body.token };
+                saveAuth();
+                form.reset();
+                $('accPwUser').value = auth.login;
+                setMsg('accPwMsg', '✅ Пароль изменён. На других устройствах войдите с новым паролем.', true);
+            } catch (e) {
+                setMsg('accPwMsg', e.message);
+            } finally {
+                setBusy(form, false);
+            }
+        }
+
+        async function deleteAccount(ev) {
+            ev.preventDefault();
+            if (!auth || authBusy) return;
+            const pw = $('accDelPw').value;
+            setMsg('accDelMsg', '');
+            if (!pw) return setMsg('accDelMsg', 'Введите пароль.');
+            if (!confirm(`Удалить аккаунт «${auth.login}» и все его данные на сервере? Это нельзя отменить.`)) return;
+            const form = ev.target;
+            setBusy(form, true);
+            try {
+                const key = await deriveAuthKey(auth.login, pw);
+                await api('/auth/delete', { method: 'POST', body: { key } });
+                auth = null;
+                saveAuth();
+                data._meta.owner = null;
+                data._meta.version = 0;
+                persist(false);
+                form.reset();
+                setSyncState('idle');
+                showToast('Аккаунт удалён', 'Данные на этом устройстве сохранены.');
+            } catch (e) {
+                setMsg('accDelMsg', e.message);
+            } finally {
+                setBusy(form, false);
+            }
+        }
+
         // ================= БАЗА ДАННЫХ =================
         let data = null;
         try { data = JSON.parse(localStorage.getItem('produ_v6_data')); } catch (e) { data = null; }
@@ -923,24 +2742,35 @@
         delete data.schedule;
         delete data.photos; // раздел фото удалён — освобождаем место в памяти браузера
 
-        function persist() {
+        // Служебные поля для синхронизации
+        if (!data._deleted) data._deleted = {};
+        if (!data.coinLedger) data.coinLedger = data.coins ? { [deviceId]: data.coins } : {};
+        if (!data._meta) data._meta = { version: 0, owner: null, dirty: false };
+        recomputeCoins();
+
+        // userChange = false — служебное сохранение (после синхронизации и т. п.), его не нужно отправлять на сервер
+        function persist(userChange = true) {
+            if (userChange) { data._meta.dirty = true; changeSeq++; }
             try { localStorage.setItem('produ_v6_data', JSON.stringify(data)); }
             catch (e) { alert('Не удалось сохранить: в памяти браузера закончилось место.'); }
             syncRemindersToSW();
             schedulePushSync();
+            if (userChange) scheduleSync();
         }
         function saveData() { persist(); renderAll(); }
-        persist();
+        persist(false);
 
         // ================= ВКЛАДКИ =================
         function switchTab(moduleName, element) {
             document.querySelectorAll('#mainAppContainer .dashboard').forEach(el => el.classList.remove('active'));
             document.getElementById(`module-${moduleName}`).classList.add('active');
             document.querySelectorAll('.dock-icon').forEach(el => el.classList.remove('active'));
-            element.classList.add('active');
+            if (element) element.classList.add('active');
+            $('accountPill').classList.toggle('active', moduleName === 'account');
 
             if (moduleName !== 'cards') stopCardScanner();
             if (moduleName === 'reminders') { renderReminders(); renderNotifStatus(); }
+            if (moduleName === 'account') { renderAccount(); loadServerConfig(); }
         }
 
         // ================= КАЛЕНДАРЬ =================
@@ -1065,7 +2895,7 @@
         }
 
         function createEvent(obj) {
-            const ev = { id: uid(), done: false, rewarded: false, notified: false, ...obj };
+            const ev = touch({ id: uid(), done: false, rewarded: false, notified: false, ...obj });
             if (hasNotify(ev) && dueTime(ev) < Date.now() - 60000) ev.notified = true; // время уже прошло
             data.events.push(ev);
             if (hasNotify(ev)) askPermissionIfNeeded();
@@ -1099,12 +2929,14 @@
             const ev = data.events.find(e => e.id === id);
             if (!ev) return;
             ev.done = !ev.done;
-            if (ev.done && !ev.rewarded) { data.coins += 10; ev.rewarded = true; }
+            if (ev.done && !ev.rewarded) { addCoins(10); ev.rewarded = true; }
+            touch(ev);
             saveData();
         }
 
         function deleteEvent(id) {
             data.events = data.events.filter(e => e.id !== id);
+            tomb('events:' + id);
             saveData();
         }
 
@@ -1142,8 +2974,9 @@
             const isPast = e => hasNotify(e) && (e.done || eventStart(e) < now);
             if (!data.events.some(isPast)) return;
             if (!confirm('Удалить прошедшие и выполненные напоминания? Дела и события останутся в календаре, у них только отключится уведомление.')) return;
+            data.events.filter(e => isPast(e) && e.type === 'reminder').forEach(e => tomb('events:' + e.id));
             data.events = data.events.filter(e => !(isPast(e) && e.type === 'reminder'));
-            data.events.forEach(e => { if (isPast(e)) e.notifyBefore = null; });
+            data.events.forEach(e => { if (isPast(e)) { e.notifyBefore = null; touch(e); } });
             saveData();
         }
 
@@ -1202,7 +3035,7 @@
                 return;
             }
             if (pushState === 'error') {
-                html += '<div class="hint">⚠️ Сервер уведомлений сейчас недоступен (проверьте адрес PUSH_SERVER и интернет). Пока работают обычные уведомления.</div>';
+                html += '<div class="hint">⚠️ Сервер уведомлений сейчас недоступен (проверьте адрес SERVER_URL и интернет). Пока работают обычные уведомления.</div>';
             } else if (pushState === 'unsupported') {
                 html += '<div class="hint">Этот браузер не поддерживает push-уведомления. На iPhone они работают только в приложении, добавленном на главный экран (iOS 16.4 и новее).</div>';
             }
@@ -1344,9 +3177,9 @@
 
             const existing = diaryEditingId ? data.diary.find(x => x.id === diaryEditingId) : null;
             if (existing) {
-                Object.assign(existing, { title: title || 'Без заголовка', body, tags, pinned, bookmarked, updated: Date.now() });
+                touch(Object.assign(existing, { title: title || 'Без заголовка', body, tags, pinned, bookmarked, updated: Date.now() }));
             } else {
-                data.diary.unshift({ id: uid(), title: title || 'Без заголовка', body, tags, pinned, bookmarked, created: Date.now(), updated: null });
+                data.diary.unshift(touch({ id: uid(), title: title || 'Без заголовка', body, tags, pinned, bookmarked, created: Date.now(), updated: null }));
             }
             closeDiaryEditor();
             saveData();
@@ -1354,12 +3187,13 @@
 
         function toggleDiaryFlag(id, flag) {
             const e = data.diary.find(x => x.id === id);
-            if (e) { e[flag] = !e[flag]; saveData(); }
+            if (e) { e[flag] = !e[flag]; touch(e); saveData(); }
         }
 
         function deleteDiaryEntry(id) {
             if (!confirm('Удалить запись из дневника?')) return;
             data.diary = data.diary.filter(x => x.id !== id);
+            tomb('diary:' + id);
             if (diaryEditingId === id) closeDiaryEditor();
             saveData();
         }
@@ -1457,14 +3291,14 @@
             const format = document.getElementById('scannedCodeFormat').value;
             if (!name) return alert("Введите название карты!");
 
-            data.digitalCards.unshift({ id: Date.now(), name, value, format });
+            data.digitalCards.unshift(touch({ id: uid(), name, value, format }));
             saveData();
             document.getElementById('cardNameInput').value = '';
             document.getElementById('scanResultForm').style.display = 'none';
         }
 
         function deleteDigitalCard(id) {
-            if (confirm('Удалить эту карту?')) { data.digitalCards = data.digitalCards.filter(c => c.id !== id); saveData(); }
+            if (confirm('Удалить эту карту?')) { data.digitalCards = data.digitalCards.filter(c => c.id !== id); tomb('digitalCards:' + id); saveData(); }
         }
 
         function renderCards() {
@@ -1493,9 +3327,14 @@
                     const imgElement = document.getElementById(`img_barcode_${card.id}`);
                     if (!imgElement) return;
                     if (card.format === 'QR_CODE') {
-                        QRCode.toDataURL(card.value, { width: 180, margin: 1 })
-                            .then(url => { imgElement.src = url; imgElement.style.height = '180px'; })
-                            .catch(err => console.error(err));
+                        try {
+                            imgElement.src = QRGen.toDataURL(card.value, 360);
+                            imgElement.style.height = '200px';
+                            imgElement.style.imageRendering = 'pixelated';
+                        } catch (e) {
+                            console.error('Ошибка QR-кода:', e);
+                            imgElement.alt = 'Не удалось построить QR-код';
+                        }
                     } else {
                         try {
                             const tempCanvas = document.createElement('canvas');
@@ -1517,16 +3356,27 @@
         function createNewList() {
             const title = document.getElementById('newListTitle').value.trim();
             if (!title) return;
-            data.lists.unshift({ id: Date.now(), title, items: [] });
+            data.lists.unshift(touch({ id: uid(), title, items: [] }));
             document.getElementById('newListTitle').value = '';
             saveData();
         }
-        function deleteList(listId) { if (confirm("Удалить список?")) { data.lists = data.lists.filter(l => l.id !== listId); saveData(); } }
+        function deleteList(listId) {
+            if (!confirm("Удалить список?")) return;
+            data.lists = data.lists.filter(l => l.id !== listId);
+            tomb('lists:' + listId);
+            saveData();
+        }
         function addListItem(listId) {
             const input = document.getElementById(`itemInput_${listId}`);
-            if (!input.value.trim()) return;
+            const text = input.value.trim();
+            if (!text) return;
             const list = data.lists.find(l => l.id === listId);
-            if (list) { list.items.push({ id: uid(), text: input.value.trim(), done: false }); saveData(); document.getElementById(`itemInput_${listId}`)?.focus(); }
+            if (list) {
+                list.items.push(touch({ id: uid(), text, done: false }));
+                input.value = '';
+                saveData();
+                document.getElementById(`itemInput_${listId}`)?.focus();
+            }
         }
         function toggleListItem(listId, itemId) {
             const list = data.lists.find(l => l.id === listId);
@@ -1534,17 +3384,28 @@
             const item = list.items.find(i => i.id === itemId);
             if (!item) return;
             item.done = !item.done;
-            if (item.done && !item.rewarded) { data.coins += 5; item.rewarded = true; }
+            if (item.done && !item.rewarded) { addCoins(5); item.rewarded = true; }
+            touch(item);
             saveData();
         }
         function deleteListItem(listId, itemId) {
             const list = data.lists.find(l => l.id === listId);
-            if (list) { list.items = list.items.filter(i => i.id !== itemId); saveData(); }
+            if (list) { list.items = list.items.filter(i => i.id !== itemId); tomb(`lists:${listId}:${itemId}`); saveData(); }
         }
 
         function renderLists() {
             const listsContainer = document.getElementById('customListsContainer');
+            // Не терять недописанный текст, если списки перерисовались после синхронизации
+            const typed = {};
+            listsContainer.querySelectorAll('input[id^="itemInput_"]').forEach(i => { if (i.value) typed[i.id] = i.value; });
+            const focusedId = document.activeElement && document.activeElement.id;
             if (!data.lists.length) { listsContainer.innerHTML = '<div class="empty-state">У вас пока нет списков</div>'; return; }
+            renderListsHtml(listsContainer);
+            for (const [id, v] of Object.entries(typed)) { const el = document.getElementById(id); if (el) el.value = v; }
+            if (focusedId && focusedId.startsWith('itemInput_')) document.getElementById(focusedId)?.focus();
+        }
+
+        function renderListsHtml(listsContainer) {
             listsContainer.innerHTML = data.lists.map(list => {
                 const itemsHtml = list.items.map(item => `
                     <div class="list-item" style="${item.done ? 'opacity: 0.6;' : ''}">
@@ -1570,7 +3431,7 @@
             const amount = parseFloat(document.getElementById('financeAmount').value);
             const desc = document.getElementById('financeDesc').value.trim();
             if (!amount || !desc) return alert('Укажите сумму и описание.');
-            data.finance.push({ id: Date.now(), amount, type: document.getElementById('financeType').value, desc, date: new Date().toLocaleDateString() });
+            data.finance.push(touch({ id: uid(), amount, type: document.getElementById('financeType').value, desc, date: new Date().toLocaleDateString() }));
             document.getElementById('financeAmount').value = '';
             document.getElementById('financeDesc').value = '';
             saveData();
@@ -1605,12 +3466,19 @@
             renderLists();
             renderFinance();
             renderCards();
+            renderAccount();
         }
 
         renderAll();
         renderNotifStatus();
         applySWFired().finally(checkReminders);
         setupServiceWorker();
+
+        // Синхронизация: при запуске, раз в минуту, при возвращении в приложение и при появлении интернета
+        syncNow();
+        setInterval(() => { if (!document.hidden) syncNow(); }, 60000);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) syncNow(); });
+        window.addEventListener('online', () => syncNow());
     </script>
 </body>
 </html>

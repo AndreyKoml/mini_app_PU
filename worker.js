@@ -1,9 +1,17 @@
-/* ProdU — сервер push-уведомлений (Cloudflare Worker)
+/* ProdU — сервер: аккаунты, синхронизация и push-уведомления (Cloudflare Worker)
  *
  * Что делает:
- *   - хранит напоминания каждого устройства (база D1);
+ *   - регистрация и вход по логину и паролю, хранение данных аккаунта (база D1);
+ *   - хранит напоминания каждого устройства;
  *   - каждую минуту (Cron Trigger) отправляет push тем, у кого подошло время;
  *   - ключи VAPID создаёт сам при первом запуске и хранит в базе.
+ *
+ * Пароль на сервер не передаётся: браузер превращает его в ключ (PBKDF2, 300 000 итераций),
+ * а сервер хранит только хэш этого ключа с солью.
+ *
+ * Необязательные переменные (Settings → Variables):
+ *   INVITE_CODE  — если задана, зарегистрироваться можно только с этим кодом;
+ *   REGISTRATION — значение closed полностью закрывает регистрацию новых аккаунтов.
  *
  * Настройка (в панели Cloudflare):
  *   1. D1 → создать базу (например, produ-push).
@@ -16,8 +24,12 @@
  *
  * Адреса:
  *   GET  /        — проверка, что всё настроено
+ *   GET  /config  — открыта ли регистрация, нужен ли код приглашения
  *   GET  /vapid   — публичный ключ для подписки
  *   POST /sync    — { subscription, reminders: [{ id, due, title, body }] }
+ *   POST /auth/register | /auth/login | /auth/logout | /auth/password | /auth/delete
+ *   GET  /data?since=N  — данные аккаунта (или { unchanged: true })
+ *   PUT  /data?base=N   — сохранить данные, если на сервере всё ещё версия N (иначе 409)
  */
 
 const MAX_REMINDERS = 500;        // напоминаний с одного устройства
@@ -27,6 +39,13 @@ const PUSH_TTL = 12 * 3600;       // сколько push-сервис храни
 
 // Разрешённые push-сервисы (Chrome/Android, Firefox, Edge/Windows, Safari/iPhone)
 const PUSH_HOSTS = ['fcm.googleapis.com', 'android.googleapis.com', 'push.services.mozilla.com', 'notify.windows.com', 'push.apple.com'];
+
+// Аккаунты
+const LOGIN_RE = /^[\p{L}\p{N}_.-]{3,32}$/u;
+const KEY_RE = /^[A-Za-z0-9_-]{43}$/;          // 32 байта в base64url — ключ, полученный из пароля
+const SESSION_IDLE_MS = 180 * 86400e3;          // сессия забывается после 180 дней без входа
+const MAX_DATA_BYTES = 1_800_000;               // предел строки D1 — 2 МБ
+const LOCK_AFTER = 5;                           // после 5 неверных паролей подряд — пауза
 
 export default {
     async fetch(request, env) {
@@ -42,9 +61,25 @@ export default {
                 if (!env.SITE_URL) return text('Не задана переменная SITE_URL (Settings → Variables).', 500, cors);
                 const { publicKey } = await getVapid(env);
                 const stats = await env.DB.prepare(
-                    'SELECT (SELECT COUNT(*) FROM subs) AS devices, (SELECT COUNT(*) FROM reminders WHERE sent = 0) AS pending'
+                    'SELECT (SELECT COUNT(*) FROM subs) AS devices, (SELECT COUNT(*) FROM reminders WHERE sent = 0) AS pending, (SELECT COUNT(*) FROM users) AS users'
                 ).first();
-                return text(`ProdU push: OK\nУстройств: ${stats.devices}\nОжидают отправки: ${stats.pending}\nКлюч: ${publicKey.slice(0, 16)}…`, 200, cors);
+                return text(`ProdU push: OK\nАккаунтов: ${stats.users}\nУстройств с push: ${stats.devices}\nОжидают отправки: ${stats.pending}\nКлюч: ${publicKey.slice(0, 16)}…`, 200, cors);
+            }
+
+            if (request.method === 'GET' && url.pathname === '/config') {
+                return json({ registration: env.REGISTRATION !== 'closed', inviteRequired: !!env.INVITE_CODE }, 200, cors);
+            }
+
+            if (request.method === 'POST' && url.pathname.startsWith('/auth/')) {
+                return await handleAuth(url.pathname.slice(6), request, env, cors);
+            }
+
+            if (url.pathname === '/data' && (request.method === 'GET' || request.method === 'PUT')) {
+                const user = await authUser(request, env);
+                if (!user) return json({ error: 'Сессия истекла — войдите снова' }, 401, cors);
+                return request.method === 'GET'
+                    ? await getData(env, user, url, cors)
+                    : await putData(env, user, url, request, cors);
             }
 
             if (request.method === 'GET' && url.pathname === '/vapid') {
@@ -83,12 +118,194 @@ async function ensureSchema(env) {
             endpoint TEXT NOT NULL, id INTEGER NOT NULL, due INTEGER NOT NULL,
             title TEXT NOT NULL, body TEXT NOT NULL, sent INTEGER NOT NULL DEFAULT 0,
             PRIMARY KEY (endpoint, id))`),
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_reminders_due ON reminders (sent, due)')
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_reminders_due ON reminders (sent, due)'),
+        env.DB.prepare(`CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, login TEXT NOT NULL UNIQUE, display TEXT NOT NULL,
+            salt TEXT NOT NULL, hash TEXT NOT NULL, created INTEGER NOT NULL,
+            failed INTEGER NOT NULL DEFAULT 0, locked_until INTEGER NOT NULL DEFAULT 0)`),
+        env.DB.prepare(`CREATE TABLE IF NOT EXISTS sessions (
+            token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL, created INTEGER NOT NULL, last_used INTEGER NOT NULL)`),
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions (user_id)'),
+        env.DB.prepare(`CREATE TABLE IF NOT EXISTS userdata (
+            user_id INTEGER PRIMARY KEY, version INTEGER NOT NULL, data TEXT, updated INTEGER NOT NULL)`)
     ]);
     schemaReady = true;
 }
 
 class BadRequest extends Error {}
+
+// ===================== Аккаунты =====================
+async function readJson(request, limit = 10_000) {
+    const raw = await request.text();
+    if (raw.length > limit) throw new BadRequest('too large');
+    try { return JSON.parse(raw); } catch { throw new BadRequest('bad json'); }
+}
+
+async function sha256b64u(...parts) {
+    return bytesToB64u(await crypto.subtle.digest('SHA-256', concat(...parts)));
+}
+
+function sameString(a, b) {   // сравнение без утечки по времени
+    if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+    let diff = 0;
+    for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+    return diff === 0;
+}
+
+const randomB64u = n => bytesToB64u(crypto.getRandomValues(new Uint8Array(n)));
+const passwordHash = (salt, key) => sha256b64u(b64uToBytes(salt), b64uToBytes(key));
+const normLogin = s => String(s || '').trim().normalize('NFC');
+
+async function newSessionStatements(env, userId) {
+    const token = randomB64u(32);
+    const now = Date.now();
+    return {
+        token,
+        stmts: [
+            env.DB.prepare('INSERT INTO sessions (token_hash, user_id, created, last_used) VALUES (?1, ?2, ?3, ?3)')
+                .bind(await sha256b64u(enc(token)), userId, now),
+            env.DB.prepare('DELETE FROM sessions WHERE user_id = ?1 AND last_used < ?2').bind(userId, now - SESSION_IDLE_MS)
+        ]
+    };
+}
+
+async function authUser(request, env) {
+    const m = /^Bearer\s+([A-Za-z0-9_-]{43})$/.exec(request.headers.get('Authorization') || '');
+    if (!m) return null;
+    const th = await sha256b64u(enc(m[1]));
+    const row = await env.DB.prepare(
+        'SELECT s.user_id AS id, s.last_used, u.display FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ?1'
+    ).bind(th).first();
+    const now = Date.now();
+    if (!row || row.last_used < now - SESSION_IDLE_MS) return null;
+    if (row.last_used < now - 6 * 3600e3) {
+        await env.DB.prepare('UPDATE sessions SET last_used = ?1 WHERE token_hash = ?2').bind(now, th).run();
+    }
+    return { id: row.id, display: row.display, tokenHash: th };
+}
+
+// Проверка пароля с паузой после нескольких ошибок. Возвращает пользователя или Response с ошибкой.
+async function verifyPassword(env, login, key, cors) {
+    if (!KEY_RE.test(String(key || ''))) throw new BadRequest('bad key');
+    const user = await env.DB.prepare('SELECT * FROM users WHERE login = ?1').bind(normLogin(login).toLowerCase()).first();
+    const now = Date.now();
+    if (user && user.locked_until > now) {
+        const min = Math.ceil((user.locked_until - now) / 60000);
+        return json({ error: `Слишком много неверных попыток. Попробуйте через ${min} мин.` }, 429, cors);
+    }
+    const hash = await passwordHash(user ? user.salt : 'AAAAAAAAAAAAAAAAAAAAAA', key);
+    if (!user || !sameString(hash, user.hash)) {
+        if (user) {
+            const failed = user.failed + 1;
+            const lockMin = failed >= LOCK_AFTER ? Math.min(60, 2 ** (failed - LOCK_AFTER)) : 0;
+            await env.DB.prepare('UPDATE users SET failed = ?1, locked_until = ?2 WHERE id = ?3')
+                .bind(failed, lockMin ? now + lockMin * 60000 : 0, user.id).run();
+        }
+        return json({ error: 'Неверный логин или пароль' }, 403, cors);
+    }
+    if (user.failed) await env.DB.prepare('UPDATE users SET failed = 0, locked_until = 0 WHERE id = ?1').bind(user.id).run();
+    return user;
+}
+
+async function handleAuth(action, request, env, cors) {
+    if (action === 'register') {
+        const { login, key, invite } = await readJson(request);
+        const display = normLogin(login);
+        if (!LOGIN_RE.test(display)) throw new BadRequest('Логин: от 3 до 32 символов — буквы, цифры, «_», «.», «-»');
+        if (!KEY_RE.test(String(key || ''))) throw new BadRequest('bad key');
+        if (env.REGISTRATION === 'closed') return json({ error: 'Регистрация новых аккаунтов закрыта' }, 403, cors);
+        if (env.INVITE_CODE && !sameString(String(invite || '').trim(), String(env.INVITE_CODE))) {
+            return json({ error: 'Неверный код приглашения' }, 403, cors);
+        }
+        const salt = randomB64u(16);
+        const now = Date.now();
+        const row = await env.DB.prepare(`INSERT INTO users (login, display, salt, hash, created) VALUES (?1, ?2, ?3, ?4, ?5)
+            ON CONFLICT(login) DO NOTHING RETURNING id`)
+            .bind(display.toLowerCase(), display, salt, await passwordHash(salt, key), now).first();
+        if (!row) return json({ error: 'Такой логин уже занят' }, 409, cors);
+        const s = await newSessionStatements(env, row.id);
+        await env.DB.batch([
+            env.DB.prepare('INSERT OR IGNORE INTO userdata (user_id, version, data, updated) VALUES (?1, 0, NULL, ?2)').bind(row.id, now),
+            ...s.stmts
+        ]);
+        return json({ login: display, token: s.token }, 200, cors);
+    }
+
+    if (action === 'login') {
+        const { login, key } = await readJson(request);
+        const user = await verifyPassword(env, login, key, cors);
+        if (user instanceof Response) return user;
+        const s = await newSessionStatements(env, user.id);
+        await env.DB.batch(s.stmts);
+        return json({ login: user.display, token: s.token }, 200, cors);
+    }
+
+    const me = await authUser(request, env);
+    if (!me) return json({ error: 'Сессия истекла — войдите снова' }, 401, cors);
+
+    if (action === 'logout') {
+        await env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?1').bind(me.tokenHash).run();
+        return json({ ok: true }, 200, cors);
+    }
+
+    if (action === 'password') {
+        const { key, newKey } = await readJson(request);
+        if (!KEY_RE.test(String(newKey || ''))) throw new BadRequest('bad key');
+        const user = await verifyPassword(env, me.display, key, cors);
+        if (user instanceof Response) return user;
+        const salt = randomB64u(16);
+        const s = await newSessionStatements(env, me.id);
+        // Новый пароль — выход на всех остальных устройствах
+        await env.DB.batch([
+            env.DB.prepare('UPDATE users SET salt = ?1, hash = ?2 WHERE id = ?3').bind(salt, await passwordHash(salt, newKey), me.id),
+            env.DB.prepare('DELETE FROM sessions WHERE user_id = ?1').bind(me.id),
+            ...s.stmts
+        ]);
+        return json({ login: me.display, token: s.token }, 200, cors);
+    }
+
+    if (action === 'delete') {
+        const { key } = await readJson(request);
+        const user = await verifyPassword(env, me.display, key, cors);
+        if (user instanceof Response) return user;
+        await env.DB.batch([
+            env.DB.prepare('DELETE FROM sessions WHERE user_id = ?1').bind(me.id),
+            env.DB.prepare('DELETE FROM userdata WHERE user_id = ?1').bind(me.id),
+            env.DB.prepare('DELETE FROM users WHERE id = ?1').bind(me.id)
+        ]);
+        return json({ ok: true }, 200, cors);
+    }
+
+    return json({ error: 'not found' }, 404, cors);
+}
+
+// ===================== Данные аккаунта =====================
+// Сервер не разбирает данные — хранит их как есть. Объединяет изменения с разных устройств само приложение.
+async function getData(env, user, url, cors) {
+    const row = await env.DB.prepare('SELECT version, data FROM userdata WHERE user_id = ?1').bind(user.id).first();
+    const version = row ? row.version : 0;
+    if (url.searchParams.get('since') === String(version)) return json({ version, unchanged: true }, 200, cors);
+    return json({ version, data: row ? row.data : null }, 200, cors);
+}
+
+async function putData(env, user, url, request, cors) {
+    const base = Number(url.searchParams.get('base'));
+    if (!Number.isSafeInteger(base) || base < 0) throw new BadRequest('bad base');
+    const raw = await request.text();
+    if (enc(raw).length > MAX_DATA_BYTES) {
+        return json({ error: 'Слишком много данных для одного аккаунта (больше 1,8 МБ)' }, 413, cors);
+    }
+    if (!raw.startsWith('{') || !raw.endsWith('}')) throw new BadRequest('bad data');
+
+    // Записываем, только если с момента чтения никто не успел сохранить другую версию
+    const res = await env.DB.prepare(`INSERT INTO userdata (user_id, version, data, updated) VALUES (?1, 1, ?2, ?3)
+        ON CONFLICT(user_id) DO UPDATE SET data = excluded.data, version = userdata.version + 1, updated = excluded.updated
+        WHERE userdata.version = ?4`).bind(user.id, raw, Date.now(), base).run();
+    if (res.meta && res.meta.changes === 1) return json({ version: base + 1 }, 200, cors);
+
+    const row = await env.DB.prepare('SELECT version FROM userdata WHERE user_id = ?1').bind(user.id).first();
+    return json({ error: 'conflict', version: row ? row.version : 0 }, 409, cors);
+}
 
 function validSubscription(sub) {
     if (!sub || typeof sub.endpoint !== 'string' || !sub.keys) return false;
@@ -291,8 +508,8 @@ function corsHeaders(env) {
     try { if (env.SITE_URL && !env.SITE_URL.startsWith('mailto:')) origin = new URL(env.SITE_URL).origin; } catch {}
     return {
         'Access-Control-Allow-Origin': origin,
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         'Access-Control-Max-Age': '86400',
         'Vary': 'Origin'
     };
