@@ -571,6 +571,53 @@
         .sync-line { font-size: 14px; line-height: 1.5; }
         code { font-family: monospace; background: var(--soft); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
 
+        /* --- ФИНАНСЫ --- */
+        .fin-label { display: block; font-size: 13px; opacity: 0.7; margin: 2px 0 6px; }
+        .fin-split { margin-bottom: 10px; padding: 12px; border-radius: 14px; background: var(--soft); }
+        .fin-split:empty, .fin-split[hidden] { display: none; }
+        .fin-split .head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+        .fin-split .head b { font-size: 14px; }
+        .fin-split .row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .fin-split .row .nm { flex: 1; min-width: 0; font-size: 14px; overflow-wrap: anywhere; }
+        .fin-split .row .nm small { opacity: 0.6; }
+        .fin-split .row input { width: 112px; margin: 0; padding: 8px 10px; text-align: right; }
+        .fin-split .rest { font-size: 13px; font-weight: 600; margin-top: 4px; }
+        .fin-split .rest.bad { color: var(--danger); }
+        .chip-btn { border: 1px solid var(--glass-border); background: var(--bg-color); color: inherit; border-radius: 10px; padding: 5px 10px; font-size: 12px; cursor: pointer; font-family: inherit; }
+        .chip-btn:hover { background: var(--accent-color); color: #000; }
+        .fin-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+        .fin-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--soft); margin-bottom: 8px; }
+        .fin-item .nm { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+        .fin-item .nm small { display: block; font-size: 12px; opacity: 0.6; }
+        .fin-item .val { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .fin-item .val.neg { color: var(--danger); }
+        .fin-item .edit-row { display: flex; gap: 6px; flex: 1; min-width: 0; }
+        .fin-item .edit-row input { margin: 0; padding: 7px 9px; }
+        .add-row { margin-top: 4px; }
+        .add-row .glass-input { margin-bottom: 0; }
+        .money { font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .fin-stack { display: flex; height: 12px; border-radius: 6px; overflow: hidden; margin: 2px 0 12px; background: rgba(128,128,128,0.15); }
+        .fin-stack i { display: block; height: 100%; }
+        .fin-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+        .fin-chip { font-size: 12px; padding: 4px 9px; border-radius: 10px; background: var(--soft); display: inline-flex; align-items: center; gap: 6px; }
+        .fin-chip b { font-variant-numeric: tabular-nums; }
+        .goal { padding: 14px; border-radius: 16px; background: var(--soft); margin-bottom: 10px; }
+        .goal-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+        .goal-top .nm { font-weight: 700; font-size: 1.05rem; overflow-wrap: anywhere; }
+        .goal-top .pct { font-weight: 800; font-variant-numeric: tabular-nums; }
+        .goal .bar { height: 12px; border-radius: 6px; background: rgba(128,128,128,0.2); overflow: hidden; margin: 10px 0 8px; }
+        .goal .bar i { display: block; height: 100%; background: var(--accent-color); border-radius: 6px; transition: width 0.4s; }
+        .goal.done .bar i { background: linear-gradient(90deg, var(--accent-color), #20c997); }
+        .goal-meta { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+        .goal-meta span { opacity: 0.75; }
+        .goal-meta .left { font-weight: 700; opacity: 1; }
+        .goal-actions { display: flex; gap: 6px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+        .goal-actions .glass-btn { padding: 7px 12px; font-size: 13px; }
+        .goal-form { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+        .goal-form .glass-input, .goal-form .glass-select { margin: 0; padding: 8px 10px; flex: 1 1 120px; min-width: 0; }
+        .tx-sub { font-size: 12px; opacity: 0.65; margin-top: 3px; }
+        .transfer-text { font-weight: bold; opacity: 0.75; }
+
         /* --- ИГРЫ --- */
         #module-games .games-menu, #module-games .game-area { display: none; }
         #module-games[data-view="menu"] .games-menu, #module-games[data-view="play"] .game-area { display: flex; }
@@ -996,18 +1043,48 @@
             <div class="glass-card full-width">
                 <div class="card-header" style="justify-content: center;">Текущий баланс</div>
                 <div class="balance-display" id="balanceDisplay">0 ₽</div>
+                <div id="finPockets"></div>
             </div>
+
             <div class="glass-card">
                 <div class="card-header">Новая операция</div>
-                <input type="number" id="financeAmount" class="glass-input" placeholder="Сумма (₽)">
-                <select id="financeType" class="glass-select">
-                    <option value="income">Доход (+)</option>
-                    <option value="expense">Расход (-)</option>
-                </select>
-                <input type="text" id="financeDesc" class="glass-input" placeholder="Описание">
-                <button class="glass-btn" onclick="addTransaction()">Сохранить</button>
+                <div class="segmented" id="finTypeSwitch" style="margin-bottom: 10px;">
+                    <button type="button" data-type="income" class="active" onclick="setFinType('income')">＋ Доход</button>
+                    <button type="button" data-type="expense" onclick="setFinType('expense')">− Расход</button>
+                </div>
+                <input type="number" id="financeAmount" class="glass-input" placeholder="Сумма (₽)" min="0" step="0.01" inputmode="decimal" oninput="onFinAmount()">
+                <input type="text" id="financeDesc" class="glass-input" placeholder="Описание (необязательно)" maxlength="100">
+                <div id="finSplitBox" class="fin-split"></div>
+                <div id="finFromBox" hidden>
+                    <label class="fin-label" for="finFrom">Из какой категории</label>
+                    <select id="finFrom" class="glass-select"></select>
+                </div>
+                <div class="form-msg" id="finMsg"></div>
+                <button class="glass-btn" onclick="addTransaction()" style="margin-bottom: 0;">Сохранить</button>
             </div>
+
             <div class="glass-card">
+                <div class="card-header">Категории <span class="day-badge" id="finPctSum" title="Сумма долей"></span></div>
+                <div id="finCats"></div>
+                <div class="flex-row add-row">
+                    <input id="finCatName" class="glass-input" placeholder="Новая категория" maxlength="40">
+                    <input id="finCatPct" type="number" class="glass-input" placeholder="%" min="0" max="100" inputmode="numeric" style="max-width: 76px;">
+                    <button class="glass-btn compact" onclick="addFinCat()" aria-label="Добавить категорию">+</button>
+                </div>
+                <div class="hint">Доля — какой процент от каждого дохода автоматически отправлять в категорию. Можно не указывать и распределять вручную.</div>
+            </div>
+
+            <div class="glass-card full-width">
+                <div class="card-header">Цели</div>
+                <div id="finGoals"></div>
+                <div class="flex-row add-row">
+                    <input id="finGoalName" class="glass-input" placeholder="На что копим? Например, «Отпуск»" maxlength="60">
+                    <input id="finGoalTarget" type="number" class="glass-input" placeholder="Сумма ₽" min="1" inputmode="decimal" style="max-width: 130px;">
+                    <button class="glass-btn compact" onclick="addFinGoal()" aria-label="Добавить цель">+</button>
+                </div>
+            </div>
+
+            <div class="glass-card full-width">
                 <div class="card-header">История</div>
                 <div id="financeList"></div>
             </div>
@@ -2575,7 +2652,7 @@
         // Пароль не уходит на сервер: из него (вместе с логином) получается ключ PBKDF2.
         // Число итераций нельзя менять, когда аккаунты уже созданы, иначе старые пароли перестанут подходить.
         const KDF_ITERATIONS = 300000;
-        const SYNC_KEYS = ['lists', 'events', 'finance', 'digitalCards', 'diary'];
+        const SYNC_KEYS = ['lists', 'events', 'finance', 'digitalCards', 'diary', 'finCats', 'finGoals'];
         const TOMB_TTL = 120 * 86400e3;           // сколько помнить об удалённых записях
         const LOGIN_RE = /^[\p{L}\p{N}_.-]{3,32}$/u;
 
@@ -2655,6 +2732,8 @@
                     .sort(byIdDesc),
                 events: mergeById(local.events, remote.events, tombs, 'events:', eventBoth).sort(byIdAsc),
                 finance: mergeById(local.finance, remote.finance, tombs, 'finance:').sort(byIdAsc),
+                finCats: mergeById(local.finCats, remote.finCats, tombs, 'finCats:').sort(byIdAsc),
+                finGoals: mergeById(local.finGoals, remote.finGoals, tombs, 'finGoals:').sort(byIdAsc),
                 digitalCards: mergeById(local.digitalCards, remote.digitalCards, tombs, 'digitalCards:').sort(byIdDesc),
                 diary: mergeById(local.diary, remote.diary, tombs, 'diary:').sort(byIdDesc),
                 coinLedger: sortObj(coinLedger),
@@ -2665,7 +2744,7 @@
         // То, что уходит на сервер (порядок ключей фиксирован, чтобы одинаковые данные давали одинаковую строку)
         function canonical(d) {
             return JSON.stringify({
-                v: 1, lists: d.lists, events: d.events, finance: d.finance, digitalCards: d.digitalCards,
+                v: 1, lists: d.lists, events: d.events, finance: d.finance, finCats: d.finCats, finGoals: d.finGoals, digitalCards: d.digitalCards,
                 diary: d.diary, coinLedger: sortObj(d.coinLedger), _deleted: sortObj(d._deleted), gameBest: sortObj(d.gameBest)
             });
         }
@@ -4619,6 +4698,8 @@
         data = data || {};
         if (!data.lists) data.lists = [];
         if (!data.finance) data.finance = [];
+        if (!data.finCats) data.finCats = [];
+        if (!data.finGoals) data.finGoals = [];
         if (!data.digitalCards) data.digitalCards = [];
         if (!data.diary) data.diary = [];
         if (!data.coins) data.coins = 0;
@@ -5336,26 +5417,384 @@
         }
 
         // ================= ФИНАНСЫ =================
+        // Деньги лежат в «карманах»: нераспределённые, категории и цели. Остатки считаются по истории операций:
+        //   доход  { amount, split: [{ to: 'cat:ID' | 'goal:ID', amount }] } — что не распределено, идёт в «нераспределённые»;
+        //   расход { amount, from: 'cat:ID' | 'goal:ID' | '' };
+        //   перевод { type: 'transfer', amount, from, to } — пополнение цели или снятие с неё.
+        // Если категорию или цель удалить, её деньги автоматически снова считаются нераспределёнными.
+        const FIN_COLORS = ['#3b9cff', '#ffa502', '#8ce13b', '#be4bdb', '#ff6b6b', '#20c997', '#fab005', '#748ffc'];
+        let finType = 'income', splitTouched = false, finCatEdit = null, finGoalForm = null;
+        const round2 = v => Math.round((Number(v) || 0) * 100) / 100;
+        const money = v => `${round2(v).toLocaleString('ru-RU', { maximumFractionDigits: 2 })} ₽`;
+        const catById = id => data.finCats.find(c => c.id === id);
+        const goalById = id => data.finGoals.find(g => g.id === id);
+
+        function finSummary() {
+            const cats = new Map(data.finCats.map(c => [c.id, 0]));
+            const goals = new Map(data.finGoals.map(g => [g.id, 0]));
+            let total = 0, free = 0;
+            const add = (ref, v) => {
+                const [k, id] = String(ref || '').split(':');
+                const n = Number(id);
+                if (k === 'cat' && cats.has(n)) cats.set(n, cats.get(n) + v);
+                else if (k === 'goal' && goals.has(n)) goals.set(n, goals.get(n) + v);
+                else free += v;
+            };
+            for (const t of data.finance) {
+                const a = Number(t.amount) || 0;
+                if (t.type === 'income') {
+                    total += a;
+                    let rest = a;
+                    (t.split || []).forEach(p => { add(p.to, p.amount); rest -= p.amount; });
+                    free += rest;
+                } else if (t.type === 'expense') {
+                    total -= a;
+                    add(t.from, -a);
+                } else if (t.type === 'transfer') {
+                    add(t.from, -a);
+                    add(t.to, a);
+                }
+            }
+            cats.forEach((v, k) => cats.set(k, round2(v)));
+            goals.forEach((v, k) => goals.set(k, round2(v)));
+            return { total: round2(total), free: round2(free), cats, goals };
+        }
+
+        function refName(ref, sum) {
+            const [k, id] = String(ref || '').split(':');
+            if (k === 'cat') { const c = catById(Number(id)); if (c) return c.name; }
+            if (k === 'goal') { const g = goalById(Number(id)); if (g) return '🎯 ' + g.name; }
+            return 'Нераспределённые';
+        }
+        const refBalance = (ref, sum) => {
+            const [k, id] = String(ref || '').split(':');
+            if (k === 'cat' && sum.cats.has(Number(id))) return sum.cats.get(Number(id));
+            if (k === 'goal' && sum.goals.has(Number(id))) return sum.goals.get(Number(id));
+            return sum.free;
+        };
+
+        // --- форма операции ---
+        function setFinType(t) {
+            finType = t;
+            document.querySelectorAll('#finTypeSwitch button').forEach(b => b.classList.toggle('active', b.dataset.type === t));
+            setMsg('finMsg', '');
+            renderFinForm();
+        }
+
+        function onFinAmount() {
+            if (finType === 'income' && !splitTouched) applySplitPercents(false);
+            updateSplitRest();
+        }
+
+        function splitInputs() { return [...document.querySelectorAll('#finSplitBox input[data-ref]')]; }
+
+        function applySplitPercents(touch = true) {
+            const amount = round2(parseFloat($('financeAmount').value));
+            splitInputs().forEach(inp => {
+                const pct = Number(inp.dataset.pct) || 0;
+                inp.value = amount > 0 && pct > 0 ? round2(amount * pct / 100) : '';
+            });
+            if (touch) splitTouched = false;
+            updateSplitRest();
+        }
+
+        function clearSplit() { splitInputs().forEach(i => { i.value = ''; }); splitTouched = true; updateSplitRest(); }
+
+        function updateSplitRest() {
+            const el = $('finSplitRest');
+            if (!el) return;
+            const amount = round2(parseFloat($('financeAmount').value));
+            const used = round2(splitInputs().reduce((s, i) => s + (parseFloat(i.value) || 0), 0));
+            const rest = round2((amount || 0) - used);
+            el.classList.toggle('bad', rest < 0);
+            el.textContent = rest < 0 ? `Распределено на ${money(-rest)} больше суммы дохода` : `Останется нераспределённым: ${money(rest)}`;
+        }
+
+        function renderFinForm() {
+            const sum = finSummary();
+            const box = $('finSplitBox');
+            box.hidden = finType !== 'income';
+            $('finFromBox').hidden = finType !== 'expense';
+            if (finType === 'income') {
+                // сохраняем уже введённые суммы при перерисовке
+                const prev = {};
+                splitInputs().forEach(i => { prev[i.dataset.ref] = i.value; });
+                const rows = [
+                    ...data.finCats.map(c => ({ ref: 'cat:' + c.id, pct: c.pct || 0, color: c.color,
+                        label: `${esc(c.name)}${c.pct ? ` <small>${c.pct}%</small>` : ''}` })),
+                    ...data.finGoals.filter(g => sum.goals.get(g.id) < g.target).map(g => ({ ref: 'goal:' + g.id, pct: 0, color: null,
+                        label: `🎯 ${esc(g.name)} <small>осталось ${money(g.target - sum.goals.get(g.id))}</small>` }))
+                ];
+                if (!rows.length) {
+                    box.innerHTML = '<div class="hint" style="margin: 0;">Создайте категории или цели ниже — и доход можно будет сразу раскладывать по ним.</div>';
+                    return;
+                }
+                box.innerHTML = `<div class="head"><b>Распределить доход</b><span style="display: flex; gap: 6px;">
+                        ${data.finCats.some(c => c.pct) ? '<button type="button" class="chip-btn" onclick="applySplitPercents()">По долям</button>' : ''}
+                        <button type="button" class="chip-btn" onclick="clearSplit()">Очистить</button></span></div>` +
+                    rows.map(r => `<div class="row">
+                        ${r.color ? `<span class="fin-dot" style="background: ${r.color}"></span>` : ''}
+                        <span class="nm">${r.label}</span>
+                        <input type="number" class="glass-input" data-ref="${r.ref}" data-pct="${r.pct}" min="0" step="0.01" inputmode="decimal" placeholder="0"
+                            value="${esc(prev[r.ref] || '')}" oninput="splitTouched = true; updateSplitRest()">
+                    </div>`).join('') +
+                    '<div class="rest" id="finSplitRest"></div>';
+                if (!splitTouched && !Object.values(prev).some(Boolean)) applySplitPercents(false);
+                updateSplitRest();
+            } else {
+                const sel = $('finFrom');
+                const keep = sel.value;
+                sel.innerHTML = `<option value="">Нераспределённые — ${money(sum.free)}</option>` +
+                    data.finCats.map(c => `<option value="cat:${c.id}">${esc(c.name)} — ${money(sum.cats.get(c.id))}</option>`).join('') +
+                    data.finGoals.map(g => `<option value="goal:${g.id}">🎯 ${esc(g.name)} — ${money(sum.goals.get(g.id))}</option>`).join('');
+                if ([...sel.options].some(o => o.value === keep)) sel.value = keep;
+            }
+        }
+
+        function goalsReachedNow(before) {
+            const after = finSummary();
+            data.finGoals.forEach(g => {
+                if ((before.goals.get(g.id) || 0) < g.target && after.goals.get(g.id) >= g.target) {
+                    showToast('🎉 Цель достигнута!', `«${g.name}» — накоплено ${money(after.goals.get(g.id))}`, 8000);
+                }
+            });
+        }
+
         function addTransaction() {
-            const amount = parseFloat(document.getElementById('financeAmount').value);
-            const desc = document.getElementById('financeDesc').value.trim();
-            if (!amount || !desc) return alert('Укажите сумму и описание.');
-            data.finance.push(touch({ id: uid(), amount, type: document.getElementById('financeType').value, desc, date: new Date().toLocaleDateString() }));
-            document.getElementById('financeAmount').value = '';
-            document.getElementById('financeDesc').value = '';
+            const amount = round2(parseFloat($('financeAmount').value));
+            const desc = $('financeDesc').value.trim();
+            setMsg('finMsg', '');
+            if (!(amount > 0)) return setMsg('finMsg', 'Укажите сумму больше нуля.');
+            const before = finSummary();
+            const tx = { id: uid(), amount, type: finType, desc: desc || (finType === 'income' ? 'Доход' : 'Расход'),
+                date: new Date().toLocaleDateString('ru-RU'), ts: Date.now() };
+            if (finType === 'income') {
+                const split = splitInputs().map(i => ({ to: i.dataset.ref, amount: round2(parseFloat(i.value)) })).filter(p => p.amount > 0);
+                const used = round2(split.reduce((s, p) => s + p.amount, 0));
+                if (used > amount) return setMsg('finMsg', `Распределено ${money(used)} — это больше суммы дохода.`);
+                if (split.length) tx.split = split;
+            } else {
+                const from = $('finFrom').value;
+                const bal = refBalance(from, before);
+                if (amount > bal && !confirm(`В «${refName(from)}» сейчас ${money(bal)}. После расхода остаток станет отрицательным. Продолжить?`)) return;
+                tx.from = from;
+            }
+            data.finance.push(touch(tx));
+            $('financeAmount').value = '';
+            $('financeDesc').value = '';
+            splitTouched = false;
+            splitInputs().forEach(i => { i.value = ''; });
+            saveData();
+            goalsReachedNow(before);
+        }
+
+        function deleteTransaction(id) {
+            const t = data.finance.find(x => x.id === id);
+            if (!t || !confirm(`Удалить операцию «${t.desc}» на ${money(t.amount)}?`)) return;
+            data.finance = data.finance.filter(x => x.id !== id);
+            tomb('finance:' + id);
             saveData();
         }
 
+        // --- категории ---
+        function addFinCat(name, pct) {
+            const fromForm = name === undefined;
+            if (fromForm) { name = $('finCatName').value.trim(); pct = $('finCatPct').value; }
+            pct = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
+            if (!name) return $('finCatName').focus();
+            data.finCats.push(touch({ id: uid(), name, pct, color: FIN_COLORS[data.finCats.length % FIN_COLORS.length] }));
+            if (fromForm) { $('finCatName').value = ''; $('finCatPct').value = ''; }
+            splitTouched = false;
+            saveData();
+        }
+
+        function addPresetCats() {
+            [['Обязательные', 50], ['Желания', 30], ['Накопления', 20]].forEach(([n, p]) => addFinCat(n, p));
+        }
+
+        function saveFinCat(id) {
+            const c = catById(id);
+            if (!c) return;
+            const name = $('finCatEditName').value.trim();
+            if (!name) return $('finCatEditName').focus();
+            c.name = name;
+            c.pct = Math.max(0, Math.min(100, Math.round(Number($('finCatEditPct').value) || 0)));
+            touch(c);
+            finCatEdit = null;
+            splitTouched = false;
+            saveData();
+        }
+
+        function deleteFinCat(id) {
+            const c = catById(id);
+            if (!c) return;
+            const bal = finSummary().cats.get(id) || 0;
+            if (!confirm(`Удалить категорию «${c.name}»?${bal ? `\n\nОстаток ${money(bal)} вернётся в нераспределённые.` : ''}`)) return;
+            data.finCats = data.finCats.filter(x => x.id !== id);
+            tomb('finCats:' + id);
+            saveData();
+        }
+
+        // --- цели ---
+        function addFinGoal() {
+            const name = $('finGoalName').value.trim();
+            const target = round2(parseFloat($('finGoalTarget').value));
+            if (!name) return $('finGoalName').focus();
+            if (!(target > 0)) return $('finGoalTarget').focus();
+            data.finGoals.push(touch({ id: uid(), name, target, created: Date.now() }));
+            $('finGoalName').value = '';
+            $('finGoalTarget').value = '';
+            saveData();
+        }
+
+        function openGoalForm(id, mode) { finGoalForm = { id, mode }; renderFinGoals(finSummary()); setTimeout(() => $('goalFormAmount')?.focus(), 0); }
+        function closeGoalForm() { finGoalForm = null; renderFinGoals(finSummary()); }
+
+        function submitGoalForm() {
+            const { id, mode } = finGoalForm || {};
+            const g = goalById(id);
+            if (!g) return closeGoalForm();
+            const amount = round2(parseFloat($('goalFormAmount').value));
+            if (!(amount > 0)) return $('goalFormAmount').focus();
+            const before = finSummary();
+            const other = $('goalFormRef').value;
+            if (mode === 'add') {
+                const bal = refBalance(other, before);
+                if (amount > bal && !confirm(`В «${refName(other)}» сейчас ${money(bal)}. Остаток станет отрицательным. Продолжить?`)) return;
+                data.finance.push(touch({ id: uid(), type: 'transfer', amount, from: other, to: 'goal:' + id,
+                    desc: `Пополнение цели «${g.name}»`, date: new Date().toLocaleDateString('ru-RU'), ts: Date.now() }));
+            } else {
+                const bal = before.goals.get(id) || 0;
+                if (amount > bal) return alert(`В цели накоплено только ${money(bal)}.`);
+                data.finance.push(touch({ id: uid(), type: 'transfer', amount, from: 'goal:' + id, to: other,
+                    desc: `Снято с цели «${g.name}»`, date: new Date().toLocaleDateString('ru-RU'), ts: Date.now() }));
+            }
+            finGoalForm = null;
+            saveData();
+            goalsReachedNow(before);
+        }
+
+        function deleteFinGoal(id) {
+            const g = goalById(id);
+            if (!g) return;
+            const bal = finSummary().goals.get(id) || 0;
+            if (!confirm(`Удалить цель «${g.name}»?${bal ? `\n\nНакопленные ${money(bal)} вернутся в нераспределённые.` : ''}`)) return;
+            data.finGoals = data.finGoals.filter(x => x.id !== id);
+            tomb('finGoals:' + id);
+            if (finGoalForm && finGoalForm.id === id) finGoalForm = null;
+            saveData();
+        }
+
+        function renderFinGoals(sum) {
+            const box = $('finGoals');
+            if (!data.finGoals.length) {
+                box.innerHTML = '<div class="empty-state" style="padding: 10px 0;">Пока нет целей. Добавьте первую — например, «Отпуск» на 80 000 ₽.</div>';
+                return;
+            }
+            const sources = sel => `<option value="">Нераспределённые — ${money(sum.free)}</option>` +
+                data.finCats.map(c => `<option value="cat:${c.id}" ${sel === 'cat:' + c.id ? 'selected' : ''}>${esc(c.name)} — ${money(sum.cats.get(c.id))}</option>`).join('');
+            box.innerHTML = data.finGoals.map(g => {
+                const saved = sum.goals.get(g.id) || 0;
+                const pct = Math.max(0, Math.min(100, Math.floor(saved / g.target * 100)));
+                const left = round2(g.target - saved);
+                const done = left <= 0;
+                const form = finGoalForm && finGoalForm.id === g.id ? `
+                    <div class="goal-form">
+                        <input type="number" id="goalFormAmount" class="glass-input" placeholder="Сумма ₽" min="0" step="0.01" inputmode="decimal"
+                            value="${finGoalForm.mode === 'add' && left > 0 ? left : ''}" onkeydown="if (event.key === 'Enter') submitGoalForm()">
+                        <select id="goalFormRef" class="glass-select" aria-label="${finGoalForm.mode === 'add' ? 'Откуда' : 'Куда'}">${sources(finGoalForm.mode === 'add' ? '' : '')}</select>
+                        <button class="glass-btn compact" onclick="submitGoalForm()">${finGoalForm.mode === 'add' ? 'Пополнить' : 'Снять'}</button>
+                        <button class="glass-btn secondary compact" onclick="closeGoalForm()">Отмена</button>
+                    </div>
+                    <div class="hint" style="margin-top: 6px;">${finGoalForm.mode === 'add' ? 'Откуда взять деньги' : 'Куда вернуть деньги'} — выберите в списке.</div>` : '';
+                return `<div class="goal ${done ? 'done' : ''}">
+                    <div class="goal-top"><span class="nm">${done ? '🏆' : '🎯'} ${esc(g.name)}</span><span class="pct">${pct}%</span></div>
+                    <div class="bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width: ${pct}%"></i></div>
+                    <div class="goal-meta">
+                        <span>Накоплено <b class="money">${money(saved)}</b> из <b class="money">${money(g.target)}</b></span>
+                        <span class="left">${done ? '🎉 Цель достигнута!' : `Осталось ${money(left)}`}</span>
+                    </div>
+                    <div class="goal-actions">
+                        ${!done ? `<button class="glass-btn compact" onclick="openGoalForm(${g.id}, 'add')">+ Пополнить</button>` : ''}
+                        ${saved > 0 ? `<button class="glass-btn secondary compact" onclick="openGoalForm(${g.id}, 'take')">Снять</button>` : ''}
+                        <span style="flex: 1;"></span>
+                        <button class="icon-btn" onclick="deleteFinGoal(${g.id})" title="Удалить цель" aria-label="Удалить цель">🗑</button>
+                    </div>
+                    ${form}
+                </div>`;
+            }).join('');
+        }
+
         function renderFinance() {
-            let balance = 0;
-            document.getElementById('financeList').innerHTML = data.finance.map(trx => {
-                const isIncome = trx.type === 'income';
-                balance += isIncome ? trx.amount : -trx.amount;
-                return `<div class="list-item"><div><div class="item-text">${esc(trx.desc)}</div><small style="opacity: 0.6">${esc(trx.date)}</small></div><span class="${isIncome ? 'income-text' : 'expense-text'}" style="white-space: nowrap;">${isIncome ? '+' : '-'}${trx.amount} ₽</span></div>`;
-            }).reverse().join('') || '<div class="empty-state">Операций пока нет</div>';
-            const bd = document.getElementById('balanceDisplay');
-            bd.innerText = `${balance} ₽`;
-            bd.style.color = balance < 0 ? 'var(--danger)' : 'inherit';
+            if (!$('module-finance')) return;
+            const sum = finSummary();
+            const bd = $('balanceDisplay');
+            bd.textContent = money(sum.total);
+            bd.style.color = sum.total < 0 ? 'var(--danger)' : 'inherit';
+
+            // где лежат деньги
+            const pockets = [
+                { name: 'Нераспределено', v: sum.free, color: 'rgba(128,128,128,0.55)' },
+                ...data.finCats.map(c => ({ name: c.name, v: sum.cats.get(c.id), color: c.color })),
+            ];
+            const inGoals = [...sum.goals.values()].reduce((s, v) => s + v, 0);
+            if (data.finGoals.length) pockets.push({ name: '🎯 В целях', v: round2(inGoals), color: 'var(--accent-color)' });
+            const positive = pockets.filter(p => p.v > 0);
+            const totalPos = positive.reduce((s, p) => s + p.v, 0);
+            $('finPockets').innerHTML = (data.finCats.length || data.finGoals.length)
+                ? (totalPos > 0 ? `<div class="fin-stack">${positive.map(p => `<i style="width: ${p.v / totalPos * 100}%; background: ${p.color}" title="${esc(p.name)}: ${money(p.v)}"></i>`).join('')}</div>` : '') +
+                  `<div class="fin-chips">${pockets.map(p => `<span class="fin-chip"><span class="fin-dot" style="background: ${p.color}"></span>${esc(p.name)} <b style="${p.v < 0 ? 'color: var(--danger)' : ''}">${money(p.v)}</b></span>`).join('')}</div>`
+                : '';
+
+            // категории
+            const pctSum = data.finCats.reduce((s, c) => s + (c.pct || 0), 0);
+            $('finPctSum').textContent = pctSum ? `${pctSum}%` : '';
+            $('finPctSum').style.background = pctSum > 100 ? 'var(--danger)' : '';
+            $('finCats').innerHTML = data.finCats.length
+                ? data.finCats.map(c => finCatEdit === c.id
+                    ? `<div class="fin-item"><span class="fin-dot" style="background: ${c.color}"></span>
+                        <div class="edit-row">
+                            <input id="finCatEditName" class="glass-input" value="${esc(c.name)}" maxlength="40" onkeydown="if (event.key === 'Enter') saveFinCat(${c.id})">
+                            <input id="finCatEditPct" type="number" class="glass-input" value="${c.pct || ''}" placeholder="%" min="0" max="100" style="max-width: 70px;">
+                        </div>
+                        <button class="glass-btn compact" onclick="saveFinCat(${c.id})">✓</button>
+                        <button class="icon-btn" onclick="finCatEdit = null; renderFinance()" aria-label="Отмена">✕</button></div>`
+                    : `<div class="fin-item"><span class="fin-dot" style="background: ${c.color}"></span>
+                        <div class="nm">${esc(c.name)}<small>${c.pct ? `${c.pct}% от каждого дохода` : 'распределение вручную'}</small></div>
+                        <span class="val ${sum.cats.get(c.id) < 0 ? 'neg' : ''}">${money(sum.cats.get(c.id))}</span>
+                        <button class="icon-btn" onclick="finCatEdit = ${c.id}; renderFinance(); $('finCatEditName').focus()" title="Изменить" aria-label="Изменить">✏️</button>
+                        <button class="icon-btn" onclick="deleteFinCat(${c.id})" title="Удалить" aria-label="Удалить">🗑</button></div>`).join('') +
+                  (pctSum > 100 ? '<div class="form-msg">Сумма долей больше 100% — при распределении по долям получится больше, чем сам доход.</div>' : '')
+                : `<div class="hint" style="margin: 0 0 10px;">Категорий пока нет. Можно начать с популярного правила 50/30/20:</div>
+                   <button class="glass-btn secondary" onclick="addPresetCats()">Обязательные 50% · Желания 30% · Накопления 20%</button>`;
+
+            renderFinGoals(sum);
+            renderFinForm();
+
+            // история
+            $('financeList').innerHTML = [...data.finance].sort((a, b) => a.id - b.id).reverse().map(t => {
+                let sign, cls, sub = '';
+                if (t.type === 'income') {
+                    sign = '+'; cls = 'income-text';
+                    if (t.split && t.split.length) {
+                        const rest = round2(t.amount - t.split.reduce((s, p) => s + p.amount, 0));
+                        sub = t.split.map(p => `${esc(refName(p.to))} ${money(p.amount)}`).join(' · ') + (rest > 0 ? ` · нераспределено ${money(rest)}` : '');
+                    }
+                } else if (t.type === 'expense') {
+                    sign = '−'; cls = 'expense-text';
+                    if (t.from) sub = 'из «' + esc(refName(t.from)) + '»';
+                } else {
+                    sign = '⇄ '; cls = 'transfer-text';
+                    sub = `${esc(refName(t.from))} → ${esc(refName(t.to))}`;
+                }
+                return `<div class="list-item">
+                    <div style="min-width: 0;"><div class="item-text">${esc(t.desc)}</div>
+                        <small style="opacity: 0.6">${esc(t.date || '')}</small>${sub ? `<div class="tx-sub">${sub}</div>` : ''}</div>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                        <span class="${cls} money">${sign}${money(t.amount)}</span>
+                        <button class="icon-btn" onclick="deleteTransaction(${t.id})" title="Удалить операцию" aria-label="Удалить операцию">✕</button>
+                    </div></div>`;
+            }).join('') || '<div class="empty-state">Операций пока нет</div>';
         }
 
         // ================= Enter для полей ввода =================
@@ -5365,6 +5804,11 @@
         onEnter('newListTitle', createNewList);
         onEnter('cardNameInput', saveCard);
         onEnter('financeDesc', addTransaction);
+        onEnter('financeAmount', addTransaction);
+        onEnter('finCatName', () => addFinCat());
+        onEnter('finCatPct', () => addFinCat());
+        onEnter('finGoalName', addFinGoal);
+        onEnter('finGoalTarget', addFinGoal);
 
         // ================= ГЛОБАЛЬНЫЙ РЕНДЕР =================
         function renderAll() {
