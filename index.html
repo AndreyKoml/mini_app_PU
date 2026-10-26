@@ -98,7 +98,7 @@
             width: 90%;
             max-width: 800px;
             z-index: 1;
-            margin-bottom: 120px;
+            margin-bottom: 130px;
         }
 
         @media (min-width: 600px) {
@@ -219,70 +219,58 @@
 
         .dock {
             position: fixed;
-            bottom: 30px;
+            bottom: 20px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             background: var(--glass-bg);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--glass-border);
-            padding: 10px 15px;
-            border-radius: 30px;
+            padding: 8px 10px;
+            border-radius: 28px;
             box-shadow: 0 8px 32px var(--glass-shadow);
             z-index: 100;
         }
 
         .dock-icon {
-            width: 40px;
-            height: 40px;
+            width: 72px;
+            height: 64px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
+            gap: 4px;
             cursor: pointer;
-            border-radius: 50%;
-            transition: all 0.2s;
+            border-radius: 20px;
+            transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
             color: var(--icon-color);
-            font-size: 18px;
             position: relative;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
-        .dock-icon:hover { background: rgba(128, 128, 128, 0.2); transform: translateY(-3px); }
-        .dock-icon.active { background: var(--accent-color); color: #000; box-shadow: 0 0 10px var(--accent-color); }
+        .dock-icon .ic { font-size: 28px; line-height: 1; }
+        .dock-icon .lbl { font-size: 11px; font-weight: 600; line-height: 1; opacity: 0.75; white-space: nowrap; }
+        .dock-icon:hover { background: rgba(128, 128, 128, 0.18); transform: translateY(-2px); }
+        .dock-icon.active { background: var(--accent-color); color: #000; box-shadow: 0 4px 14px color-mix(in srgb, var(--accent-color) 55%, transparent); }
+        .dock-icon.active .lbl { opacity: 1; }
         .dock-badge {
-            position: absolute; top: -2px; right: -2px;
+            position: absolute; top: 4px; right: 10px;
             background: var(--c-reminder); color: #000;
             font-size: 10px; font-weight: bold;
-            min-width: 16px; height: 16px; border-radius: 8px;
+            min-width: 18px; height: 18px; border-radius: 9px;
             display: flex; align-items: center; justify-content: center; padding: 0 3px; box-sizing: border-box;
         }
         .dock-badge:empty { display: none; }
 
-        .theme-switch {
-            appearance: none;
-            -webkit-appearance: none;
-            width: 44px;
-            height: 24px;
-            background: rgba(128,128,128,0.3);
-            border-radius: 20px;
-            position: relative;
-            cursor: pointer;
-            outline: none;
-            margin-left: 5px;
-            flex-shrink: 0;
+        .top-right { position: fixed; top: 20px; right: 30px; z-index: 10; display: flex; align-items: center; gap: 10px; }
+        .top-right .coin-counter { position: static; }
+        .theme-btn {
+            width: 46px; height: 46px; border-radius: 50%; cursor: pointer; font-size: 20px; line-height: 1;
+            background: var(--glass-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border); color: inherit; display: flex; align-items: center; justify-content: center;
         }
-        .theme-switch::after {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 20px;
-            height: 20px;
-            background: white;
-            border-radius: 50%;
-            transition: 0.3s;
-        }
-        .theme-switch:checked { background: var(--accent-color); }
-        .theme-switch:checked::after { transform: translateX(20px); }
+        .theme-btn:hover { background: rgba(128,128,128,0.18); }
 
         .empty-state { text-align: center; opacity: 0.5; padding: 20px; font-style: italic; }
         .day-badge { background: var(--accent-color); color: #000; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; white-space: nowrap; }
@@ -503,7 +491,7 @@
             min-width: 20px; height: 20px; border-radius: 10px; padding: 0 6px; box-sizing: border-box;
             display: inline-flex; align-items: center; justify-content: center;
         }
-        .chat-card { height: calc(100vh - 210px); height: calc(100dvh - 210px); min-height: 340px; padding: 0 !important; overflow: hidden; }
+        .chat-card { height: calc(100vh - 220px); height: calc(100dvh - 220px); min-height: 340px; padding: 0 !important; overflow: hidden; }
         .chat-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--glass-border); }
         .chat-head .who { flex: 1; min-width: 0; font-weight: 700; font-size: 1.1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .chat-body { flex: 1; overflow-y: auto; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; overscroll-behavior: contain; }
@@ -583,23 +571,70 @@
         .sync-line { font-size: 14px; line-height: 1.5; }
         code { font-family: monospace; background: var(--soft); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
 
-        @media (max-width: 380px) {
-            .dock { gap: 1px !important; padding: 7px 8px !important; }
-            .dock-icon { width: 32px !important; height: 32px !important; font-size: 16px !important; }
+        /* --- ИГРЫ --- */
+        #module-games .games-menu, #module-games .game-area { display: none; }
+        #module-games[data-view="menu"] .games-menu, #module-games[data-view="play"] .game-area { display: flex; }
+        .game-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+        .game-tile {
+            display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 20px 12px 16px; border-radius: 18px;
+            background: var(--soft); border: 1px solid var(--glass-border); cursor: pointer; color: inherit; font-family: inherit;
+            transition: transform 0.15s, background 0.15s;
+        }
+        .game-tile:hover { transform: translateY(-3px); background: rgba(128,128,128,0.15); }
+        .game-tile .gi { font-size: 48px; line-height: 1.1; }
+        .game-tile .gn { font-weight: 700; font-size: 1.1rem; }
+        .game-tile .gb { font-size: 13px; opacity: 0.65; }
+        .game-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .game-head .who { flex: 1; min-width: 0; font-weight: 700; font-size: 1.15rem; }
+        .game-score { text-align: right; font-variant-numeric: tabular-nums; line-height: 1.15; }
+        .game-score b { font-size: 1.35rem; display: block; }
+        .game-score small { font-size: 12px; opacity: 0.6; }
+        .game-stage { position: relative; display: flex; justify-content: center; }
+        #gameCanvas {
+            display: block; border-radius: 14px; background: color-mix(in srgb, var(--text-color) 5%, transparent);
+            touch-action: none; user-select: none; -webkit-user-select: none; max-width: 100%;
+        }
+        .game-overlay {
+            position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+            text-align: center; padding: 16px; border-radius: 14px; cursor: pointer; pointer-events: auto;
+            background: color-mix(in srgb, var(--bg-color) 70%, transparent);
+        }
+        .game-overlay[hidden] { display: none; }
+        .game-overlay .big { font-size: 1.5rem; font-weight: 800; }
+        .game-overlay .sub { font-size: 14px; opacity: 0.75; }
+        .game-controls { display: flex; justify-content: center; gap: 8px; margin-top: 12px; }
+        .game-controls:empty { display: none; }
+        .game-controls button {
+            flex: 1 1 0; max-width: 72px; min-width: 0; height: 56px; border-radius: 16px; font-size: 24px; cursor: pointer; color: inherit;
+            background: var(--soft); border: 1px solid var(--glass-border); touch-action: manipulation; user-select: none; -webkit-user-select: none;
+        }
+        .game-controls button:active { background: var(--accent-color); color: #000; }
+        .game-controls .dpad { display: grid; grid-template-columns: repeat(3, 68px); grid-template-rows: repeat(2, 54px); gap: 8px; }
+        .game-controls .dpad button { max-width: none; }
+        @media (pointer: fine) { .game-controls.touch-only { display: none; } }
+
+        /* подписи под иконками только там, где хватает места */
+        @media (max-width: 760px) {
+            .dock-icon { width: 56px; height: 56px; }
+            .dock-icon .lbl { display: none; }
+            .dock-icon .ic { font-size: 27px; }
+            .dock-badge { top: 3px; right: 5px; }
         }
 
         @media (max-width: 600px) {
             body { padding-top: 64px; }
-            .coin-counter { top: 12px; right: 12px; font-size: 16px; padding: 6px 14px; }
-            .account-pill { top: 12px; left: 12px; font-size: 14px; padding: 8px 12px; max-width: calc(100vw - 150px); }
+            .top-right { top: 12px; right: 12px; gap: 6px; }
+            .coin-counter { font-size: 16px; padding: 6px 12px; }
+            .theme-btn { width: 38px; height: 38px; font-size: 17px; }
+            .account-pill { top: 12px; left: 12px; font-size: 14px; padding: 8px 12px; max-width: calc(100vw - 190px); }
             .dashboard { width: calc(100% - 24px); }
             .glass-card { padding: 16px; }
-            .dock { gap: 3px; padding: 8px 10px; bottom: 16px; }
-            .dock-icon { width: 36px; height: 36px; font-size: 17px; }
-            .chat-card { height: calc(100vh - 180px); height: calc(100dvh - 180px); }
-            .theme-switch { width: 38px; height: 22px; }
-            .theme-switch::after { width: 18px; height: 18px; }
-            .theme-switch:checked::after { transform: translateX(16px); }
+            /* на телефоне меню во всю ширину, кнопки делят её поровну */
+            .dock { left: 8px; right: 8px; bottom: 8px; gap: 2px; padding: 6px; border-radius: 24px; justify-content: space-between; }
+            .dock-icon { flex: 1 1 0; width: auto; min-width: 0; height: 56px; border-radius: 16px; }
+            .dock-icon .ic { font-size: 25px; }
+            .dock-badge { right: 50%; margin-right: -22px; }
+            .chat-card { height: calc(100vh - 196px); height: calc(100dvh - 196px); }
             .cal-day { min-height: 46px; align-items: center; }
             .cal-chips { display: none; }
             .cal-dots { display: flex; }
@@ -614,8 +649,11 @@
         <span class="avatar empty" id="pillAvatar">👤</span><span class="name" id="accountPillName">Войти</span><span class="sync-dot" id="syncDot" data-s="none"></span>
     </button>
 
-    <div class="coin-counter" id="coinCounter">
-        🪙 <span id="coinValue">0</span>
+    <div class="top-right">
+        <div class="coin-counter" id="coinCounter" title="Монеты за выполненные дела">
+            🪙 <span id="coinValue">0</span>
+        </div>
+        <button class="theme-btn" id="themeToggle" type="button" title="Тёмная тема" aria-label="Переключить тему">🌙</button>
     </div>
 
     <div id="toastContainer"></div>
@@ -858,6 +896,29 @@
             </div>
         </div>
 
+        <!-- ИГРЫ -->
+        <div class="dashboard" id="module-games" data-view="menu">
+            <div class="glass-card full-width games-menu">
+                <div class="card-header">Игры</div>
+                <div class="game-tiles" id="gameTiles"></div>
+                <div class="hint">Рекорды сохраняются в аккаунте и видны на всех ваших устройствах.</div>
+            </div>
+            <div class="glass-card full-width game-area">
+                <div class="game-head">
+                    <button class="nav-btn" onclick="closeGame()" aria-label="К списку игр">‹</button>
+                    <div class="who" id="gameTitle"></div>
+                    <div class="game-score"><b id="gameScore">0</b><small>рекорд <span id="gameBest">0</span></small></div>
+                    <button class="icon-btn" id="gamePauseBtn" onclick="toggleGamePause()" title="Пауза (P)" aria-label="Пауза" style="font-size: 18px; padding: 8px 10px;">⏸</button>
+                </div>
+                <div class="game-stage" id="gameStage">
+                    <canvas id="gameCanvas" aria-label="Игровое поле"></canvas>
+                    <div class="game-overlay" id="gameOverlay"></div>
+                </div>
+                <div class="game-controls" id="gameControls"></div>
+                <div class="hint" id="gameHint" style="text-align: center;"></div>
+            </div>
+        </div>
+
         <!-- АККАУНТ -->
         <div class="dashboard" id="module-account" data-state="out">
             <div class="glass-card full-width acc-noserver">
@@ -953,16 +1014,15 @@
         </div>
 
         <!-- НАВИГАЦИОННОЕ МЕНЮ (DOCK) -->
-        <div class="dock" id="mainDock">
-            <div class="dock-icon active" title="Календарь" onclick="switchTab('calendar', this)">📅</div>
-            <div class="dock-icon" title="Напоминания" onclick="switchTab('reminders', this)">🔔<span class="dock-badge" id="remDockBadge"></span></div>
-            <div class="dock-icon" title="Дневник" onclick="switchTab('diary', this)">📔</div>
-            <div class="dock-icon" title="Друзья и сообщения" onclick="switchTab('social', this)">💬<span class="dock-badge" id="socDockBadge"></span></div>
-            <div class="dock-icon" title="Списки" onclick="switchTab('tasks', this)">📋</div>
-            <div class="dock-icon" title="Финансы" onclick="switchTab('finance', this)">💰</div>
-            <div class="dock-icon" title="Карты" onclick="switchTab('cards', this)">💳</div>
-            <div style="width: 1px; height: 30px; background: var(--glass-border); margin: 0 2px;"></div>
-            <input type="checkbox" class="theme-switch" id="themeToggle" title="Смена темы">
+        <div class="dock" id="mainDock" role="navigation" aria-label="Разделы">
+            <div class="dock-icon active" title="Календарь" onclick="switchTab('calendar', this)"><span class="ic">📅</span><span class="lbl">Календарь</span></div>
+            <div class="dock-icon" title="Напоминания" onclick="switchTab('reminders', this)"><span class="ic">🔔</span><span class="lbl">Напоминания</span><span class="dock-badge" id="remDockBadge"></span></div>
+            <div class="dock-icon" title="Дневник" onclick="switchTab('diary', this)"><span class="ic">📔</span><span class="lbl">Дневник</span></div>
+            <div class="dock-icon" title="Друзья и сообщения" onclick="switchTab('social', this)"><span class="ic">💬</span><span class="lbl">Друзья</span><span class="dock-badge" id="socDockBadge"></span></div>
+            <div class="dock-icon" title="Игры" onclick="switchTab('games', this)"><span class="ic">🎮</span><span class="lbl">Игры</span></div>
+            <div class="dock-icon" title="Списки" onclick="switchTab('tasks', this)"><span class="ic">📋</span><span class="lbl">Списки</span></div>
+            <div class="dock-icon" title="Финансы" onclick="switchTab('finance', this)"><span class="ic">💰</span><span class="lbl">Финансы</span></div>
+            <div class="dock-icon" title="Карты" onclick="switchTab('cards', this)"><span class="ic">💳</span><span class="lbl">Карты</span></div>
         </div>
     </div>
 
@@ -2257,14 +2317,17 @@
     <script>
         // ================= ТЕМА =================
         const themeToggle = document.getElementById('themeToggle');
-        if (localStorage.getItem('produ_theme') === 'dark') {
-            document.body.setAttribute('data-theme', 'dark');
-            themeToggle.checked = true;
+        function applyTheme(dark, save) {
+            if (dark) document.body.setAttribute('data-theme', 'dark'); else document.body.removeAttribute('data-theme');
+            themeToggle.textContent = dark ? '☀️' : '🌙';
+            themeToggle.title = dark ? 'Светлая тема' : 'Тёмная тема';
+            if (save) { try { localStorage.setItem('produ_theme', dark ? 'dark' : 'light'); } catch (e) {} }
+            try { gameRedraw(); } catch (e) { /* игры ещё не загружены */ }
         }
-        themeToggle.addEventListener('change', (e) => {
-            if (e.target.checked) { document.body.setAttribute('data-theme', 'dark'); localStorage.setItem('produ_theme', 'dark'); }
-            else { document.body.removeAttribute('data-theme'); localStorage.setItem('produ_theme', 'light'); }
-        });
+        let savedTheme = null;
+        try { savedTheme = localStorage.getItem('produ_theme'); } catch (e) {}
+        applyTheme(savedTheme === 'dark', false);
+        themeToggle.addEventListener('click', () => applyTheme(!document.body.hasAttribute('data-theme'), true));
 
         // ================= УТИЛИТЫ =================
         const pad = n => String(n).padStart(2, '0');
@@ -2580,7 +2643,13 @@
                 for (const [k, v] of Object.entries(src)) coinLedger[k] = Math.max(coinLedger[k] || 0, Number(v) || 0);
             });
 
+            const gameBest = {};
+            [remote.gameBest || {}, local.gameBest || {}].forEach(src => {
+                for (const [k, v] of Object.entries(src)) gameBest[k] = Math.max(gameBest[k] || 0, Number(v) || 0);
+            });
+
             return {
+                gameBest: sortObj(gameBest),
                 lists: mergeById(local.lists, remote.lists, tombs, 'lists:', listBoth)
                     .map(l => ({ ...l, items: (l.items || []).filter(i => !isDead(tombs, `lists:${l.id}:${i.id}`, i)).sort(byIdAsc) }))
                     .sort(byIdDesc),
@@ -2597,7 +2666,7 @@
         function canonical(d) {
             return JSON.stringify({
                 v: 1, lists: d.lists, events: d.events, finance: d.finance, digitalCards: d.digitalCards,
-                diary: d.diary, coinLedger: sortObj(d.coinLedger), _deleted: sortObj(d._deleted)
+                diary: d.diary, coinLedger: sortObj(d.coinLedger), _deleted: sortObj(d._deleted), gameBest: sortObj(d.gameBest)
             });
         }
 
@@ -2605,6 +2674,7 @@
             SYNC_KEYS.forEach(k => { data[k] = m[k]; });
             data.coinLedger = m.coinLedger;
             data._deleted = m._deleted;
+            data.gameBest = m.gameBest;
             recomputeCoins();
         }
 
@@ -2612,6 +2682,7 @@
             SYNC_KEYS.forEach(k => { data[k] = []; });
             data.coinLedger = {};
             data._deleted = {};
+            data.gameBest = {};
             data.coins = 0;
             data._meta = { version: 0, owner: null, dirty: false };
         }
@@ -3947,6 +4018,601 @@
             });
         })();
 
+        // ================= ИГРЫ =================
+        const GAMES = {
+            dino: {
+                title: 'Динозаврик', icon: '🦖', create: () => createDino(),
+                hint: 'Прыжок — пробел, ↑ или нажатие на поле. ↓ в прыжке — быстрее приземлиться. Пауза — P.',
+                hintTouch: 'Нажмите на поле, чтобы прыгнуть. Свайп вниз в прыжке — быстрее приземлиться.'
+            },
+            snake: {
+                title: 'Змейка', icon: '🐍', create: () => createSnake(),
+                hint: 'Стрелки или WASD. Пауза — P.',
+                hintTouch: 'Свайпы по полю или кнопки.'
+            },
+            tetris: {
+                title: 'Тетрис', icon: '🧱', create: () => createTetris(),
+                hint: '← → двигать, ↑ повернуть, ↓ быстрее, пробел — сбросить вниз. Пауза — P.',
+                hintTouch: 'Нажатие — поворот, свайп влево/вправо — сдвиг, вниз — сброс.'
+            }
+        };
+        const gm = { id: null, g: null, state: 'idle', raf: 0, last: 0, scale: 1, shownScore: -1 };
+        const gamesActive = () => $('module-games').classList.contains('active');
+
+        function rr(ctx, x, y, w, h, r) {        // скруглённый прямоугольник
+            r = Math.min(r, w / 2, h / 2);
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + w, y, x + w, y + h, r);
+            ctx.arcTo(x + w, y + h, x, y + h, r);
+            ctx.arcTo(x, y + h, x, y, r);
+            ctx.arcTo(x, y, x + w, y, r);
+            ctx.closePath();
+        }
+        function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+        function gameColors() {
+            const cs = getComputedStyle(document.body);
+            const v = n => cs.getPropertyValue(n).trim();
+            return { fg: v('--text-color') || '#1a1a1a', accent: v('--accent-color') || '#8ce13b', danger: v('--danger') || '#ff4757',
+                dark: document.body.getAttribute('data-theme') === 'dark' };
+        }
+        const bestOf = id => (data.gameBest && data.gameBest[id]) || 0;
+
+        function renderGameTiles() {
+            $('gameTiles').innerHTML = Object.entries(GAMES).map(([id, G]) => `
+                <button class="game-tile" onclick="openGame('${id}')">
+                    <span class="gi" aria-hidden="true">${G.icon}</span>
+                    <span class="gn">${G.title}</span>
+                    <span class="gb">${bestOf(id) ? 'Рекорд: ' + bestOf(id) : 'Ещё не играли'}</span>
+                </button>`).join('');
+        }
+
+        function openGame(id) {
+            const G = GAMES[id];
+            stopGameLoop();
+            gm.id = id;
+            gm.g = G.create();
+            gm.g.reset();
+            gm.state = 'idle';
+            gm.shownScore = -1;
+            $('module-games').dataset.view = 'play';
+            $('gameTitle').textContent = `${G.icon} ${G.title}`;
+            $('gameHint').textContent = matchMedia('(pointer: fine)').matches ? G.hint : (G.hintTouch || G.hint);
+            $('gameBest').textContent = bestOf(id);
+            buildGameControls();
+            sizeGameCanvas();
+            showGameOverlay('▶', 'Нажмите, чтобы начать', matchMedia('(pointer: fine)').matches ? 'или пробел' : '');
+            drawGame();
+            window.scrollTo(0, 0);
+        }
+
+        function closeGame() {
+            if (gm.state === 'running') pauseGame();
+            stopGameLoop();
+            gm.g = null;
+            gm.id = null;
+            $('module-games').dataset.view = 'menu';
+            renderGameTiles();
+        }
+
+        function showGameOverlay(big, sub, small) {
+            const o = $('gameOverlay');
+            o.innerHTML = `<div class="big">${esc(big)}</div><div class="sub">${esc(sub)}</div>${small ? `<div class="sub" style="font-size: 12px;">${esc(small)}</div>` : ''}`;
+            o.hidden = false;
+        }
+
+        function startGame() {
+            if (!gm.g) return;
+            if (gm.state === 'over' || gm.state === 'idle') { if (gm.state === 'over') gm.g.reset(); }
+            gm.state = 'running';
+            $('gameOverlay').hidden = true;
+            $('gamePauseBtn').textContent = '⏸';
+            gm.last = performance.now();
+            stopGameLoop();
+            gm.raf = requestAnimationFrame(gameLoop);
+        }
+
+        function pauseGame() {
+            if (gm.state !== 'running') return;
+            gm.state = 'paused';
+            stopGameLoop();
+            $('gamePauseBtn').textContent = '▶';
+            showGameOverlay('Пауза', 'Нажмите, чтобы продолжить');
+        }
+
+        function toggleGamePause() {
+            if (!gm.g) return;
+            if (gm.state === 'running') pauseGame();
+            else startGame();
+        }
+
+        function stopGameLoop() { cancelAnimationFrame(gm.raf); gm.raf = 0; }
+
+        function gameLoop(t) {
+            if (gm.state !== 'running' || !gm.g) return;
+            const dt = Math.min(50, t - gm.last);     // после долгой паузы кадра не «перематываем» игру
+            gm.last = t;
+            gm.g.step(dt);
+            drawGame();
+            if (gm.g.over) return gameOver();
+            gm.raf = requestAnimationFrame(gameLoop);
+        }
+
+        function gameOver() {
+            gm.state = 'over';
+            stopGameLoop();
+            $('gamePauseBtn').textContent = '▶';
+            const score = gm.g.score;
+            const prev = bestOf(gm.id);
+            const record = score > prev;
+            if (record) {
+                if (!data.gameBest) data.gameBest = {};
+                data.gameBest[gm.id] = score;
+                persist();
+                $('gameBest').textContent = score;
+            }
+            if (navigator.vibrate) { try { navigator.vibrate(record ? [60, 60, 120] : 80); } catch (e) {} }
+            showGameOverlay(gm.g.won ? '🏆 Победа!' : (record && score ? '🏆 Новый рекорд!' : 'Игра окончена'),
+                `Счёт: ${score}${!record && prev ? ` · рекорд ${prev}` : ''}`, 'Нажмите, чтобы сыграть ещё');
+        }
+
+        function sizeGameCanvas() {
+            if (!gm.g) return;
+            const g = gm.g, c = $('gameCanvas');
+            const stageW = $('gameStage').clientWidth || 320;
+            const touch = !matchMedia('(pointer: fine)').matches;
+            const reserve = (touch && g.controls && g.controls.length ? (g.dpad ? 380 : 330) : 280) + (innerWidth <= 600 ? 20 : 40);
+            const maxByHeight = Math.max(200, innerHeight - reserve) * g.w / g.h;
+            const cssW = Math.floor(Math.min(stageW, g.maxCss || 640, maxByHeight));
+            gm.scale = cssW / g.w;
+            const dpr = window.devicePixelRatio || 1;
+            c.style.width = cssW + 'px';
+            c.style.height = Math.round(g.h * gm.scale) + 'px';
+            c.width = Math.round(cssW * dpr);
+            c.height = Math.round(g.h * gm.scale * dpr);
+        }
+
+        function drawGame() {
+            if (!gm.g) return;
+            const c = $('gameCanvas'), ctx = c.getContext('2d');
+            const k = (window.devicePixelRatio || 1) * gm.scale;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, c.width, c.height);
+            ctx.setTransform(k, 0, 0, k, 0, 0);
+            gm.g.draw(ctx, gameColors());
+            if (gm.g.score !== gm.shownScore) { gm.shownScore = gm.g.score; $('gameScore').textContent = gm.g.score; }
+        }
+        function gameRedraw() { if (gm.g) { sizeGameCanvas(); drawGame(); } }
+        window.addEventListener('resize', () => { if (gm.g) gameRedraw(); });
+
+        function buildGameControls() {
+            const box = $('gameControls');
+            box.className = 'game-controls touch-only';
+            const ctr = gm.g.controls || [];
+            const btn = (b, i) => b ? `<button type="button" data-i="${i}" aria-label="${esc(b.name || b.l)}">${b.l}</button>` : '<span></span>';
+            box.innerHTML = gm.g.dpad
+                ? `<div class="dpad">${ctr.map(btn).join('')}</div>`
+                : ctr.map(btn).join('');
+            box.querySelectorAll('button').forEach(el => {
+                const b = ctr[Number(el.dataset.i)];
+                let rep = null, delay = null;
+                const stop = () => { clearTimeout(delay); clearInterval(rep); };
+                el.addEventListener('pointerdown', e => {
+                    e.preventDefault();
+                    if (gm.state !== 'running') { if (gm.state !== 'running') startGame(); return; }
+                    b.a();
+                    drawGame();
+                    if (b.repeat) delay = setTimeout(() => { rep = setInterval(() => { if (gm.state === 'running') { b.a(); drawGame(); } }, 70); }, 220);
+                });
+                ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => el.addEventListener(ev, stop));
+            });
+        }
+
+        // Клавиатура
+        document.addEventListener('keydown', e => {
+            if (!gm.g || !gamesActive()) return;
+            const tag = (e.target && e.target.tagName) || '';
+            if (/INPUT|TEXTAREA|SELECT/.test(tag)) return;
+            const k = e.code;
+            if (k === 'KeyP' || k === 'Escape') { e.preventDefault(); if (gm.state === 'running' || gm.state === 'paused') toggleGamePause(); return; }
+            if (gm.state !== 'running') {
+                if (['Space', 'Enter', 'ArrowUp', 'KeyW'].includes(k)) { e.preventDefault(); if (!e.repeat) startGame(); }
+                else if (k.startsWith('Arrow')) e.preventDefault();
+                return;
+            }
+            if (gm.g.key(k, e.repeat)) { e.preventDefault(); drawGame(); }
+        });
+        document.addEventListener('keyup', e => { if (gm.g && gm.g.keyUp) gm.g.keyUp(e.code); });
+
+        // Касания и мышь по полю: нажатие и свайпы
+        (function () {
+            const c = $('gameCanvas');
+            let start = null;
+            c.addEventListener('pointerdown', e => {
+                e.preventDefault();
+                start = { x: e.clientX, y: e.clientY };
+                if (gm.state === 'running' && gm.g.press) { gm.g.press(); drawGame(); start.used = true; }
+            });
+            c.addEventListener('pointerup', e => {
+                if (!start || gm.state !== 'running') { start = null; return; }
+                const dx = e.clientX - start.x, dy = e.clientY - start.y, used = start.used;
+                start = null;
+                const dist = Math.hypot(dx, dy);
+                if (dist < 22) { if (!used && gm.g.tap) gm.g.tap(); }
+                else if (gm.g.swipe) {
+                    const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+                    gm.g.swipe(dir, (Math.abs(dx) > Math.abs(dy) ? Math.abs(dx) : Math.abs(dy)) / gm.scale);
+                }
+                drawGame();
+            });
+            c.addEventListener('pointercancel', () => { start = null; });
+            $('gameOverlay').addEventListener('pointerdown', e => { e.preventDefault(); startGame(); });
+        })();
+
+        document.addEventListener('visibilitychange', () => { if (document.hidden && gm.state === 'running') pauseGame(); });
+
+        // ---------- Динозаврик ----------
+        function createDino() {
+            const W = 600, H = 200, GY = 172, G = 2600, JUMP = 760;
+            const D = { x: 56, w: 40, h: 46 };
+            let s;
+            const g = { w: W, h: H, maxCss: 720, score: 0, over: false, controls: [] };
+            g.reset = () => {
+                s = { y: 0, vy: 0, fast: false, speed: 330, dist: 0, obs: [], next: 380, t: 0, buffer: 0,
+                    clouds: [{ x: 110, y: 42 }, { x: 330, y: 70 }, { x: 540, y: 34 }] };
+                g.score = 0; g.over = false;
+            };
+            const jump = () => { if (s.y <= 0 && s.vy <= 0) s.vy = JUMP; else s.buffer = 0.13; };
+            g.press = jump;
+            g.peek = () => s;    // для проверок
+            g.key = (k, repeat) => {
+                if (k === 'Space' || k === 'ArrowUp' || k === 'KeyW') { if (!repeat) jump(); return true; }
+                if (k === 'ArrowDown' || k === 'KeyS') { s.fast = true; return true; }
+                return false;
+            };
+            g.keyUp = k => { if (k === 'ArrowDown' || k === 'KeyS') s.fast = false; };
+            g.swipe = dir => { if (dir === 'up') jump(); if (dir === 'down' && s.y > 0) s.vy = Math.min(s.vy, -JUMP); };
+
+            function spawn() {
+                const r = Math.random();
+                if (s.dist > 1400 && r < 0.25) {
+                    const low = Math.random() < 0.5;          // низкую птицу перепрыгивают, под высокой пробегают
+                    s.obs.push({ kind: 'bird', x: W + 20, w: 40, h: 24, by: low ? 8 : 54 });
+                } else if (r < 0.55) {
+                    s.obs.push({ kind: 'cactus', x: W + 20, w: 16 + Math.random() * 8, h: 34 + Math.random() * 14, by: 0 });
+                } else if (r < 0.8) {
+                    s.obs.push({ kind: 'cactus', x: W + 20, w: 24 + Math.random() * 6, h: 50 + Math.random() * 10, by: 0 });
+                } else {
+                    const n = 2 + (Math.random() < 0.4 ? 1 : 0);
+                    s.obs.push({ kind: 'group', n, x: W + 20, w: n * 18 + 4, h: 36 + Math.random() * 8, by: 0 });
+                }
+            }
+
+            g.step = dt => {
+                const t = dt / 1000;
+                s.t += t;
+                s.speed = Math.min(820, 330 + s.dist * 0.012);
+                s.dist += s.speed * t;
+                g.score = Math.floor(s.dist / 12);
+                // прыжок
+                if (s.y > 0 || s.vy > 0) {
+                    s.vy -= G * t * (s.fast ? 2.4 : 1);
+                    s.y += s.vy * t;
+                    if (s.y <= 0) { s.y = 0; s.vy = 0; if (s.buffer > 0) jump(); }
+                }
+                s.buffer = Math.max(0, s.buffer - t);
+                // препятствия
+                s.obs.forEach(o => { o.x -= s.speed * t; });
+                s.obs = s.obs.filter(o => o.x + o.w > -30);
+                s.next -= s.speed * t;
+                if (s.next <= 0) { spawn(); s.next = s.speed * (0.72 + Math.random() * 0.85) + 150; }
+                s.clouds.forEach(cl => { cl.x -= s.speed * 0.15 * t; if (cl.x < -60) { cl.x = W + 40 + Math.random() * 120; cl.y = 25 + Math.random() * 55; } });
+                // столкновение (рамки немного уменьшены, чтобы было честно)
+                const dl = D.x + 8, dr = D.x + D.w - 6, db = GY - s.y, dtp = GY - s.y - D.h + 8;
+                for (const o of s.obs) {
+                    const ol = o.x + 3, or = o.x + o.w - 3, ob = GY - o.by - 2, ot = GY - o.by - o.h + 4;
+                    if (dr > ol && dl < or && db > ot && dtp < ob) { g.over = true; break; }
+                }
+            };
+
+            function drawDino(ctx, c, x, top) {
+                const body = c.accent, dark = c.dark ? '#1f3d10' : '#2d5a14';
+                ctx.fillStyle = body;
+                // хвост
+                ctx.beginPath(); ctx.moveTo(x + 4, top + 22); ctx.lineTo(x - 10, top + 18); ctx.lineTo(x + 6, top + 32); ctx.closePath(); ctx.fill();
+                rr(ctx, x, top + 14, 30, 22, 9); ctx.fill();                 // туловище
+                rr(ctx, x + 18, top, 24, 19, 7); ctx.fill();                 // голова
+                rr(ctx, x + 26, top + 22, 8, 4, 2); ctx.fill();              // лапка
+                // ноги
+                const run = s.y <= 0 && !g.over ? Math.floor(s.t * 12) % 2 : 0;
+                rr(ctx, x + 6, top + 33, 7, run ? 9 : 13, 3); ctx.fill();
+                rr(ctx, x + 18, top + 33, 7, run ? 13 : 9, 3); ctx.fill();
+                // глаз
+                ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x + 33, top + 7, 4, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#111';
+                if (g.over) { ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('×', x + 33, top + 10); }
+                else { ctx.beginPath(); ctx.arc(x + 34, top + 7, 2, 0, Math.PI * 2); ctx.fill(); }
+                // ротик и пятнышки
+                ctx.strokeStyle = dark; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.moveTo(x + 32, top + 15); ctx.lineTo(x + 40, top + 15); ctx.stroke();
+                ctx.fillStyle = dark; ctx.globalAlpha = 0.35;
+                ctx.beginPath(); ctx.arc(x + 10, top + 21, 2.5, 0, Math.PI * 2); ctx.arc(x + 17, top + 26, 2, 0, Math.PI * 2); ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+
+            function drawCactus(ctx, x, w, h, color) {
+                ctx.fillStyle = color;
+                rr(ctx, x + w * 0.3, GY - h, w * 0.4, h, w * 0.2); ctx.fill();
+                rr(ctx, x, GY - h * 0.65, w * 0.3, h * 0.3, w * 0.15); ctx.fill();
+                rr(ctx, x + w * 0.7, GY - h * 0.8, w * 0.3, h * 0.3, w * 0.15); ctx.fill();
+                ctx.fillRect(x + w * 0.12, GY - h * 0.42, w * 0.25, w * 0.15);
+                ctx.fillRect(x + w * 0.62, GY - h * 0.57, w * 0.25, w * 0.15);
+            }
+
+            g.draw = (ctx, c) => {
+                // облака
+                ctx.fillStyle = c.fg; ctx.globalAlpha = 0.08;
+                s.clouds.forEach(cl => { ctx.beginPath(); ctx.arc(cl.x, cl.y, 12, 0, 7); ctx.arc(cl.x + 16, cl.y - 6, 15, 0, 7); ctx.arc(cl.x + 34, cl.y, 11, 0, 7); ctx.fill(); });
+                ctx.globalAlpha = 1;
+                // земля
+                ctx.strokeStyle = c.fg; ctx.globalAlpha = 0.5; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(0, GY); ctx.lineTo(W, GY); ctx.stroke();
+                ctx.globalAlpha = 0.3; ctx.fillStyle = c.fg;
+                const off = s.dist % 60;
+                for (let x = -off; x < W; x += 60) { ctx.fillRect(x + 8, GY + 7, 6, 2); ctx.fillRect(x + 37, GY + 13, 3, 2); }
+                ctx.globalAlpha = 1;
+                // препятствия
+                const cactus = c.dark ? '#5fbf6e' : '#2f8f46';
+                s.obs.forEach(o => {
+                    if (o.kind === 'cactus') drawCactus(ctx, o.x, o.w, o.h, cactus);
+                    else if (o.kind === 'group') for (let i = 0; i < o.n; i++) drawCactus(ctx, o.x + i * 18, 20, o.h - (i % 2) * 8, cactus);
+                    else {
+                        const yb = GY - o.by, flap = Math.floor(s.t * 8) % 2;
+                        ctx.fillStyle = c.fg;
+                        rr(ctx, o.x + 8, yb - 16, 24, 10, 5); ctx.fill();                       // тело
+                        ctx.beginPath(); ctx.moveTo(o.x + 8, yb - 12); ctx.lineTo(o.x, yb - 9); ctx.lineTo(o.x + 9, yb - 7); ctx.fill();   // клюв
+                        ctx.beginPath(); ctx.moveTo(o.x + 14, yb - 12); ctx.lineTo(o.x + 26, yb - 12);
+                        ctx.lineTo(o.x + 20, flap ? yb - 26 : yb + 2); ctx.closePath(); ctx.fill();   // крыло
+                    }
+                });
+                drawDino(ctx, c, D.x, GY - s.y - D.h);
+            };
+            return g;
+        }
+
+        // ---------- Змейка ----------
+        function createSnake() {
+            const N = 20, C = 20;
+            let s;
+            const g = { w: N * C, h: N * C, maxCss: 460, score: 0, over: false, dpad: true };
+            g.reset = () => {
+                s = { body: [{ x: 8, y: 10 }, { x: 7, y: 10 }, { x: 6, y: 10 }], dir: { x: 1, y: 0 }, queue: [], food: null, acc: 0, interval: 150 };
+                g.score = 0; g.over = false; g.won = false;
+                placeFood();
+            };
+            function placeFood() {
+                const free = [];
+                for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (!s.body.some(p => p.x === x && p.y === y)) free.push({ x, y });
+                if (!free.length) { g.won = true; g.over = true; return; }
+                s.food = free[Math.floor(Math.random() * free.length)];
+            }
+            function turn(dx, dy) {
+                const last = s.queue.length ? s.queue[s.queue.length - 1] : s.dir;
+                if ((dx === -last.x && dy === -last.y) || (dx === last.x && dy === last.y)) return;
+                if (s.queue.length < 3) s.queue.push({ x: dx, y: dy });
+            }
+            const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+            const KEYS = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' };
+            g.key = k => { const d = KEYS[k]; if (!d) return false; turn(...DIRS[d]); return true; };
+            g.swipe = dir => turn(...DIRS[dir]);
+            g.peek = () => s;    // для проверок
+            g.controls = [null, { l: '▲', name: 'Вверх', a: () => turn(0, -1) }, null,
+                { l: '◀', name: 'Влево', a: () => turn(-1, 0) }, { l: '▼', name: 'Вниз', a: () => turn(0, 1) }, { l: '▶', name: 'Вправо', a: () => turn(1, 0) }];
+
+            function advance() {
+                if (s.queue.length) s.dir = s.queue.shift();
+                const head = { x: s.body[0].x + s.dir.x, y: s.body[0].y + s.dir.y };
+                if (head.x < 0 || head.y < 0 || head.x >= N || head.y >= N) { g.over = true; return; }
+                const eat = head.x === s.food.x && head.y === s.food.y;
+                const bodyToCheck = eat ? s.body : s.body.slice(0, -1);
+                if (bodyToCheck.some(p => p.x === head.x && p.y === head.y)) { g.over = true; return; }
+                s.body.unshift(head);
+                if (eat) { g.score++; s.interval = Math.max(70, 150 - g.score * 3); placeFood(); }
+                else s.body.pop();
+            }
+            g.step = dt => {
+                s.acc += dt;
+                while (s.acc >= s.interval && !g.over) { s.acc -= s.interval; advance(); }
+            };
+            g.draw = (ctx, c) => {
+                ctx.fillStyle = c.fg;
+                ctx.globalAlpha = 0.035;
+                for (let y = 0; y < N; y++) for (let x = (y % 2); x < N; x += 2) ctx.fillRect(x * C, y * C, C, C);
+                ctx.globalAlpha = 1;
+                // еда
+                if (s.food) {
+                    const fx = s.food.x * C + C / 2, fy = s.food.y * C + C / 2;
+                    ctx.fillStyle = c.danger; ctx.beginPath(); ctx.arc(fx, fy + 1, C * 0.36, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#3c9d50'; ctx.beginPath(); ctx.ellipse(fx + 3, fy - 7, 4, 2, -0.6, 0, Math.PI * 2); ctx.fill();
+                }
+                // змейка
+                s.body.forEach((p, i) => {
+                    ctx.fillStyle = c.accent;
+                    ctx.globalAlpha = i === 0 ? 1 : Math.max(0.55, 1 - i * 0.015);
+                    rr(ctx, p.x * C + 1.5, p.y * C + 1.5, C - 3, C - 3, i === 0 ? 7 : 5); ctx.fill();
+                });
+                ctx.globalAlpha = 1;
+                const h = s.body[0], d = s.dir;
+                const cx = h.x * C + C / 2, cy = h.y * C + C / 2;
+                const ex = d.y !== 0 ? 4.5 : 0, ey = d.x !== 0 ? 4.5 : 0;
+                [[1], [-1]].forEach(([m]) => {
+                    const px = cx + d.x * 3 + ex * m, py = cy + d.y * 3 + ey * m;
+                    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(px, py, 3, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(px + d.x, py + d.y, 1.5, 0, Math.PI * 2); ctx.fill();
+                });
+            };
+            return g;
+        }
+
+        // ---------- Тетрис ----------
+        function createTetris() {
+            const COLS = 10, ROWS = 20, C = 24, BW = COLS * C;
+            const SH = {
+                I: [[0, 0, 0, 0], [1, 1, 1, 1], [0, 0, 0, 0], [0, 0, 0, 0]], J: [[1, 0, 0], [1, 1, 1], [0, 0, 0]], L: [[0, 0, 1], [1, 1, 1], [0, 0, 0]],
+                O: [[1, 1], [1, 1]], S: [[0, 1, 1], [1, 1, 0], [0, 0, 0]], T: [[0, 1, 0], [1, 1, 1], [0, 0, 0]], Z: [[1, 1, 0], [0, 1, 1], [0, 0, 0]]
+            };
+            const COL = { I: '#22b8cf', J: '#4c6ef5', L: '#ff922b', O: '#fab005', S: '#51cf66', T: '#be4bdb', Z: '#fa5252' };
+            const POINTS = [0, 100, 300, 500, 800];
+            const rot = m => m[0].map((_, i) => m.map(r => r[i]).reverse());
+            let s;
+            const g = { w: BW + 112, h: ROWS * C, maxCss: 420, score: 0, over: false };
+
+            const refill = () => { while (s.queue.length < 7) s.queue.push(...shuffle(['I', 'J', 'L', 'O', 'S', 'T', 'Z'])); };
+            function collide(m, x, y) {
+                for (let r = 0; r < m.length; r++) for (let c = 0; c < m[r].length; c++) {
+                    if (!m[r][c]) continue;
+                    const X = x + c, Y = y + r;
+                    if (X < 0 || X >= COLS || Y >= ROWS) return true;
+                    if (Y >= 0 && s.board[Y][X]) return true;
+                }
+                return false;
+            }
+            function spawn() {
+                const t = s.queue.shift();
+                refill();
+                const m = SH[t].map(r => r.slice());
+                s.cur = { t, m, x: Math.floor((COLS - m[0].length) / 2), y: t === 'I' ? -1 : 0 };
+                s.lock = 0; s.moves = 0; s.fall = 0;
+                if (collide(m, s.cur.x, s.cur.y)) g.over = true;
+            }
+            g.reset = () => {
+                s = { board: Array.from({ length: ROWS }, () => Array(COLS).fill(null)), queue: [], cur: null, fall: 0, lock: 0, moves: 0, lines: 0, level: 1, flash: [] };
+                g.score = 0; g.over = false;
+                refill(); spawn();
+            };
+            const resting = () => collide(s.cur.m, s.cur.x, s.cur.y + 1);
+            const touched = () => { if (resting() && s.moves < 15) { s.lock = 0; s.moves++; } };
+            function move(dx) { if (g.over) return; if (!collide(s.cur.m, s.cur.x + dx, s.cur.y)) { s.cur.x += dx; touched(); } }
+            function rotate(times = 1) {
+                if (g.over || s.cur.t === 'O') return;
+                let m = s.cur.m;
+                for (let i = 0; i < times; i++) m = rot(m);
+                for (const [dx, dy] of [[0, 0], [-1, 0], [1, 0], [-2, 0], [2, 0], [0, -1]]) {
+                    if (!collide(m, s.cur.x + dx, s.cur.y + dy)) { s.cur.m = m; s.cur.x += dx; s.cur.y += dy; touched(); return; }
+                }
+            }
+            function soft() { if (g.over) return; if (!resting()) { s.cur.y++; g.score += 1; s.fall = 0; } }
+            function hard() {
+                if (g.over) return;
+                let n = 0;
+                while (!resting()) { s.cur.y++; n++; }
+                g.score += n * 2;
+                lockPiece();
+            }
+            function lockPiece() {
+                const { m, x, y, t } = s.cur;
+                for (let r = 0; r < m.length; r++) for (let c = 0; c < m[r].length; c++) {
+                    if (!m[r][c]) continue;
+                    if (y + r < 0) { g.over = true; return; }
+                    s.board[y + r][x + c] = t;
+                }
+                const full = [];
+                s.board.forEach((row, i) => { if (row.every(Boolean)) full.push(i); });
+                if (full.length) {
+                    s.board = s.board.filter((_, i) => !full.includes(i));
+                    while (s.board.length < ROWS) s.board.unshift(Array(COLS).fill(null));
+                    g.score += POINTS[full.length] * s.level;
+                    s.lines += full.length;
+                    s.level = 1 + Math.floor(s.lines / 10);
+                }
+                spawn();
+            }
+            const interval = () => Math.max(60, 800 * Math.pow(0.85, s.level - 1));
+
+            g.step = dt => {
+                if (g.over) return;
+                if (!resting()) {
+                    s.lock = 0;
+                    s.fall += dt;
+                    if (s.fall >= interval()) { s.fall = 0; s.cur.y++; }
+                } else {
+                    s.lock += dt;
+                    if (s.lock >= 500) lockPiece();
+                }
+            };
+            g.key = (k, repeat) => {
+                switch (k) {
+                    case 'ArrowLeft': case 'KeyA': move(-1); return true;
+                    case 'ArrowRight': case 'KeyD': move(1); return true;
+                    case 'ArrowUp': case 'KeyW': case 'KeyX': if (!repeat) rotate(1); return true;
+                    case 'KeyZ': if (!repeat) rotate(3); return true;
+                    case 'ArrowDown': case 'KeyS': soft(); return true;
+                    case 'Space': if (!repeat) hard(); return true;
+                }
+                return false;
+            };
+            g.tap = () => rotate(1);
+            g.swipe = (dir, dist) => {
+                if (dir === 'left' || dir === 'right') { const n = Math.max(1, Math.round(dist / C)); for (let i = 0; i < n; i++) move(dir === 'left' ? -1 : 1); }
+                else if (dir === 'down') hard();
+                else rotate(1);
+            };
+            g.controls = [
+                { l: '◀', name: 'Влево', a: () => move(-1), repeat: true },
+                { l: '⟳', name: 'Повернуть', a: () => rotate(1) },
+                { l: '▶', name: 'Вправо', a: () => move(1), repeat: true },
+                { l: '▼', name: 'Быстрее вниз', a: () => soft(), repeat: true },
+                { l: '⤓', name: 'Сбросить', a: () => hard() }
+            ];
+            g.peek = () => s;    // для проверок
+
+            function cell(ctx, x, y, color, size = C, ghost = false) {
+                if (ghost) {
+                    ctx.strokeStyle = color; ctx.globalAlpha = 0.55; ctx.lineWidth = 2;
+                    rr(ctx, x + 2, y + 2, size - 4, size - 4, 4); ctx.stroke(); ctx.globalAlpha = 1;
+                    return;
+                }
+                ctx.fillStyle = color;
+                rr(ctx, x + 1, y + 1, size - 2, size - 2, 4); ctx.fill();
+                ctx.fillStyle = 'rgba(255,255,255,0.28)';
+                rr(ctx, x + 3, y + 3, size - 6, Math.max(2, size * 0.22), 2); ctx.fill();
+            }
+
+            g.draw = (ctx, c) => {
+                // поле
+                ctx.fillStyle = c.fg; ctx.globalAlpha = 0.05;
+                rr(ctx, 0, 0, BW, ROWS * C, 8); ctx.fill();
+                ctx.globalAlpha = 0.06; ctx.lineWidth = 1; ctx.strokeStyle = c.fg;
+                for (let x = 1; x < COLS; x++) { ctx.beginPath(); ctx.moveTo(x * C, 0); ctx.lineTo(x * C, ROWS * C); ctx.stroke(); }
+                for (let y = 1; y < ROWS; y++) { ctx.beginPath(); ctx.moveTo(0, y * C); ctx.lineTo(BW, y * C); ctx.stroke(); }
+                ctx.globalAlpha = 1;
+                s.board.forEach((row, y) => row.forEach((t, x) => { if (t) cell(ctx, x * C, y * C, COL[t]); }));
+                if (s.cur && !g.over) {
+                    const { m, x, y, t } = s.cur;
+                    let gy = y;
+                    while (!collide(m, x, gy + 1)) gy++;
+                    m.forEach((r, ry) => r.forEach((v, rx) => { if (v && gy + ry >= 0) cell(ctx, (x + rx) * C, (gy + ry) * C, COL[t], C, true); }));
+                    m.forEach((r, ry) => r.forEach((v, rx) => { if (v && y + ry >= 0) cell(ctx, (x + rx) * C, (y + ry) * C, COL[t]); }));
+                }
+                // боковая панель
+                const px = BW + 14;
+                ctx.fillStyle = c.fg; ctx.textAlign = 'left';
+                ctx.font = '600 12px -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
+                ctx.globalAlpha = 0.6; ctx.fillText('ДАЛЕЕ', px, 16); ctx.globalAlpha = 1;
+                const nt = s.queue[0], nm = SH[nt], ns = 18;
+                const offX = px + (4 - nm[0].length) * ns / 2, offY = 26 + (nt === 'I' ? -ns / 2 : 0);
+                nm.forEach((r, ry) => r.forEach((v, rx) => { if (v) cell(ctx, offX + rx * ns, offY + ry * ns, COL[nt], ns); }));
+                const stat = (label, val, y) => {
+                    ctx.fillStyle = c.fg;
+                    ctx.globalAlpha = 0.6; ctx.font = '600 12px -apple-system, "Segoe UI", Roboto, Arial, sans-serif'; ctx.fillText(label, px, y); ctx.globalAlpha = 1;
+                    ctx.font = '800 22px -apple-system, "Segoe UI", Roboto, Arial, sans-serif'; ctx.fillText(String(val), px, y + 24);
+                };
+                stat('УРОВЕНЬ', s.level, 130);
+                stat('ЛИНИИ', s.lines, 190);
+            };
+            return g;
+        }
+
         // ================= БАЗА ДАННЫХ =================
         let data = null;
         try { data = JSON.parse(localStorage.getItem('produ_v6_data')); } catch (e) { data = null; }
@@ -3975,6 +4641,7 @@
 
         // Служебные поля для синхронизации
         if (!data._deleted) data._deleted = {};
+        if (!data.gameBest) data.gameBest = {};
         if (!data.coinLedger) data.coinLedger = data.coins ? { [deviceId]: data.coins } : {};
         if (!data._meta) data._meta = { version: 0, owner: null, dirty: false };
         recomputeCoins();
@@ -4002,6 +4669,8 @@
             if (moduleName !== 'cards') stopCardScanner();
             if (moduleName === 'reminders') { renderReminders(); renderNotifStatus(); }
             if (moduleName === 'account') { renderAccount(); loadServerConfig(); }
+            if (moduleName === 'games') { if (!gm.g) renderGameTiles(); else gameRedraw(); }
+            else if (gm.state === 'running') pauseGame();
             if (moduleName === 'social') {
                 renderSocial();
                 loadSocial();
@@ -4707,6 +5376,7 @@
             renderFinance();
             renderCards();
             renderAccount();
+            if (!gm.g) renderGameTiles(); else $('gameBest').textContent = bestOf(gm.id);
         }
 
         renderAll();
