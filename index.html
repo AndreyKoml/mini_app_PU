@@ -393,6 +393,29 @@
         @keyframes toastIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
 
         /* --- КАРТЫ --- */
+        .digital-card-container.tappable { cursor: zoom-in; position: relative; transition: transform .15s; -webkit-tap-highlight-color: transparent; }
+        .digital-card-container.tappable:active { transform: scale(.98); }
+        .digital-card-container .zoom-hint { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px; border-radius: 50%;
+            display: grid; place-items: center; font-size: 14px; background: rgba(0,0,0,.06); color: #000; pointer-events: none; }
+        .code-view { position: fixed; inset: 0; z-index: 970; display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box;
+            background: rgba(0,0,0,.75); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+        .code-view[hidden] { display: none; }
+        .code-view .sheet { background: #fff; color: #000; border-radius: 26px; width: min(100%, 560px); max-height: 100%; overflow: auto; box-sizing: border-box;
+            padding: 22px 20px 18px; display: flex; flex-direction: column; align-items: center; gap: 14px; box-shadow: 0 30px 80px rgba(0,0,0,.45);
+            animation: codeIn .22s cubic-bezier(.2,.8,.2,1); }
+        @keyframes codeIn { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
+        .code-view .nm { font-weight: 800; font-size: 1.35rem; text-align: center; overflow-wrap: anywhere; }
+        .code-view .code { display: flex; justify-content: center; width: 100%; }
+        .code-view .code img { display: block; image-rendering: pixelated; background: #fff; }
+        .code-view .code img[hidden] { display: none; }
+        .code-view .code img.qr { width: min(78vw, 58vh, 420px); height: auto; }
+        .code-view .code img.bar { width: 100%; height: min(34vh, 190px); }
+        .code-view .val { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 20px; letter-spacing: 3px; text-align: center; word-break: break-all; }
+        .code-view .bar-btns { display: flex; gap: 10px; width: 100%; flex-wrap: wrap; }
+        .code-view .bar-btns .glass-btn { flex: 1 1 140px; margin: 0; }
+        .code-view .bar-btns .glass-btn.secondary { color: #000; background: #eee; border-color: #ddd; }
+        .code-view .tip { font-size: 12px; color: #666; text-align: center; }
+        @media (orientation: landscape) and (max-height: 500px) { .code-view .code img.bar { height: 42vh; } .code-view .sheet { gap: 8px; padding: 14px; } }
         .digital-card-container {
             background: #ffffff;
             padding: 15px;
@@ -825,6 +848,20 @@
         <div class="bar">
             <a class="glass-btn" id="imgViewerSave" download="photo.jpg">Скачать</a>
             <button class="glass-btn secondary" onclick="closeImageViewer()">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- Карта с кодом на весь экран -->
+    <div class="code-view" id="codeView" hidden onclick="if (event.target === this) closeCodeView()" role="dialog" aria-modal="true" aria-labelledby="codeViewName">
+        <div class="sheet">
+            <div class="nm" id="codeViewName"></div>
+            <div class="code"><img id="codeViewImg" alt="Код карты"></div>
+            <div class="val" id="codeViewVal"></div>
+            <div class="bar-btns">
+                <button type="button" class="glass-btn secondary" id="codeViewCopy" onclick="copyCardNumber()">📋 Копировать</button>
+                <button type="button" class="glass-btn" onclick="closeCodeView()">Закрыть</button>
+            </div>
+            <div class="tip" id="codeViewTip">Прибавьте яркость экрана, чтобы код считался быстрее</div>
         </div>
     </div>
 
@@ -7346,7 +7383,7 @@
             if (element) element.classList.add('active');
             $('accountPill').classList.toggle('active', moduleName === 'account');
 
-            if (moduleName !== 'cards') stopCardScanner();
+            if (moduleName !== 'cards') { stopCardScanner(); closeCodeView(); }
             if (moduleName === 'reminders') { renderReminders(); renderNotifStatus(); }
             document.documentElement.classList.toggle('no-anchor', moduleName === 'account');
             if (moduleName === 'account') { renderAccount(); loadServerConfig(); setProfileHeadTarget(profileHeadWanted(), true); }
@@ -7904,7 +7941,9 @@
                         ${esc(card.name)}
                         <button class="delete-btn" onclick="deleteDigitalCard(${card.id})">Удалить</button>
                     </div>
-                    <div class="digital-card-container">
+                    <div class="digital-card-container tappable" role="button" tabindex="0" title="Открыть крупно"
+                         onclick="openCodeView(${card.id})" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openCodeView(${card.id}); }">
+                        <span class="zoom-hint" aria-hidden="true">⤢</span>
                         <img id="img_barcode_${card.id}" alt="Загрузка кода..." style="max-width: 100%; height: 80px; object-fit: contain;">
                         <div style="margin-top: 15px; font-family: monospace; font-size: 16px; letter-spacing: 2px; text-align: center; word-break: break-all;">
                             ${esc(card.value)}
@@ -7942,6 +7981,64 @@
                 });
             }, 50);
         }
+
+        // ---- карта крупно: для кассы ----
+        let codeViewCard = null, codeWakeLock = null, codeViewHist = false;
+        function cardCodeImage(card, big) {
+            if (card.format === 'QR_CODE') return QRGen.toDataURL(card.value, big ? 720 : 360, big ? 3 : 4);
+            const c = document.createElement('canvas');
+            JsBarcode(c, card.value, { format: 'CODE128', displayValue: false, background: '#ffffff', lineColor: '#000000',
+                width: big ? 4 : 2, height: big ? 200 : 80, margin: big ? 16 : 0 });
+            return c.toDataURL('image/png');
+        }
+        async function keepScreenOn(on) {
+            try {
+                if (on && 'wakeLock' in navigator && !codeWakeLock) {
+                    codeWakeLock = await navigator.wakeLock.request('screen');
+                    codeWakeLock.addEventListener('release', () => { codeWakeLock = null; });
+                } else if (!on && codeWakeLock) { const l = codeWakeLock; codeWakeLock = null; await l.release(); }
+            } catch (e) { codeWakeLock = null; }
+        }
+        function openCodeView(id) {
+            const card = data.digitalCards.find(c => c.id === id);
+            if (!card) return;
+            const img = $('codeViewImg');
+            const qr = card.format === 'QR_CODE';
+            let ok = true;
+            try { img.src = cardCodeImage(card, true); } catch (e) { ok = false; img.removeAttribute('src'); }
+            img.hidden = !ok;
+            img.className = qr ? 'qr' : 'bar';
+            $('codeViewTip').textContent = ok ? 'Прибавьте яркость экрана, чтобы код считался быстрее'
+                : (typeof JsBarcode === 'undefined' && !qr ? 'Штрихкод не загрузился — нет интернета. Покажите кассиру номер карты.' : 'Этот код не получилось нарисовать. Покажите кассиру номер карты.');
+            codeViewCard = card;
+            $('codeViewName').textContent = card.name;
+            $('codeViewVal').textContent = card.value;
+            $('codeViewCopy').textContent = '📋 Копировать';
+            $('codeViewVal').style.fontSize = card.value.length > 24 ? '15px' : '';
+            $('codeViewVal').style.letterSpacing = card.value.length > 24 ? '1px' : '';
+            $('codeView').hidden = false;
+            keepScreenOn(true);
+            // кнопка «Назад» на телефоне закрывает окно, а не уходит со страницы
+            try { history.pushState({ codeView: 1 }, ''); codeViewHist = true; } catch (e) { codeViewHist = false; }
+        }
+        function closeCodeView(fromHistory) {
+            if ($('codeView').hidden) return;
+            $('codeView').hidden = true;
+            $('codeViewImg').removeAttribute('src');
+            codeViewCard = null;
+            keepScreenOn(false);
+            if (codeViewHist && !fromHistory) { codeViewHist = false; history.back(); }
+            codeViewHist = false;
+        }
+        async function copyCardNumber() {
+            if (!codeViewCard) return;
+            const ok = await copyText(codeViewCard.value);
+            $('codeViewCopy').textContent = ok ? '✓ Скопировано' : 'Не удалось скопировать';
+        }
+        window.addEventListener('popstate', () => { if (!$('codeView').hidden) closeCodeView(true); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('codeView').hidden) closeCodeView(); });
+        // экран может снять блокировку, если приложение сворачивали — возвращаем её
+        document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !$('codeView').hidden) keepScreenOn(true); });
 
         // ================= СПИСКИ =================
         function createNewList() {
