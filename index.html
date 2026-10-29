@@ -441,6 +441,37 @@
         .profile-head .who { min-width: 0; flex: 1; }
         .profile-head .who .nick { font-weight: 700; font-size: 1.3rem; overflow-wrap: anywhere; }
         .profile-head .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+
+        /* ссылка на приложение */
+        .share-card { position: relative; overflow: hidden; }
+        .share-card::before { content: ''; position: absolute; inset: -40% -20% auto auto; width: 220px; height: 220px; border-radius: 50%;
+            background: radial-gradient(circle, color-mix(in srgb, var(--accent-color) 45%, transparent), transparent 70%); pointer-events: none; }
+        .share-link { position: relative; display: flex; align-items: center; gap: 14px; padding: 14px; border-radius: 18px; cursor: pointer;
+            border: 1px solid color-mix(in srgb, var(--accent-color) 55%, var(--glass-border));
+            background: linear-gradient(135deg, color-mix(in srgb, var(--accent-color) 16%, transparent), rgba(255,255,255,0.08));
+            transition: transform .15s, box-shadow .2s; -webkit-tap-highlight-color: transparent; user-select: none; }
+        .share-link:hover { box-shadow: 0 6px 22px color-mix(in srgb, var(--accent-color) 30%, transparent); }
+        .share-link:active { transform: scale(.985); }
+        .share-link .app-ic { width: 52px; height: 52px; flex: none; border-radius: 14px; overflow: hidden; display: grid; place-items: center;
+            background: var(--accent-color); font-size: 26px; box-shadow: 0 4px 14px rgba(0,0,0,.15); }
+        .share-link .app-ic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .share-link .txt { min-width: 0; flex: 1; }
+        .share-link .ttl { font-size: 12px; opacity: .65; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 3px; }
+        .share-link .url { font-weight: 700; font-size: 1.05rem; overflow-wrap: anywhere; line-height: 1.3; }
+        .share-link .url .proto, .share-link .url .rest { font-weight: 500; opacity: .55; }
+        .share-link .copy-ic { flex: none; width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; font-size: 18px;
+            background: rgba(0,0,0,.08); transition: background .2s, transform .2s; }
+        [data-theme="dark"] .share-link .copy-ic { background: rgba(255,255,255,.1); }
+        .share-link.copied { border-color: var(--accent-color); }
+        .share-link.copied .copy-ic { background: var(--accent-color); color: #000; transform: scale(1.08); }
+        .share-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; position: relative; }
+        .share-actions .glass-btn { flex: 1 1 130px; margin: 0; }
+        .share-invite { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 14px; cursor: pointer; position: relative; }
+        .share-invite[hidden] { display: none; }
+        .share-invite input { width: 18px; height: 18px; accent-color: var(--accent-color); flex: none; margin: 0; }
+        .share-qr { display: none; flex-direction: column; align-items: center; gap: 8px; margin-top: 14px; position: relative; }
+        .share-qr.open { display: flex; }
+        .share-qr img { width: 200px; height: 200px; border-radius: 16px; background: #fff; padding: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.15); image-rendering: pixelated; }
         .avatar-wrap { position: relative; cursor: pointer; border: none; padding: 0; background: none; border-radius: 50%; }
         .avatar-wrap::after {
             content: '📷'; position: absolute; right: -2px; bottom: -2px; width: 26px; height: 26px; border-radius: 50%;
@@ -1115,6 +1146,33 @@
                     <button class="glass-btn secondary" onclick="logout()" style="margin-bottom: 0;">Выйти</button>
                 </div>
                 <div class="hint">Изменения отправляются сами через пару секунд, а изменения с других устройств подтягиваются раз в минуту и при открытии приложения.</div>
+            </div>
+
+            <div class="glass-card full-width share-card" id="shareCard">
+                <div class="card-header">🔗 Ссылка на приложение</div>
+                <div class="share-link" id="shareLink" role="button" tabindex="0" title="Нажмите, чтобы скопировать"
+                     onclick="copySiteLink()" onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); copySiteLink(); }">
+                    <span class="app-ic"><img src="icon_newyear.png" alt="" onerror="this.onerror=null; this.src='icon-192.png'; this.onerror=() => this.replaceWith('✨');"></span>
+                    <span class="txt">
+                        <span class="ttl" style="display:block;">ProdU · Glass OS</span>
+                        <span class="url" id="shareUrl" style="display:block;"></span>
+                    </span>
+                    <span class="copy-ic" id="shareCopyIc" aria-hidden="true">📋</span>
+                </div>
+                <label class="share-invite" id="shareInviteRow" hidden>
+                    <input type="checkbox" id="shareInvite" onchange="renderShareLink()" checked>
+                    <span>С приглашением в друзья от <b id="shareInviteNick"></b></span>
+                </label>
+                <div class="share-actions">
+                    <button type="button" class="glass-btn" id="shareCopyBtn" onclick="copySiteLink()">Копировать</button>
+                    <button type="button" class="glass-btn secondary" id="shareSendBtn" onclick="shareSiteLink()" hidden>📤 Поделиться</button>
+                    <button type="button" class="glass-btn secondary" id="shareQrBtn" onclick="toggleShareQr()">▦ QR-код</button>
+                </div>
+                <div class="share-qr" id="shareQr">
+                    <img id="shareQrImg" alt="QR-код ссылки на приложение">
+                    <div class="hint" style="margin: 0; text-align: center;">Наведите камеру телефона на код, чтобы открыть приложение</div>
+                </div>
+                <div class="hint" id="shareHint">Отправьте ссылку друзьям или откройте её на другом устройстве и войдите в тот же аккаунт.</div>
             </div>
 
             <div class="glass-card acc-in">
@@ -3092,6 +3150,136 @@
             $('accountPill').hidden = !SERVER_BASE;
             renderAvatars();
             updateSocialView();
+            renderShareLink();
+            if (auth && pendingInvite) setTimeout(() => applyPendingInvite(false), 0);
+        }
+
+        // ================= ССЫЛКА НА ПРИЛОЖЕНИЕ =================
+        function siteBaseUrl() {
+            if (location.protocol !== 'http:' && location.protocol !== 'https:') return '';
+            return location.origin + location.pathname.replace(/index\.html?$/i, '');
+        }
+        function siteShareUrl() {
+            const base = siteBaseUrl();
+            if (!base) return '';
+            const inv = auth && $('shareInvite') && $('shareInvite').checked;
+            return inv ? base + '#add=' + encodeURIComponent(auth.login) : base;
+        }
+        function renderShareLink() {
+            const box = $('shareUrl');
+            if (!box) return;
+            const url = siteShareUrl();
+            const inviteRow = $('shareInviteRow');
+            inviteRow.hidden = !(auth && url);
+            if (auth) $('shareInviteNick').textContent = auth.login;
+            if (!url) {
+                box.innerHTML = '<span class="rest">Ссылка появится, когда приложение будет открыто через сайт</span>';
+                ['shareCopyBtn', 'shareQrBtn', 'shareSendBtn'].forEach(id => { $(id).disabled = true; });
+                $('shareQr').classList.remove('open');
+                $('shareHint').textContent = 'Сейчас страница открыта как файл с компьютера — у неё нет адреса в интернете.';
+                return;
+            }
+            const m = /^(https?:\/\/)([^\/]+)(.*)$/.exec(url) || ['', '', url, ''];
+            let rest = m[3];
+            try { rest = decodeURI(rest).replace(/%23/g, '#'); } catch (e) { /* показываем как есть */ }
+            box.innerHTML = `<span class="proto">${esc(m[1])}</span>${esc(m[2])}<span class="rest">${esc(rest)}</span>`;
+            ['shareCopyBtn', 'shareQrBtn', 'shareSendBtn'].forEach(id => { $(id).disabled = false; });
+            $('shareSendBtn').hidden = !navigator.share;
+            $('shareHint').textContent = auth && $('shareInvite').checked
+                ? 'Друг откроет приложение и сразу увидит вас в поиске «Друзей» — останется нажать «Добавить».'
+                : 'Отправьте ссылку друзьям или откройте её на другом устройстве и войдите в тот же аккаунт.';
+            if ($('shareQr').classList.contains('open')) paintShareQr();
+        }
+        function paintShareQr() {
+            const url = siteShareUrl();
+            const img = $('shareQrImg');
+            if (img.dataset.url === url) return;
+            try { img.src = QRGen.toDataURL(url, 400, 2); img.dataset.url = url; } catch (e) { img.removeAttribute('src'); }
+        }
+        function toggleShareQr() {
+            const box = $('shareQr');
+            box.classList.toggle('open');
+            if (box.classList.contains('open')) paintShareQr();
+            $('shareQrBtn').textContent = box.classList.contains('open') ? '▦ Скрыть QR' : '▦ QR-код';
+        }
+        async function copyText(text) {
+            try {
+                if (navigator.clipboard && window.isSecureContext) { await navigator.clipboard.writeText(text); return true; }
+            } catch (e) { /* пробуем запасной способ */ }
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.setAttribute('readonly', '');
+            ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;';
+            document.body.appendChild(ta);
+            ta.select();
+            ta.setSelectionRange(0, text.length);
+            let ok = false;
+            try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+            ta.remove();
+            return ok;
+        }
+        let shareCopiedTimer = null;
+        async function copySiteLink() {
+            const url = siteShareUrl();
+            if (!url) return;
+            const ok = await copyText(url);
+            const btn = $('shareCopyBtn'), card = $('shareLink');
+            clearTimeout(shareCopiedTimer);
+            if (ok) {
+                btn.textContent = '✓ Скопировано';
+                $('shareCopyIc').textContent = '✓';
+                card.classList.add('copied');
+                showToast('🔗 Ссылка скопирована', url, 3000);
+            } else {
+                btn.textContent = 'Не удалось скопировать';
+                const r = document.createRange();
+                r.selectNodeContents($('shareUrl'));
+                const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+            }
+            shareCopiedTimer = setTimeout(() => {
+                btn.textContent = 'Копировать';
+                $('shareCopyIc').textContent = '📋';
+                card.classList.remove('copied');
+            }, 2200);
+        }
+        async function shareSiteLink() {
+            const url = siteShareUrl();
+            if (!url || !navigator.share) return copySiteLink();
+            const text = auth && $('shareInvite').checked
+                ? `Добавляйся ко мне в ProdU — мой ник ${auth.login}`
+                : 'ProdU — календарь, дневник, финансы и игры в одном приложении';
+            try { await navigator.share({ title: 'ProdU', text, url }); }
+            catch (e) { if (e && e.name !== 'AbortError') copySiteLink(); }
+        }
+
+        // Приглашение по ссылке вида …#add=ник: открываем «Друзей» с этим ником в поиске
+        function handleInviteHash() {
+            const m = /^#add=(.+)$/.exec(location.hash);
+            if (!m) return;
+            history.replaceState(null, '', location.pathname + location.search);
+            let nick = '';
+            try { nick = decodeURIComponent(m[1]).trim().slice(0, 32); } catch (e) { return; }
+            if (!nick) return;
+            try { sessionStorage.setItem('produ_invite', nick); } catch (e) { /* без хранилища — только сейчас */ }
+            pendingInvite = nick;
+            applyPendingInvite(true);
+        }
+        let pendingInvite = (() => { try { return sessionStorage.getItem('produ_invite') || ''; } catch (e) { return ''; } })();
+        function applyPendingInvite(fresh) {
+            if (!pendingInvite) return;
+            const nick = pendingInvite;
+            if (!auth) {
+                if (fresh) showToast('👋 Приглашение от ' + nick, 'Войдите или зарегистрируйтесь, чтобы добавить в друзья.', 8000);
+                return;
+            }
+            pendingInvite = '';
+            try { sessionStorage.removeItem('produ_invite'); } catch (e) { /* ничего */ }
+            if (nick.toLowerCase() === String(auth.login).toLowerCase()) return;
+            switchTab('social', document.querySelector('.dock-icon[onclick*="\'social\'"]'));
+            if (typeof chat !== 'undefined' && chat.peer) closeChat(true);
+            $('socSearch').value = nick;
+            onSocialSearch(nick);
+            showToast('👋 Приглашение от ' + nick, 'Нажмите «Добавить», чтобы отправить заявку в друзья.', 6000);
         }
 
         // ================= АВАТАРКА =================
@@ -8108,6 +8296,8 @@
         }
         handleChatHash();
         window.addEventListener('hashchange', handleChatHash);
+        handleInviteHash();
+        window.addEventListener('hashchange', handleInviteHash);
     </script>
 </body>
 </html>
