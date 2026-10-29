@@ -437,10 +437,30 @@
         .avatar.empty { background-color: transparent; font-size: 16px; }
         .avatar.lg { width: 72px; height: 72px; font-size: 32px; box-shadow: 0 4px 16px var(--glass-shadow); }
         .account-pill .avatar { margin: -4px 0 -4px -6px; }
-        .profile-head { display: flex; align-items: center; gap: 16px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--glass-border); }
-        .profile-head .who { min-width: 0; flex: 1; }
-        .profile-head .who .nick { font-weight: 700; font-size: 1.3rem; overflow-wrap: anywhere; }
-        .profile-head .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+        /* Шапка профиля: сверху большая аватарка по центру, при прокрутке она плавно уезжает влево и уменьшается.
+           Положение считает layoutProfileHead() — здесь только начальный вид до первого расчёта. */
+        .profile-card { overflow: visible; }
+        .profile-head { position: relative; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--glass-border); min-height: 72px; }
+        .profile-head > * { position: absolute; left: 0; top: 0; will-change: transform; }
+        .profile-head .avatar-wrap { width: 72px; height: 72px; }
+        .profile-head .avatar-wrap .avatar.lg { width: 100%; height: 100%; }
+        .profile-head .nick { font-weight: 700; font-size: 1.3rem; overflow-wrap: anywhere; line-height: 1.25; white-space: normal; }
+        .profile-head .actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: var(--act-justify, flex-start); }
+        .profile-head .avatar-wrap .avatar.lg { box-shadow: 0 6px 24px var(--glass-shadow), 0 0 0 4px var(--bg-color); }
+        html.no-anchor { overflow-anchor: none; }
+        @media (max-width: 360px) { #module-account .flex-row .glass-btn { font-size: 13px; padding-left: 6px; padding-right: 6px; } }
+
+        /* просмотр своей аватарки */
+        .av-viewer { position: fixed; inset: 0; z-index: 960; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+            padding: 20px; box-sizing: border-box; background: rgba(0,0,0,0.88); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+        .av-viewer[hidden] { display: none; }
+        .av-viewer img { width: min(86vw, 62vh, 460px); height: min(86vw, 62vh, 460px); border-radius: 50%; object-fit: cover; display: block;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5); background: #222; cursor: zoom-out; transition: border-radius .25s; }
+        .av-viewer img.square { border-radius: 24px; }
+        .av-viewer .nm { color: #fff; font-weight: 700; font-size: 1.3rem; text-align: center; overflow-wrap: anywhere; max-width: 90vw; }
+        .av-viewer .bar { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        .av-viewer .glass-btn { width: auto; margin: 0; padding: 10px 16px; }
+        .av-viewer .glass-btn.secondary { color: #fff; background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.2); }
 
         /* ссылка на приложение */
         .share-card { position: relative; overflow: hidden; }
@@ -473,6 +493,7 @@
         .share-qr.open { display: flex; }
         .share-qr img { width: 200px; height: 200px; border-radius: 16px; background: #fff; padding: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.15); image-rendering: pixelated; }
         .avatar-wrap { position: relative; cursor: pointer; border: none; padding: 0; background: none; border-radius: 50%; }
+        .avatar-wrap.has-photo::after { display: none; }
         .avatar-wrap::after {
             content: '📷'; position: absolute; right: -2px; bottom: -2px; width: 26px; height: 26px; border-radius: 50%;
             background: var(--bg-color); border: 1px solid var(--glass-border);
@@ -807,6 +828,17 @@
         </div>
     </div>
 
+    <!-- Просмотр своей аватарки -->
+    <div class="av-viewer" id="avViewer" hidden onclick="if (event.target === this) closeAvatarViewer()" role="dialog" aria-modal="true" aria-label="Фото профиля">
+        <img id="avViewerImg" alt="Фото профиля" onclick="closeAvatarViewer()">
+        <div class="nm" id="avViewerName"></div>
+        <div class="bar">
+            <button type="button" class="glass-btn" onclick="closeAvatarViewer(true); pickAvatar()">📷 Сменить фото</button>
+            <button type="button" class="glass-btn secondary" onclick="closeAvatarViewer(true); removeAvatar()">Убрать</button>
+            <button type="button" class="glass-btn secondary" onclick="closeAvatarViewer()">Закрыть</button>
+        </div>
+    </div>
+
     <!-- Выбор области для аватарки -->
     <div class="modal" id="avatarModal" hidden onclick="if (event.target === this) closeAvatarModal()">
         <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="avModalTitle">
@@ -1125,17 +1157,15 @@
                     Восстановить пароль нельзя, поэтому сохраните его в надёжном месте.</div>
             </div>
 
-            <div class="glass-card full-width acc-in">
-                <div class="profile-head">
-                    <button type="button" class="avatar-wrap" onclick="pickAvatar()" title="Сменить фото профиля">
+            <div class="glass-card full-width acc-in profile-card" id="profileCard">
+                <div class="profile-head" id="profileHead">
+                    <button type="button" class="avatar-wrap" id="accAvatarWrap" onclick="onProfileAvatarClick()" title="Посмотреть фото профиля">
                         <span class="avatar lg" id="accAvatar"></span>
                     </button>
-                    <div class="who">
-                        <div class="nick" id="accName"></div>
-                        <div class="actions">
-                            <button type="button" class="glass-btn secondary compact" onclick="pickAvatar()" id="accAvBtn">📷 Загрузить фото</button>
-                            <button type="button" class="glass-btn secondary compact" onclick="removeAvatar()" id="accAvRemove" hidden>Убрать</button>
-                        </div>
+                    <div class="nick" id="accName"></div>
+                    <div class="actions" id="accActions">
+                        <button type="button" class="glass-btn secondary compact" onclick="pickAvatar()" id="accAvBtn">📷 Загрузить фото</button>
+                        <button type="button" class="glass-btn secondary compact" onclick="removeAvatar()" id="accAvRemove" hidden>Убрать</button>
                     </div>
                 </div>
                 <input type="file" id="avatarFile" accept="image/*" hidden onchange="onAvatarFile(this)">
@@ -3117,6 +3147,7 @@
             else if (location.protocol === 'file:') state = 'noserver';
             else if (auth) state = 'in';
             mod.dataset.state = state;
+            if (state !== 'in') mod.style.minHeight = '';
 
             if (state === 'noserver') {
                 $('accNoServerText').innerHTML = !SERVER_BASE
@@ -3288,7 +3319,7 @@
         let avatarCache = null;          // { login, av, data }
         try { avatarCache = JSON.parse(localStorage.getItem('produ_avatar')); } catch (e) {}
         let avatarFetching = false;
-        const AVATAR_SIZE = 256;
+        const AVATAR_SIZE = 512;        // с запасом, чтобы фото было чётким при просмотре на весь экран
 
         function saveAvatarCache(c) {
             avatarCache = c;
@@ -3312,7 +3343,144 @@
             const has = !!myAvatar();
             $('accAvRemove').hidden = !has;
             $('accAvBtn').textContent = has ? '📷 Сменить фото' : '📷 Загрузить фото';
+            const wrap = $('accAvatarWrap');
+            wrap.classList.toggle('has-photo', has);
+            wrap.title = has ? 'Посмотреть фото профиля' : 'Загрузить фото профиля';
+            layoutProfileHead();
         }
+
+        // ---- просмотр фото профиля ----
+        function onProfileAvatarClick() {
+            if (myAvatar()) openAvatarViewer();
+            else pickAvatar();
+        }
+        function openAvatarViewer() {
+            const src = myAvatar();
+            if (!src) return;
+            const v = $('avViewer'), img = $('avViewerImg');
+            img.src = src;
+            $('avViewerName').textContent = auth ? auth.login : '';
+            v.hidden = false;
+            // фото «вылетает» из аватарки
+            const from = $('accAvatar').getBoundingClientRect(), to = img.getBoundingClientRect();
+            if (img.animate && from.width && to.width && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                const dx = from.left + from.width / 2 - (to.left + to.width / 2), dy = from.top + from.height / 2 - (to.top + to.height / 2);
+                img.animate([{ transform: `translate(${dx}px, ${dy}px) scale(${from.width / to.width})` }, { transform: 'none' }],
+                    { duration: 280, easing: 'cubic-bezier(.2,.8,.2,1)' });
+                v.animate([{ backgroundColor: 'rgba(0,0,0,0)' }, { backgroundColor: 'rgba(0,0,0,0.88)' }], { duration: 220 });
+                [...v.querySelectorAll('.nm, .bar')].forEach(el => el.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 300, delay: 80, fill: 'backwards' }));
+            }
+            v.querySelector('.bar .glass-btn').focus({ preventScroll: true });
+        }
+        function closeAvatarViewer(instant) {
+            const v = $('avViewer'), img = $('avViewerImg');
+            if (v.hidden) return;
+            const done = () => { v.hidden = true; img.removeAttribute('src'); };
+            const to = $('accAvatar').getBoundingClientRect(), from = img.getBoundingClientRect();
+            if (instant || !img.animate || !to.width || matchMedia('(prefers-reduced-motion: reduce)').matches) return done();
+            const dx = to.left + to.width / 2 - (from.left + from.width / 2), dy = to.top + to.height / 2 - (from.top + from.height / 2);
+            img.animate([{ transform: 'none' }, { transform: `translate(${dx}px, ${dy}px) scale(${to.width / from.width})` }], { duration: 220, easing: 'ease-in', fill: 'forwards' });
+            v.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, easing: 'ease-in', fill: 'forwards' }).onfinish = () => {
+                done();
+                v.getAnimations().forEach(a => a.cancel());
+                img.getAnimations().forEach(a => a.cancel());
+            };
+        }
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('avViewer').hidden) closeAvatarViewer(); });
+
+        // ---- шапка профиля, которая сворачивается при прокрутке ----
+        // p = 0: большая аватарка сверху по центру, наполовину над карточкой; ник и кнопки под ней.
+        // p = 1: маленькая аватарка слева, ник и кнопки справа от неё.
+        // Стоит начать прокручивать вниз — шапка плавно сворачивается; вернулись в самый верх — разворачивается.
+        const PH_COLLAPSE_AT = 24, PH_EXPAND_AT = 2, PH_MS = 380;
+        let phP = 0, phTarget = 0, phAnim = null, phFrame = 0;
+        function profileHeadActive() {
+            const mod = $('module-account');
+            return mod && mod.classList.contains('active') && mod.dataset.state === 'in';
+        }
+        function layoutProfileHead() {
+            const head = $('profileHead');
+            if (!head || !profileHeadActive()) return;
+            const card = $('profileCard'), wrap = $('accAvatarWrap'), av = $('accAvatar'), nick = $('accName'), acts = $('accActions');
+            const W = head.clientWidth;
+            if (!W) return;
+            const padT = parseFloat(getComputedStyle(card).paddingTop) || 20;
+            const lerp = (a, b, t) => a + (b - a) * t;
+            const p = phP;
+
+            const A0 = W < 420 ? 116 : 136, A1 = 72, F = 0.55, GAP = 16;
+            const A = lerp(A0, A1, p);
+
+            // ник: размер шрифта и ширина
+            nick.style.fontSize = lerp(1.55, 1.3, p) + 'rem';
+            nick.style.width = 'max-content';
+            const nickNat = Math.ceil(nick.getBoundingClientRect().width) + 1;
+            const availC = Math.max(80, W - A1 - GAP);
+            const nickW = Math.min(nickNat, lerp(W, availC, p));
+            nick.style.width = nickW + 'px';
+            const nickH = nick.offsetHeight;
+
+            acts.style.width = 'max-content';
+            const actNat = Math.ceil(acts.getBoundingClientRect().width) + 1;
+            const actW = Math.min(actNat, lerp(W, availC, p));
+            acts.style.width = actW + 'px';
+            acts.style.setProperty('--act-justify', p < 0.5 ? 'center' : 'flex-start');
+            const actH = acts.offsetHeight;
+
+            // развернутый вид
+            const e = { ax: (W - A0) / 2, ay: -padT - F * A0 };
+            e.ny = e.ay + A0 + 12; e.nx = (W - nickW) / 2;
+            e.cy = e.ny + nickH + 12; e.cx = (W - actW) / 2;
+            e.h = e.cy + actH; e.m = F * A0 + 8;
+            // свернутый вид
+            const blockH = nickH + 8 + actH;
+            const top = Math.max(0, (A1 - blockH) / 2);
+            const c = { ax: 0, ay: 0, nx: A1 + GAP, ny: top, cx: A1 + GAP, cy: top + nickH + 8, h: Math.max(A1, blockH), m: 0 };
+
+            wrap.style.width = wrap.style.height = A + 'px';
+            av.style.fontSize = Math.round(A * 0.44) + 'px';
+            wrap.style.transform = `translate(${lerp(e.ax, c.ax, p)}px, ${lerp(e.ay, c.ay, p)}px)`;
+            nick.style.transform = `translate(${lerp(e.nx, c.nx, p)}px, ${lerp(e.ny, c.ny, p)}px)`;
+            acts.style.transform = `translate(${lerp(e.cx, c.cx, p)}px, ${lerp(e.cy, c.cy, p)}px)`;
+            head.style.height = Math.round(lerp(e.h, c.h, p)) + 'px';
+            card.style.marginTop = Math.round(lerp(e.m, c.m, p)) + 'px';
+
+            // свернутая шапка ниже, и короткая страница могла бы «отпрыгнуть» наверх и снова развернуть её —
+            // поэтому вкладка всегда чуть выше экрана
+            $('module-account').style.minHeight = Math.max(0, window.innerHeight - 100) + 'px';
+        }
+        function setProfileHeadTarget(t, instant) {
+            if (t === phTarget && !instant) return;
+            phTarget = t;
+            if (phAnim) cancelAnimationFrame(phAnim);
+            phAnim = null;
+            if (instant || matchMedia('(prefers-reduced-motion: reduce)').matches) { phP = t; layoutProfileHead(); return; }
+            const from = phP, t0 = performance.now();
+            const ease = x => 1 - Math.pow(1 - x, 3);
+            const step = now => {
+                const k = Math.min(1, (now - t0) / PH_MS);
+                phP = from + (t - from) * ease(k);
+                layoutProfileHead();
+                phAnim = k < 1 ? requestAnimationFrame(step) : null;
+            };
+            phAnim = requestAnimationFrame(step);
+        }
+        function profileHeadWanted() {
+            const y = window.scrollY || 0;
+            return y > PH_COLLAPSE_AT ? 1 : y <= PH_EXPAND_AT ? 0 : phTarget;
+        }
+        function scheduleProfileHead() {
+            if (phFrame || !profileHeadActive()) return;
+            phFrame = requestAnimationFrame(() => {
+                phFrame = 0;
+                const t = profileHeadWanted();
+                if (t !== phTarget) setProfileHeadTarget(t);
+                else if (!phAnim) layoutProfileHead();
+            });
+        }
+        window.addEventListener('scroll', scheduleProfileHead, { passive: true });
+        window.addEventListener('resize', scheduleProfileHead);
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(scheduleProfileHead);
 
         // Сервер при каждой синхронизации сообщает версию аватарки; если она новая — скачиваем
         async function checkAvatarVersion(av) {
@@ -3451,7 +3619,8 @@
             ctx.imageSmoothingQuality = 'high';
             const k = AVATAR_SIZE / crop.V, s = cropScale();
             ctx.drawImage(crop.img, crop.ox * k, crop.oy * k, crop.w * s * k, crop.h * s * k);
-            const dataUrl = out.toDataURL('image/jpeg', 0.85);
+            let dataUrl = out.toDataURL('image/jpeg', 0.88);
+            if (dataUrl.length > 280_000) dataUrl = out.toDataURL('image/jpeg', 0.72);
 
             const btn = $('avSave');
             btn.disabled = true;
@@ -7179,7 +7348,9 @@
 
             if (moduleName !== 'cards') stopCardScanner();
             if (moduleName === 'reminders') { renderReminders(); renderNotifStatus(); }
-            if (moduleName === 'account') { renderAccount(); loadServerConfig(); }
+            document.documentElement.classList.toggle('no-anchor', moduleName === 'account');
+            if (moduleName === 'account') { renderAccount(); loadServerConfig(); setProfileHeadTarget(profileHeadWanted(), true); }
+            else $('module-account').style.minHeight = '';
             if (moduleName === 'games') { if (!gm.g) renderGameTiles(); else gameRedraw(); }
             else if (gm.state === 'running') pauseGame();
             if (moduleName === 'social') {
