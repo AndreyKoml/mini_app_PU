@@ -67,6 +67,11 @@ const IMAGE_RE = /^data:image\/jpeg;base64,[A-Za-z0-9+/]+={0,2}$/;
 const MAX_VOICE_CHARS = 1_900_000;  // предел строки D1 — 2 МБ; 2 минуты голоса обычно 0,5–1 МБ
 const MAX_VOICE_MS = 125_000;       // запись ограничена 2 минутами (+ запас)
 const VOICES_PER_DAY = 100;
+// Профиль: обложка и посты
+const MAX_COVER_CHARS = 900_000;   // обложка 1500×600 JPEG обычно 150–300 КБ
+const MAX_CAPTION_CHARS = 2000;
+const POSTS_PER_DAY = 30;
+const POSTS_PAGE = 12;
 const VOICE_RE = /^data:audio\/(webm|ogg|mp4|mpeg|aac|x-m4a)(;codecs=[A-Za-z0-9.,"-]+)?;base64,[A-Za-z0-9+/]+={0,2}$/;
 
 export default {
@@ -87,12 +92,16 @@ export default {
                         (SELECT COUNT(*) FROM users) AS users, (SELECT COUNT(*) FROM msg_images) AS images,
                         (SELECT COALESCE(SUM(length(data)), 0) FROM msg_images) AS image_bytes,
                         (SELECT COUNT(*) FROM msg_audio) AS voices,
-                        (SELECT COALESCE(SUM(length(data)), 0) FROM msg_audio) AS voice_bytes`
+                        (SELECT COALESCE(SUM(length(data)), 0) FROM msg_audio) AS voice_bytes,
+                        (SELECT COUNT(*) FROM posts) AS posts,
+                        (SELECT COALESCE(SUM(length(data)), 0) FROM posts) AS post_bytes,
+                        (SELECT COALESCE(SUM(length(cover)), 0) FROM profiles) AS cover_bytes`
                 ).first();
                 const mb = n => (n / 1048576).toFixed(1);
                 return text(`ProdU push: OK\nАккаунтов: ${stats.users}\nУстройств с push: ${stats.devices}\nОжидают отправки: ${stats.pending}\n` +
                     `Картинок в чатах: ${stats.images} (${mb(stats.image_bytes)} МБ)\nГолосовых: ${stats.voices} (${mb(stats.voice_bytes)} МБ)\n` +
-                    `Всего вложений: ${mb(stats.image_bytes + stats.voice_bytes)} МБ из 500 МБ бесплатной базы\nКлюч: ${publicKey.slice(0, 16)}…`, 200, cors);
+                    `Постов: ${stats.posts} (${mb(stats.post_bytes)} МБ)\nОбложки профилей: ${mb(stats.cover_bytes)} МБ\n` +
+                    `Всего вложений: ${mb(stats.image_bytes + stats.voice_bytes + stats.post_bytes + stats.cover_bytes)} МБ из 500 МБ бесплатной базы\nКлюч: ${publicKey.slice(0, 16)}…`, 200, cors);
             }
 
             if (request.method === 'GET' && url.pathname === '/config') {
@@ -122,6 +131,14 @@ export default {
                 const user = await authUser(request, env);
                 if (!user) return json({ error: 'Сессия истекла — войдите снова' }, 401, cors);
                 return await handleSocial(url.pathname, request, url, env, user, cors, ctx);
+            }
+
+            if ((request.method === 'GET' && ['/profile', '/profile/cover', '/posts', '/posts/image'].includes(url.pathname)) ||
+                (['PUT', 'DELETE'].includes(request.method) && url.pathname === '/profile/cover') ||
+                (request.method === 'POST' && ['/profile/settings', '/posts/create', '/posts/delete'].includes(url.pathname))) {
+                const user = await authUser(request, env);
+                if (!user) return json({ error: 'Сессия истекла — войдите снова' }, 401, cors);
+                return await handleProfile(url.pathname, request, url, env, user, cors);
             }
 
             if (request.method === 'GET' && url.pathname === '/vapid') {
@@ -191,7 +208,13 @@ async function ensureSchema(env) {
             msg_id INTEGER PRIMARY KEY, data TEXT NOT NULL, w INTEGER NOT NULL, h INTEGER NOT NULL)`),
         env.DB.prepare(`CREATE TABLE IF NOT EXISTS msg_audio (
             msg_id INTEGER PRIMARY KEY, data TEXT NOT NULL, dur INTEGER NOT NULL, peaks TEXT NOT NULL)`),
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_sub_users_user ON sub_users (user_id)')
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_sub_users_user ON sub_users (user_id)'),
+        env.DB.prepare(`CREATE TABLE IF NOT EXISTS profiles (
+            user_id INTEGER PRIMARY KEY, cover TEXT, cover_v INTEGER NOT NULL DEFAULT 0, posts_vis TEXT NOT NULL DEFAULT 'all')`),
+        env.DB.prepare(`CREATE TABLE IF NOT EXISTS posts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, caption TEXT NOT NULL,
+            data TEXT NOT NULL, w INTEGER NOT NULL, h INTEGER NOT NULL, created INTEGER NOT NULL)`),
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_posts_user ON posts (user_id, id)')
     ]);
     schemaReady = true;
 }
@@ -342,6 +365,8 @@ async function handleAuth(action, request, env, cors) {
             env.DB.prepare('DELETE FROM messages WHERE a = ?1 OR b = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM reads WHERE user_id = ?1 OR peer_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM sub_users WHERE user_id = ?1').bind(me.id),
+            env.DB.prepare('DELETE FROM posts WHERE user_id = ?1').bind(me.id),
+            env.DB.prepare('DELETE FROM profiles WHERE user_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM users WHERE id = ?1').bind(me.id)
         ]);
         return json({ ok: true }, 200, cors);
@@ -739,6 +764,113 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
         if (!Number.isSafeInteger(last) || last < 0) throw new BadRequest('bad upTo');
         await env.DB.prepare(`INSERT INTO reads (user_id, peer_id, last_id) VALUES (?1, ?2, ?3)
             ON CONFLICT(user_id, peer_id) DO UPDATE SET last_id = max(reads.last_id, excluded.last_id)`).bind(me.id, other, last).run();
+        return json({ ok: true }, 200, cors);
+    }
+
+    return json({ error: 'not found' }, 404, cors);
+}
+
+// ===================== Профиль и посты =====================
+// Профиль (ник, аватарку, обложку) видят все, кто вошёл в аккаунт.
+// Посты — все или только друзья, как выберет владелец в настройках.
+async function postsVisibleTo(env, meId, ownerId) {
+    if (ownerId === meId) return true;
+    const p = await env.DB.prepare('SELECT posts_vis FROM profiles WHERE user_id = ?1').bind(ownerId).first();
+    if (!p || p.posts_vis !== 'friends') return true;
+    return relation(await getFriendRow(env, meId, ownerId), meId) === 'friend';
+}
+
+async function handleProfile(path, request, url, env, me, cors) {
+    if (path === '/profile') {
+        const uid = url.searchParams.has('user') ? readUserId(url.searchParams.get('user')) : me.id;
+        const row = await env.DB.prepare(`
+            SELECT u.id, u.display AS login, u.created, COALESCE(av.version, 0) AS av,
+                   COALESCE(p.cover_v, 0) AS cover, COALESCE(p.posts_vis, 'all') AS vis,
+                   (SELECT COUNT(*) FROM posts WHERE user_id = u.id) AS posts,
+                   (SELECT COUNT(*) FROM friends WHERE (a = u.id OR b = u.id) AND status = 'accepted') AS friends
+            FROM users u
+            LEFT JOIN avatars av ON av.user_id = u.id
+            LEFT JOIN profiles p ON p.user_id = u.id
+            WHERE u.id = ?1`).bind(uid).first();
+        if (!row) return json({ error: 'Пользователь не найден' }, 404, cors);
+        const rel = uid === me.id ? 'me' : relation(await getFriendRow(env, me.id, uid), me.id);
+        const profile = {
+            id: row.id, login: row.login, created: row.created, av: row.av, cover: row.cover, rel,
+            posts: row.posts, friends: row.friends, postsVisible: uid === me.id || row.vis !== 'friends' || rel === 'friend'
+        };
+        if (uid === me.id) profile.postsVis = row.vis;
+        return json({ profile }, 200, cors);
+    }
+
+    if (path === '/profile/cover') {
+        if (request.method === 'GET') {
+            const uid = url.searchParams.has('user') ? readUserId(url.searchParams.get('user')) : me.id;
+            const row = await env.DB.prepare('SELECT cover, cover_v FROM profiles WHERE user_id = ?1').bind(uid).first();
+            return json({ cover: row && row.cover ? row.cover_v : 0, data: row ? row.cover : null }, 200, cors);
+        }
+        if (request.method === 'DELETE') {
+            await env.DB.prepare('UPDATE profiles SET cover = NULL, cover_v = 0 WHERE user_id = ?1').bind(me.id).run();
+            return json({ cover: 0 }, 200, cors);
+        }
+        const raw = (await request.text()).trim();
+        if (raw.length > MAX_COVER_CHARS) return json({ error: 'Картинка слишком большая' }, 413, cors);
+        if (!IMAGE_RE.test(raw)) throw new BadRequest('Это не похоже на картинку JPEG');
+        const v = Date.now();
+        await env.DB.prepare(`INSERT INTO profiles (user_id, cover, cover_v) VALUES (?1, ?2, ?3)
+            ON CONFLICT(user_id) DO UPDATE SET cover = excluded.cover, cover_v = excluded.cover_v`).bind(me.id, raw, v).run();
+        return json({ cover: v }, 200, cors);
+    }
+
+    if (path === '/profile/settings') {
+        const { postsVis } = await readJson(request);
+        if (!['all', 'friends'].includes(postsVis)) throw new BadRequest('bad postsVis');
+        await env.DB.prepare(`INSERT INTO profiles (user_id, posts_vis) VALUES (?1, ?2)
+            ON CONFLICT(user_id) DO UPDATE SET posts_vis = excluded.posts_vis`).bind(me.id, postsVis).run();
+        return json({ postsVis }, 200, cors);
+    }
+
+    if (path === '/posts') {
+        const uid = url.searchParams.has('user') ? readUserId(url.searchParams.get('user')) : me.id;
+        if (!(await postsVisibleTo(env, me.id, uid))) return json({ posts: [], hasMore: false, hidden: true }, 200, cors);
+        const before = Number(url.searchParams.get('before')) || Number.MAX_SAFE_INTEGER;
+        const { results } = await env.DB.prepare(`SELECT id, caption, w, h, created FROM posts
+            WHERE user_id = ?1 AND id < ?2 ORDER BY id DESC LIMIT ?3`).bind(uid, before, POSTS_PAGE + 1).all();
+        return json({ posts: results.slice(0, POSTS_PAGE), hasMore: results.length > POSTS_PAGE }, 200, cors);
+    }
+
+    if (path === '/posts/image') {
+        const id = readUserId(url.searchParams.get('id'));
+        const row = await env.DB.prepare('SELECT user_id, data FROM posts WHERE id = ?1').bind(id).first();
+        if (!row || !(await postsVisibleTo(env, me.id, row.user_id))) return json({ error: 'Пост не найден' }, 404, cors);
+        return new Response(JSON.stringify({ data: row.data }), {
+            status: 200,
+            headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'private, max-age=31536000, immutable' }
+        });
+    }
+
+    if (path === '/posts/create') {
+        const { image, caption } = await readJson(request, MAX_IMAGE_CHARS + 30_000);
+        const text = String(caption || '').replace(/\r\n?/g, '\n').trim();
+        if ([...text].length > MAX_CAPTION_CHARS) return json({ error: `Подпись длиннее ${MAX_CAPTION_CHARS} символов` }, 400, cors);
+        if (!image) throw new BadRequest('Добавьте фото');
+        const data = String(image.data || '');
+        const w = Number(image.w), h = Number(image.h);
+        if (data.length > MAX_IMAGE_CHARS) return json({ error: 'Картинка слишком большая' }, 413, cors);
+        if (!IMAGE_RE.test(data)) throw new BadRequest('Это не похоже на картинку JPEG');
+        if (!Number.isInteger(w) || !Number.isInteger(h) || w < 1 || h < 1 || w > 4096 || h > 4096) throw new BadRequest('bad size');
+        const now = Date.now();
+        const today = await env.DB.prepare('SELECT COUNT(*) AS n FROM posts WHERE user_id = ?1 AND created > ?2').bind(me.id, now - 86400e3).first();
+        if (today.n >= POSTS_PER_DAY) return json({ error: `Можно опубликовать не больше ${POSTS_PER_DAY} постов в сутки` }, 429, cors);
+        const row = await env.DB.prepare('INSERT INTO posts (user_id, caption, data, w, h, created) VALUES (?1, ?2, ?3, ?4, ?5, ?6) RETURNING id')
+            .bind(me.id, text, data, w, h, now).first();
+        return json({ post: { id: row.id, caption: text, w, h, created: now } }, 200, cors);
+    }
+
+    if (path === '/posts/delete') {
+        const id = readUserId((await readJson(request)).id);
+        const r = await env.DB.prepare('DELETE FROM posts WHERE id = ?1 AND user_id = ?2').bind(id, me.id).run();
+        const changed = r && r.meta ? r.meta.changes : 1;
+        if (!changed) return json({ error: 'Пост не найден' }, 404, cors);
         return json({ ok: true }, 200, cors);
     }
 

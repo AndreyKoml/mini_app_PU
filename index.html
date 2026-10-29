@@ -471,6 +471,67 @@
         .profile-head .actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: var(--act-justify, flex-start); }
         .profile-head .avatar-wrap .avatar.lg { box-shadow: 0 6px 24px var(--glass-shadow), 0 0 0 4px var(--bg-color); }
         html.no-anchor { overflow-anchor: none; }
+
+        /* обложка профиля */
+        .profile-card { position: relative; }
+        .profile-cover { position: absolute; left: 0; right: 0; top: 0; height: 150px; border-radius: 19px 19px 0 0; overflow: hidden; cursor: pointer;
+            background: var(--cover-img, none) center / cover no-repeat, linear-gradient(135deg, color-mix(in srgb, var(--accent-color) 75%, #fff) 0%, color-mix(in srgb, var(--accent-color) 55%, #1aa6b7) 55%, #3a6fd8 100%); }
+        .profile-cover::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(0,0,0,.18)); pointer-events: none; }
+        [data-theme="dark"] .profile-cover:not(.has-img) { filter: brightness(.75) saturate(.9); }
+        .profile-stats { text-align: center; font-size: 14px; opacity: .65; margin-top: 4px; }
+        .profile-stats:empty { display: none; }
+        #profileCard .profile-stats { text-align: left; margin: -6px 0 0; }
+
+        /* настройки */
+        .settings-head { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--glass-border); }
+        .settings-head .who { min-width: 0; flex: 1; }
+        .settings-head .ttl { font-weight: 700; font-size: 1.3rem; }
+        .settings-head .sub { font-size: 14px; opacity: .65; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .sheet-menu { display: flex; flex-direction: column; gap: 10px; }
+        .sheet-menu .glass-btn { margin: 0; }
+
+        /* новый пост */
+        .post-composer { padding: 14px; }
+        .pc-start { display: flex; align-items: center; gap: 14px; width: 100%; padding: 6px; border: none; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: 14px; }
+        .pc-start:hover { background: rgba(128,128,128,.1); }
+        .pc-start[hidden] { display: none; }
+        .pc-start .pc-ic { width: 48px; height: 48px; border-radius: 14px; background: var(--accent-color); display: grid; place-items: center; font-size: 22px; flex: none; }
+        .pc-start .pc-sub { display: block; font-size: 13px; opacity: .6; margin-top: 2px; }
+        .pc-form { display: flex; flex-direction: column; gap: 12px; }
+        .pc-form[hidden] { display: none; }
+        .pc-preview { position: relative; border-radius: 14px; overflow: hidden; background: rgba(128,128,128,.15); }
+        .pc-preview img { display: block; width: 100%; max-height: 60vh; object-fit: contain; }
+        .pc-x { position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; border-radius: 50%; border: none; cursor: pointer; background: rgba(0,0,0,.55); color: #fff; font-size: 15px; }
+        .pc-form textarea { margin: 0; min-height: 0; resize: none; }
+
+        /* лента постов */
+        .posts-feed { display: flex; flex-direction: column; gap: 16px; }
+        .post { padding: 14px; gap: 12px; }
+        .post-head { display: flex; align-items: center; gap: 10px; }
+        .post-head .who { flex: 1; min-width: 0; }
+        .post-head .nm { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .post-head .when { font-size: 12px; opacity: .55; }
+        .post-img { border-radius: 14px; overflow: hidden; background: rgba(128,128,128,.18); max-height: 75vh; display: flex; justify-content: center; }
+        .post-img img { display: block; width: 100%; height: 100%; object-fit: contain; cursor: zoom-in; opacity: 0; transition: opacity .25s; }
+        .post-img img.ok { opacity: 1; }
+        .post-cap { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; }
+        .feed-note { text-align: center; padding: 22px 16px; opacity: .65; }
+        .feed-more { align-self: center; width: auto !important; margin: 0 !important; }
+        .avatar.sm2 { width: 36px; height: 36px; font-size: 15px; }
+        .avatar.xl { width: 100%; height: 100%; font-size: 48px; box-shadow: 0 6px 24px var(--glass-shadow), 0 0 0 4px var(--bg-color); }
+
+        /* чужой профиль */
+        .person-card { padding-top: 0; }
+        .person-card .profile-cover { position: relative; margin: 0 -20px; height: 160px; border-radius: 19px 19px 0 0; }
+        .pv-back { position: absolute; top: 12px; left: 12px; z-index: 2; background: rgba(0,0,0,.35) !important; color: #fff !important; }
+        .pv-head { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; margin-top: -62px; position: relative; }
+        .pv-head .avatar-wrap { width: 124px; height: 124px; }
+        .pv-head .nick { font-weight: 800; font-size: 1.5rem; overflow-wrap: anywhere; margin-top: 4px; }
+        .pv-head .actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center; margin-top: 8px; }
+        .rel-chip { font-size: 13px; padding: 6px 12px; border-radius: 999px; background: rgba(128,128,128,.15); }
+        @media (max-width: 600px) { .person-card .profile-cover { margin: 0 -16px; height: 140px; } }
+        .clickable-av { cursor: pointer; }
+        .av-viewer .own-only[hidden] { display: none; }
         @media (max-width: 360px) { #module-account .flex-row .glass-btn { font-size: 13px; padding-left: 6px; padding-right: 6px; } }
 
         /* просмотр своей аватарки */
@@ -865,13 +926,24 @@
         </div>
     </div>
 
-    <!-- Просмотр своей аватарки -->
+    <!-- Фон профиля: что сделать -->
+    <div class="modal" id="coverMenu" hidden onclick="if (event.target === this) closeCoverMenu()">
+        <div class="modal-card sheet-menu" role="dialog" aria-modal="true" aria-label="Фон профиля">
+            <div class="card-header" style="justify-content: center;">Фон профиля</div>
+            <button type="button" class="glass-btn" onclick="closeCoverMenu(); pickCover()">🖼 Выбрать новый фон</button>
+            <button type="button" class="glass-btn secondary" onclick="closeCoverMenu(); viewMyCover()">Посмотреть</button>
+            <button type="button" class="glass-btn danger" onclick="closeCoverMenu(); removeCover()">Убрать фон</button>
+            <button type="button" class="glass-btn secondary" onclick="closeCoverMenu()">Отмена</button>
+        </div>
+    </div>
+
+    <!-- Просмотр аватарки -->
     <div class="av-viewer" id="avViewer" hidden onclick="if (event.target === this) closeAvatarViewer()" role="dialog" aria-modal="true" aria-label="Фото профиля">
         <img id="avViewerImg" alt="Фото профиля" onclick="closeAvatarViewer()">
         <div class="nm" id="avViewerName"></div>
         <div class="bar">
-            <button type="button" class="glass-btn" onclick="closeAvatarViewer(true); pickAvatar()">📷 Сменить фото</button>
-            <button type="button" class="glass-btn secondary" onclick="closeAvatarViewer(true); removeAvatar()">Убрать</button>
+            <button type="button" class="glass-btn own-only" onclick="closeAvatarViewer(true); pickAvatar()">📷 Сменить фото</button>
+            <button type="button" class="glass-btn secondary own-only" onclick="closeAvatarViewer(true); removeAvatar()">Убрать</button>
             <button type="button" class="glass-btn secondary" onclick="closeAvatarViewer()">Закрыть</button>
         </div>
     </div>
@@ -1078,8 +1150,8 @@
             <div class="glass-card full-width soc-chat chat-card">
                 <div class="chat-head">
                     <button class="nav-btn" onclick="closeChat()" aria-label="Назад к друзьям">‹</button>
-                    <span class="avatar md other" id="chatAvatar"></span>
-                    <div class="who" id="chatName"></div>
+                    <span class="avatar md other clickable-av" id="chatAvatar" onclick="chat.peer && openPerson(chat.peer.id)" title="Открыть профиль"></span>
+                    <div class="who clickable-av" id="chatName" onclick="chat.peer && openPerson(chat.peer.id)" title="Открыть профиль"></div>
                     <button class="icon-btn" onclick="removeFriend(chat.peer && chat.peer.id, true)" title="Удалить из друзей">🗑</button>
                 </div>
                 <div class="chat-body" id="chatBody" aria-live="polite"></div>
@@ -1195,24 +1267,69 @@
             </div>
 
             <div class="glass-card full-width acc-in profile-card" id="profileCard">
+                <div class="profile-cover" id="accCover" onclick="viewMyCover()" role="img" aria-label="Фон профиля"></div>
                 <div class="profile-head" id="profileHead">
                     <button type="button" class="avatar-wrap" id="accAvatarWrap" onclick="onProfileAvatarClick()" title="Посмотреть фото профиля">
                         <span class="avatar lg" id="accAvatar"></span>
                     </button>
                     <div class="nick" id="accName"></div>
                     <div class="actions" id="accActions">
-                        <button type="button" class="glass-btn secondary compact" onclick="pickAvatar()" id="accAvBtn">📷 Загрузить фото</button>
-                        <button type="button" class="glass-btn secondary compact" onclick="removeAvatar()" id="accAvRemove" hidden>Убрать</button>
+                        <button type="button" class="glass-btn secondary compact" onclick="pickAvatar()" id="accAvBtn">📷 Фото</button>
+                        <button type="button" class="glass-btn secondary compact" onclick="openCoverMenu()" id="accCoverBtn">🖼 Фон</button>
+                        <button type="button" class="glass-btn secondary compact" onclick="openSettings()" id="accSettingsBtn">⚙️ Настройки</button>
                     </div>
                 </div>
                 <input type="file" id="avatarFile" accept="image/*" hidden onchange="onAvatarFile(this)">
+                <input type="file" id="coverFile" accept="image/*" hidden onchange="onCoverFile(this)">
                 <div class="form-msg" id="accAvMsg"></div>
+                <div class="profile-stats" id="accStats"></div>
+            </div>
+
+            <div class="glass-card full-width acc-in post-composer" id="postComposer">
+                <button type="button" class="pc-start" id="pcStart" onclick="pickPostImage()">
+                    <span class="pc-ic">📷</span>
+                    <span><b>Новый пост</b><span class="pc-sub">Фото с подписью — появится у вас в профиле</span></span>
+                </button>
+                <div class="pc-form" id="pcForm" hidden>
+                    <div class="pc-preview"><img id="pcImg" alt="Фото для поста">
+                        <button type="button" class="pc-x" onclick="clearPostDraft()" aria-label="Убрать фото">✕</button></div>
+                    <textarea id="pcCaption" class="glass-input" rows="2" placeholder="Подпись к фото (необязательно)" maxlength="2000" oninput="autoGrow(this)"></textarea>
+                    <div class="form-msg" id="pcMsg"></div>
+                    <div class="flex-row">
+                        <button type="button" class="glass-btn secondary" onclick="clearPostDraft()" style="margin: 0;">Отмена</button>
+                        <button type="button" class="glass-btn" id="pcSubmit" onclick="publishPost()" style="margin: 0;">Опубликовать</button>
+                    </div>
+                </div>
+                <input type="file" id="postFile" accept="image/*" hidden onchange="onPostFile(this)">
+            </div>
+
+            <div class="full-width acc-in posts-feed" id="myPosts"></div>
+        </div>
+
+        <!-- НАСТРОЙКИ АККАУНТА -->
+        <div class="dashboard" id="module-settings">
+            <div class="glass-card full-width">
+                <div class="settings-head">
+                    <button type="button" class="nav-btn" onclick="openAccount()" aria-label="Назад в профиль">‹</button>
+                    <span class="avatar md" id="setAvatar"></span>
+                    <div class="who"><div class="ttl">Настройки</div><div class="sub" id="setName"></div></div>
+                </div>
                 <div class="sync-line" id="accSyncText"></div>
                 <div class="flex-row" style="margin-top: 15px;">
                     <button class="glass-btn" id="accSyncBtn" onclick="syncNow()" style="margin-bottom: 0;">Синхронизировать</button>
                     <button class="glass-btn secondary" onclick="logout()" style="margin-bottom: 0;">Выйти</button>
                 </div>
                 <div class="hint">Изменения отправляются сами через пару секунд, а изменения с других устройств подтягиваются раз в минуту и при открытии приложения.</div>
+            </div>
+
+            <div class="glass-card full-width">
+                <div class="card-header">🔒 Кто видит мои посты</div>
+                <div class="segmented" id="postsVisSwitch">
+                    <button type="button" data-v="all" onclick="setPostsVis('all')">Все</button>
+                    <button type="button" data-v="friends" onclick="setPostsVis('friends')">Только друзья</button>
+                </div>
+                <div class="form-msg" id="postsVisMsg"></div>
+                <div class="hint">Ник, фото профиля и фон видят все, кто найдёт вас в поиске. Посты — как выберете здесь.</div>
             </div>
 
             <div class="glass-card full-width share-card" id="shareCard">
@@ -1242,7 +1359,7 @@
                 <div class="hint" id="shareHint">Отправьте ссылку друзьям или откройте её на другом устройстве и войдите в тот же аккаунт.</div>
             </div>
 
-            <div class="glass-card acc-in">
+            <div class="glass-card">
                 <div class="card-header">Смена пароля</div>
                 <form onsubmit="changePassword(event)" autocomplete="on">
                     <input type="text" id="accPwUser" name="username" autocomplete="username" hidden>
@@ -1255,7 +1372,7 @@
                 <div class="hint">На других устройствах после смены нужно будет войти заново.</div>
             </div>
 
-            <div class="glass-card acc-in">
+            <div class="glass-card">
                 <div class="card-header">Удаление аккаунта</div>
                 <form onsubmit="deleteAccount(event)">
                     <input id="accDelPw" type="password" class="glass-input" placeholder="Пароль для подтверждения" autocomplete="current-password">
@@ -1264,6 +1381,24 @@
                 </form>
                 <div class="hint">Аккаунт и все данные удалятся с сервера. На этом устройстве данные останутся.</div>
             </div>
+        </div>
+
+        <!-- ПРОФИЛЬ ДРУГОГО ЧЕЛОВЕКА -->
+        <div class="dashboard" id="module-person">
+            <div class="glass-card full-width profile-card person-card">
+                <div class="profile-cover" id="pvCover" onclick="viewPersonCover()" role="img" aria-label="Фон профиля"></div>
+                <button type="button" class="nav-btn pv-back" onclick="closePerson()" aria-label="Назад">‹</button>
+                <div class="pv-head">
+                    <button type="button" class="avatar-wrap has-photo" onclick="viewPersonAvatar()" title="Посмотреть фото">
+                        <span class="avatar xl other" id="pvAvatar"></span>
+                    </button>
+                    <div class="nick" id="pvName"></div>
+                    <div class="profile-stats" id="pvStats"></div>
+                    <div class="actions" id="pvActions"></div>
+                    <div class="form-msg" id="pvMsg"></div>
+                </div>
+            </div>
+            <div class="full-width posts-feed" id="pvPosts"></div>
         </div>
 
         <!-- ФИНАНСЫ -->
@@ -3185,6 +3320,7 @@
             else if (auth) state = 'in';
             mod.dataset.state = state;
             if (state !== 'in') mod.style.minHeight = '';
+            if (state !== 'in' && ['settings', 'person'].some(m => $('module-' + m).classList.contains('active'))) { openAccount(); return; }
 
             if (state === 'noserver') {
                 $('accNoServerText').innerHTML = !SERVER_BASE
@@ -3198,6 +3334,7 @@
                 pillName.textContent = auth.login;
                 dot.dataset.s = ['idle', 'ok'].includes(syncState) ? (data && data._meta && data._meta.dirty ? 'pending' : 'ok') : syncState;
                 $('accName').textContent = auth.login;
+                $('setName').textContent = auth.login;
                 $('accPwUser').value = auth.login;
                 const t = lastSyncAt ? new Date(lastSyncAt) : null;
                 const at = t ? `${pad(t.getHours())}:${pad(t.getMinutes())}` : '';
@@ -3219,6 +3356,7 @@
             renderAvatars();
             updateSocialView();
             renderShareLink();
+            renderMyProfile();
             if (auth && pendingInvite) setTimeout(() => applyPendingInvite(false), 0);
         }
 
@@ -3376,10 +3514,9 @@
         }
 
         function renderAvatars() {
-            ['pillAvatar', 'accAvatar'].forEach(id => { const el = $(id); if (el) paintAvatar(el); });
+            ['pillAvatar', 'accAvatar', 'setAvatar'].forEach(id => { const el = $(id); if (el) paintAvatar(el); });
+            document.querySelectorAll('.avatar.my-av').forEach(paintAvatar);
             const has = !!myAvatar();
-            $('accAvRemove').hidden = !has;
-            $('accAvBtn').textContent = has ? '📷 Сменить фото' : '📷 Загрузить фото';
             const wrap = $('accAvatarWrap');
             wrap.classList.toggle('has-photo', has);
             wrap.title = has ? 'Посмотреть фото профиля' : 'Загрузить фото профиля';
@@ -3391,15 +3528,20 @@
             if (myAvatar()) openAvatarViewer();
             else pickAvatar();
         }
-        function openAvatarViewer() {
-            const src = myAvatar();
+        let avViewFrom = null;
+        // без параметров — своя аватарка; для чужой передаём { src, name, fromEl }
+        function openAvatarViewer(opt) {
+            const own = !opt;
+            const src = own ? myAvatar() : opt.src;
             if (!src) return;
             const v = $('avViewer'), img = $('avViewerImg');
             img.src = src;
-            $('avViewerName').textContent = auth ? auth.login : '';
+            $('avViewerName').textContent = own ? (auth ? auth.login : '') : opt.name;
+            v.querySelectorAll('.own-only').forEach(b => { b.hidden = !own; });
+            avViewFrom = own ? $('accAvatar') : opt.fromEl;
             v.hidden = false;
             // фото «вылетает» из аватарки
-            const from = $('accAvatar').getBoundingClientRect(), to = img.getBoundingClientRect();
+            const from = avViewFrom.getBoundingClientRect(), to = img.getBoundingClientRect();
             if (img.animate && from.width && to.width && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
                 const dx = from.left + from.width / 2 - (to.left + to.width / 2), dy = from.top + from.height / 2 - (to.top + to.height / 2);
                 img.animate([{ transform: `translate(${dx}px, ${dy}px) scale(${from.width / to.width})` }, { transform: 'none' }],
@@ -3407,13 +3549,13 @@
                 v.animate([{ backgroundColor: 'rgba(0,0,0,0)' }, { backgroundColor: 'rgba(0,0,0,0.88)' }], { duration: 220 });
                 [...v.querySelectorAll('.nm, .bar')].forEach(el => el.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 300, delay: 80, fill: 'backwards' }));
             }
-            v.querySelector('.bar .glass-btn').focus({ preventScroll: true });
+            v.querySelector('.bar .glass-btn:not([hidden])').focus({ preventScroll: true });
         }
         function closeAvatarViewer(instant) {
             const v = $('avViewer'), img = $('avViewerImg');
             if (v.hidden) return;
             const done = () => { v.hidden = true; img.removeAttribute('src'); };
-            const to = $('accAvatar').getBoundingClientRect(), from = img.getBoundingClientRect();
+            const to = (avViewFrom || $('accAvatar')).getBoundingClientRect(), from = img.getBoundingClientRect();
             if (instant || !img.animate || !to.width || matchMedia('(prefers-reduced-motion: reduce)').matches) return done();
             const dx = to.left + to.width / 2 - (from.left + from.width / 2), dy = to.top + to.height / 2 - (from.top + from.height / 2);
             img.animate([{ transform: 'none' }, { transform: `translate(${dx}px, ${dy}px) scale(${to.width / from.width})` }], { duration: 220, easing: 'ease-in', fill: 'forwards' });
@@ -3438,14 +3580,15 @@
         function layoutProfileHead() {
             const head = $('profileHead');
             if (!head || !profileHeadActive()) return;
-            const card = $('profileCard'), wrap = $('accAvatarWrap'), av = $('accAvatar'), nick = $('accName'), acts = $('accActions');
+            const card = $('profileCard'), wrap = $('accAvatarWrap'), av = $('accAvatar'), nick = $('accName'), acts = $('accActions'), cover = $('accCover');
             const W = head.clientWidth;
             if (!W) return;
             const padT = parseFloat(getComputedStyle(card).paddingTop) || 20;
             const lerp = (a, b, t) => a + (b - a) * t;
             const p = phP;
 
-            const A0 = W < 420 ? 116 : 136, A1 = 72, F = 0.55, GAP = 16;
+            const A0 = W < 420 ? 116 : 136, A1 = 72, F = 0.5, GAP = 16;
+            const C0 = W < 420 ? 150 : 200;           // высота фона в развернутом виде
             const A = lerp(A0, A1, p);
 
             // ник: размер шрифта и ширина
@@ -3465,10 +3608,10 @@
             const actH = acts.offsetHeight;
 
             // развернутый вид
-            const e = { ax: (W - A0) / 2, ay: -padT - F * A0 };
+            const e = { ax: (W - A0) / 2, ay: C0 - padT - F * A0 };    // аватарка наполовину на фоне
             e.ny = e.ay + A0 + 12; e.nx = (W - nickW) / 2;
             e.cy = e.ny + nickH + 12; e.cx = (W - actW) / 2;
-            e.h = e.cy + actH; e.m = F * A0 + 8;
+            e.h = e.cy + actH; e.m = 0;
             // свернутый вид
             const blockH = nickH + 8 + actH;
             const top = Math.max(0, (A1 - blockH) / 2);
@@ -3481,23 +3624,33 @@
             acts.style.transform = `translate(${lerp(e.cx, c.cx, p)}px, ${lerp(e.cy, c.cy, p)}px)`;
             head.style.height = Math.round(lerp(e.h, c.h, p)) + 'px';
             card.style.marginTop = Math.round(lerp(e.m, c.m, p)) + 'px';
+            cover.style.height = Math.round(lerp(C0, 0, p)) + 'px';
+            cover.style.opacity = String(Math.max(0, 1 - p * 1.4));
+            cover.style.pointerEvents = p > 0.5 ? 'none' : '';
 
             // свернутая шапка ниже, и короткая страница могла бы «отпрыгнуть» наверх и снова развернуть её —
             // поэтому вкладка всегда чуть выше экрана
-            $('module-account').style.minHeight = Math.max(0, window.innerHeight - 100) + 'px';
+            $('module-account').style.minHeight = window.innerHeight + 'px';
+        }
+        // Мобильный Chrome иногда «подтягивает» прокрутку, когда шапка уменьшается, и страница уезжает вверх.
+        // Положение прокрутки во время пересчёта держим на месте.
+        function layoutProfileHeadKeep() {
+            const y = window.scrollY;
+            layoutProfileHead();
+            if (window.scrollY !== y) window.scrollTo(0, y);
         }
         function setProfileHeadTarget(t, instant) {
             if (t === phTarget && !instant) return;
             phTarget = t;
             if (phAnim) cancelAnimationFrame(phAnim);
             phAnim = null;
-            if (instant || matchMedia('(prefers-reduced-motion: reduce)').matches) { phP = t; layoutProfileHead(); return; }
+            if (instant || matchMedia('(prefers-reduced-motion: reduce)').matches) { phP = t; layoutProfileHeadKeep(); return; }
             const from = phP, t0 = performance.now();
             const ease = x => 1 - Math.pow(1 - x, 3);
             const step = now => {
                 const k = Math.min(1, (now - t0) / PH_MS);
                 phP = from + (t - from) * ease(k);
-                layoutProfileHead();
+                layoutProfileHeadKeep();
                 phAnim = k < 1 ? requestAnimationFrame(step) : null;
             };
             phAnim = requestAnimationFrame(step);
@@ -3512,7 +3665,7 @@
                 phFrame = 0;
                 const t = profileHeadWanted();
                 if (t !== phTarget) setProfileHeadTarget(t);
-                else if (!phAnim) layoutProfileHead();
+                else if (!phAnim) layoutProfileHeadKeep();
             });
         }
         window.addEventListener('scroll', scheduleProfileHead, { passive: true });
@@ -3834,6 +3987,7 @@
 
         function resetSocial(owner) {
             socialOwner = owner;
+            resetProfileState();
             social = { me: null, friends: [], incoming: [], outgoing: [] };
             searchResults = null;
             $('socSearch').value = '';
@@ -3937,9 +4091,9 @@
 
             $('socIncoming').innerHTML = social.incoming.length
                 ? '<div class="soc-section">Заявки в друзья</div>' + social.incoming.map(p => `
-                    <div class="person">${personAvatar(p)}
+                    <div class="person clickable" onclick="openPerson(${p.id})">${personAvatar(p)}
                         <div class="info"><div class="nm">${esc(p.login)}</div><div class="sub">хочет добавить вас в друзья</div></div>
-                        <div class="btns">
+                        <div class="btns" onclick="event.stopPropagation()">
                             <button class="glass-btn compact" onclick="friendAction('accept', ${p.id})">Принять</button>
                             <button class="glass-btn secondary compact" onclick="friendAction('decline', ${p.id})" aria-label="Отклонить заявку">✕</button>
                         </div>
@@ -3949,7 +4103,7 @@
             $('socFriends').innerHTML = '<div class="soc-section">Друзья</div>' + (social.friends.length
                 ? social.friends.map(f => `
                     <div class="person clickable" onclick="openChat(${f.id})" role="button" tabindex="0" onkeydown="if (event.key === 'Enter') openChat(${f.id})">
-                        ${personAvatar(f)}
+                        <span class="clickable-av" onclick="event.stopPropagation(); openPerson(${f.id})" title="Открыть профиль">${personAvatar(f)}</span>
                         <div class="info">
                             <div class="nm">${esc(f.login)}</div>
                             <div class="sub">${f.last
@@ -3965,9 +4119,9 @@
 
             $('socOutgoing').innerHTML = social.outgoing.length
                 ? '<div class="soc-section">Ожидают ответа</div>' + social.outgoing.map(p => `
-                    <div class="person">${personAvatar(p)}
+                    <div class="person clickable" onclick="openPerson(${p.id})">${personAvatar(p)}
                         <div class="info"><div class="nm">${esc(p.login)}</div><div class="sub">заявка отправлена</div></div>
-                        <div class="btns"><button class="glass-btn secondary compact" onclick="friendAction('remove', ${p.id})">Отменить</button></div>
+                        <div class="btns" onclick="event.stopPropagation()"><button class="glass-btn secondary compact" onclick="friendAction('remove', ${p.id})">Отменить</button></div>
                     </div>`).join('')
                 : '';
 
@@ -4022,9 +4176,9 @@
                         friend: `<button class="glass-btn secondary compact" onclick="openChat(${u.id})">Написать</button>`
                     }[rel];
                     const sub = { none: '', outgoing: 'заявка отправлена', incoming: 'хочет добавить вас в друзья', friend: 'в друзьях' }[rel];
-                    return `<div class="person">${personAvatar(u)}
+                    return `<div class="person clickable" onclick="openPerson(${u.id})" title="Открыть профиль">${personAvatar(u)}
                         <div class="info"><div class="nm">${esc(u.login)}</div>${sub ? `<div class="sub">${sub}</div>` : ''}</div>
-                        <div class="btns">${btn}</div></div>`;
+                        <div class="btns" onclick="event.stopPropagation()">${btn}</div></div>`;
                 }).join('')
                 : '<div class="empty-state" style="padding: 10px;">Никого не нашлось</div>');
             paintOthers(box);
@@ -4038,8 +4192,10 @@
                 if (r.body.rel === 'friend' && action !== 'remove') showToast('🤝 Теперь вы друзья', 'Можно переписываться.', 4000);
                 await loadSocial();
                 renderSearchResults();
+                if (person.id === id) loadPerson();
             } catch (e) {
                 setMsg('socMsg', e.offline ? 'Нет связи с сервером' : e.message);
+                if (person.id === id) setMsg('pvMsg', e.offline ? 'Нет связи с сервером' : e.message);
             }
         }
 
@@ -4052,6 +4208,7 @@
                 if (Array.isArray(searchResults)) searchResults.forEach(u => { if (u.id === id) u.rel = 'none'; });
                 if (chat.peer && chat.peer.id === id) closeChat(true);
                 await loadSocial();
+                if (person.id === id) loadPerson();
             } catch (e) {
                 showToast('Не получилось', e.offline ? 'Нет связи с сервером' : e.message, 5000);
             }
@@ -4263,6 +4420,430 @@
             (kind === 'voice' ? voiceMem : imgMem).set(id, d);
             if ('caches' in window) caches.open(IMG_CACHE).then(c => c.put(`${SERVER_BASE}/messages/${kind}?id=${id}`, new Response(d))).catch(() => {});
         }
+
+        // ================= ПРОФИЛЬ: ФОН И ПОСТЫ =================
+        // Фон и фото постов, однажды скачанные, лежат в Cache Storage рядом с картинками из чатов.
+        let myProfile = null;                    // { id, login, av, cover, posts, friends, postsVis }
+        try {
+            const c = JSON.parse(localStorage.getItem('produ_myprofile'));
+            if (c && auth && c.owner === normLogin(auth.login)) myProfile = c.profile;
+        } catch (e) {}
+        let myProfileLoading = null;
+        const myPosts = { items: [], hasMore: false, loaded: false, loading: false, error: '' };
+        const person = { id: 0, profile: null, posts: { items: [], hasMore: false, loaded: false, loading: false, hidden: false, error: '' }, seq: 0 };
+        const coverMem = new Map(), postMem = new Map(), mediaLoading = new Map();
+        let postDraft = null;
+
+        function ruPlural(n, one, few, many) {
+            const a = Math.abs(n) % 100, b = a % 10;
+            return a > 10 && a < 20 ? many : b === 1 ? one : b >= 2 && b <= 4 ? few : many;
+        }
+        function fmtPostDate(ts) {
+            const d = new Date(ts), t = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            if (ymd(d) === todayStr()) return 'сегодня в ' + t;
+            if (ymd(d) === ymd(addDays(new Date(), -1))) return 'вчера в ' + t;
+            return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]}${d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : ''} в ${t}`;
+        }
+        function statsText(p) {
+            if (!p) return '';
+            return `${p.posts} ${ruPlural(p.posts, 'пост', 'поста', 'постов')} · ${p.friends} ${ruPlural(p.friends, 'друг', 'друга', 'друзей')}`;
+        }
+
+        // общий загрузчик: память → Cache Storage → сервер
+        function loadCachedMedia(mem, memKey, cacheKey, path) {
+            if (mem.has(memKey)) return Promise.resolve(mem.get(memKey));
+            if (mediaLoading.has(cacheKey)) return mediaLoading.get(cacheKey);
+            const pr = (async () => {
+                try {
+                    if ('caches' in window) {
+                        const hit = await (await caches.open(IMG_CACHE)).match(cacheKey);
+                        if (hit) { const d = await hit.text(); mem.set(memKey, d); return d; }
+                    }
+                    const r = await api(path);
+                    const d = r.body.data;
+                    if (!d) return null;
+                    mem.set(memKey, d);
+                    if ('caches' in window) caches.open(IMG_CACHE).then(c => c.put(cacheKey, new Response(d))).catch(() => {});
+                    return d;
+                } catch (e) {
+                    return null;
+                } finally {
+                    mediaLoading.delete(cacheKey);
+                }
+            })();
+            mediaLoading.set(cacheKey, pr);
+            return pr;
+        }
+        const coverKey = (uid, v) => `${SERVER_BASE}/profile/cover?user=${uid}&v=${v}`;
+        const postKey = id => `${SERVER_BASE}/posts/image?id=${id}`;
+        const loadCover = (uid, v) => loadCachedMedia(coverMem, uid + ':' + v, coverKey(uid, v), '/profile/cover?user=' + uid);
+        const loadPostImage = id => loadCachedMedia(postMem, id, postKey(id), '/posts/image?id=' + id);
+        function rememberMedia(mem, memKey, cacheKey, d) {
+            mem.set(memKey, d);
+            if ('caches' in window) caches.open(IMG_CACHE).then(c => c.put(cacheKey, new Response(d))).catch(() => {});
+        }
+        function forgetMedia(mem, memKey, cacheKey) {
+            mem.delete(memKey);
+            if ('caches' in window) caches.open(IMG_CACHE).then(c => c.delete(cacheKey)).catch(() => {});
+        }
+
+        function paintCover(el, uid, v) {
+            el.dataset.cover = uid + ':' + (v || 0);
+            const set = d => {
+                if (el.dataset.cover !== uid + ':' + (v || 0)) return;
+                el.style.setProperty('--cover-img', d ? `url("${d}")` : 'none');
+                el.classList.toggle('has-img', !!d);
+            };
+            if (!v) return set(null);
+            const known = coverMem.get(uid + ':' + v);
+            if (known) return set(known);
+            loadCover(uid, v).then(set);
+        }
+
+        function resetProfileState() {
+            myProfile = null;
+            Object.assign(myPosts, { items: [], hasMore: false, loaded: false, loading: false, error: '' });
+            person.id = 0; person.profile = null;
+            clearPostDraft();
+            try { localStorage.removeItem('produ_myprofile'); } catch (e) {}
+        }
+
+        // ---- свой профиль ----
+        function saveMyProfile() {
+            try { localStorage.setItem('produ_myprofile', JSON.stringify({ owner: normLogin(auth.login), profile: myProfile })); } catch (e) {}
+        }
+        function loadMyProfile() {
+            if (!auth || !SERVER_BASE) return Promise.resolve();
+            if (!myPosts.loaded && !myPosts.loading) loadMyPosts(true);
+            if (myProfileLoading) return myProfileLoading;
+            myProfileLoading = (async () => {
+                try {
+                    const r = await api('/profile');
+                    if (!auth) return;
+                    myProfile = r.body.profile;
+                    saveMyProfile();
+                    renderMyProfile();
+                } catch (e) {
+                } finally {
+                    myProfileLoading = null;
+                }
+            })();
+            return myProfileLoading;
+        }
+        function renderMyProfile() {
+            if (!auth) return;
+            $('accStats').textContent = statsText(myProfile);
+            paintCover($('accCover'), myProfile ? myProfile.id : 0, myProfile ? myProfile.cover : 0);
+            $('accCoverBtn').textContent = myProfile && myProfile.cover ? '🖼 Фон' : '🖼 Добавить фон';
+            const vis = myProfile ? myProfile.postsVis || 'all' : '';
+            $('postsVisSwitch').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.v === vis));
+            renderPosts($('myPosts'), myPosts, true);
+            layoutProfileHead();
+        }
+        function openSettings() { switchTab('settings', null); window.scrollTo(0, 0); }
+
+        async function setPostsVis(v) {
+            if (!auth || !myProfile) return;
+            const prev = myProfile.postsVis;
+            myProfile.postsVis = v;
+            renderMyProfile();
+            setMsg('postsVisMsg', '');
+            try {
+                await api('/profile/settings', { method: 'POST', body: { postsVis: v } });
+                saveMyProfile();
+                setMsg('postsVisMsg', v === 'friends' ? 'Теперь посты видят только друзья.' : 'Теперь посты видят все.', true);
+            } catch (e) {
+                myProfile.postsVis = prev;
+                renderMyProfile();
+                setMsg('postsVisMsg', e.offline ? 'Нет связи с сервером' : e.message);
+            }
+        }
+
+        // ---- фон профиля ----
+        function openCoverMenu() {
+            if (!auth) return;
+            if (myProfile && myProfile.cover) $('coverMenu').hidden = false;
+            else pickCover();
+        }
+        function closeCoverMenu() { $('coverMenu').hidden = true; }
+        function pickCover() {
+            setMsg('accAvMsg', '');
+            const f = $('coverFile');
+            f.value = '';
+            f.click();
+        }
+        // фон обрезается по центру до пропорции 5:2 и уменьшается до 1500 пикселей в ширину
+        function makeCoverImage(file) {
+            return new Promise((resolve, reject) => {
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => {
+                    URL.revokeObjectURL(url);
+                    const R = 2.5, iw = img.naturalWidth, ih = img.naturalHeight;
+                    let sw = iw, sh = ih;
+                    if (iw / ih > R) sw = ih * R; else sh = iw / R;
+                    const sx = (iw - sw) / 2, sy = (ih - sh) / 2;
+                    const W = Math.round(Math.min(1500, sw)), H = Math.round(W / R);
+                    const c = document.createElement('canvas');
+                    c.width = W; c.height = H;
+                    const ctx = c.getContext('2d');
+                    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+                    let d = c.toDataURL('image/jpeg', 0.82);
+                    if (d.length > 850_000) d = c.toDataURL('image/jpeg', 0.62);
+                    resolve(d);
+                };
+                img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Не удалось открыть картинку. Попробуйте фото в формате JPG или PNG.')); };
+                img.src = url;
+            });
+        }
+        async function onCoverFile(input) {
+            const file = input.files && input.files[0];
+            input.value = '';
+            if (!file || !auth) return;
+            if (file.type && !file.type.startsWith('image/')) return setMsg('accAvMsg', 'Выберите файл с картинкой.');
+            const btn = $('accCoverBtn');
+            btn.disabled = true;
+            btn.textContent = 'Загружаем…';
+            try {
+                const d = await makeCoverImage(file);
+                const r = await api('/profile/cover', { method: 'PUT', raw: true, body: d });
+                if (!myProfile) await loadMyProfile();
+                if (myProfile) {
+                    rememberMedia(coverMem, myProfile.id + ':' + r.body.cover, coverKey(myProfile.id, r.body.cover), d);
+                    myProfile.cover = r.body.cover;
+                    saveMyProfile();
+                }
+                setMsg('accAvMsg', '');
+            } catch (e) {
+                setMsg('accAvMsg', e.offline ? 'Нет связи с сервером, фон не сохранился. Попробуйте позже.' : e.message);
+            } finally {
+                btn.disabled = false;
+                renderMyProfile();
+            }
+        }
+        async function removeCover() {
+            if (!auth || !confirm('Убрать фон профиля?')) return;
+            try {
+                await api('/profile/cover', { method: 'DELETE' });
+                if (myProfile) { myProfile.cover = 0; saveMyProfile(); }
+                renderMyProfile();
+            } catch (e) {
+                setMsg('accAvMsg', e.offline ? 'Нет связи с сервером' : e.message);
+            }
+        }
+        function viewCoverOf(uid, v) {
+            const d = v ? coverMem.get(uid + ':' + v) : null;
+            if (d) openImageViewer({ src: d, dataset: { mid: 'cover' } });
+        }
+        function viewMyCover() {
+            if (!myProfile || !myProfile.cover) return pickCover();
+            viewCoverOf(myProfile.id, myProfile.cover);
+        }
+
+        // ---- посты ----
+        function pickPostImage() {
+            if (!auth) return;
+            const f = $('postFile');
+            f.value = '';
+            f.click();
+        }
+        async function onPostFile(input) {
+            const file = input.files && input.files[0];
+            input.value = '';
+            if (!file) return;
+            setMsg('pcMsg', '');
+            if (file.type && !file.type.startsWith('image/')) { clearPostDraft(); return showToast('Это не картинка', 'Выберите фото для поста.', 4000); }
+            try {
+                postDraft = await compressImage(file);
+            } catch (e) {
+                return showToast('Не получилось', e.message, 5000);
+            }
+            $('pcImg').src = postDraft.data;
+            $('pcStart').hidden = true;
+            $('pcForm').hidden = false;
+            const ta = $('pcCaption');
+            if (matchMedia('(pointer: fine)').matches) ta.focus();
+        }
+        function clearPostDraft() {
+            postDraft = null;
+            if (!$('pcForm')) return;
+            $('pcForm').hidden = true;
+            $('pcStart').hidden = false;
+            $('pcImg').removeAttribute('src');
+            $('pcCaption').value = '';
+            autoGrow($('pcCaption'));
+            setMsg('pcMsg', '');
+        }
+        async function publishPost() {
+            if (!postDraft || !auth) return;
+            const btn = $('pcSubmit');
+            btn.disabled = true;
+            btn.textContent = 'Публикуем…';
+            setMsg('pcMsg', '');
+            try {
+                const r = await api('/posts/create', { method: 'POST', body: { image: postDraft, caption: $('pcCaption').value } });
+                const post = r.body.post;
+                rememberMedia(postMem, post.id, postKey(post.id), postDraft.data);
+                myPosts.items.unshift(post);
+                if (myProfile) { myProfile.posts++; saveMyProfile(); }
+                clearPostDraft();
+                renderMyProfile();
+                showToast('✅ Пост опубликован', '', 3000);
+            } catch (e) {
+                setMsg('pcMsg', e.offline ? 'Нет связи с сервером. Пост не опубликован — попробуйте ещё раз.' : e.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Опубликовать';
+            }
+        }
+        async function deletePost(id) {
+            if (!confirm('Удалить этот пост?')) return;
+            try {
+                await api('/posts/delete', { method: 'POST', body: { id } });
+                myPosts.items = myPosts.items.filter(p => p.id !== id);
+                forgetMedia(postMem, id, postKey(id));
+                if (myProfile) { myProfile.posts = Math.max(0, myProfile.posts - 1); saveMyProfile(); }
+                renderMyProfile();
+            } catch (e) {
+                showToast('Не получилось', e.offline ? 'Нет связи с сервером' : e.message, 5000);
+            }
+        }
+
+        async function fetchPosts(state, uid, more) {
+            if (state.loading) return;
+            state.loading = true;
+            state.error = '';
+            const before = more && state.items.length ? state.items[state.items.length - 1].id : 0;
+            try {
+                const r = await api('/posts?' + (uid ? 'user=' + uid + '&' : '') + (before ? 'before=' + before : ''));
+                state.items = more ? state.items.concat(r.body.posts) : r.body.posts;
+                state.hasMore = r.body.hasMore;
+                state.hidden = !!r.body.hidden;
+                state.loaded = true;
+            } catch (e) {
+                state.error = e.offline ? 'Нет связи с сервером' : e.message;
+            } finally {
+                state.loading = false;
+            }
+        }
+        async function loadMyPosts(reset, more) {
+            if (!auth) return;
+            if (reset) myPosts.loaded = false;
+            const p = fetchPosts(myPosts, 0, more);
+            renderMyProfile();
+            await p;
+            renderMyProfile();
+        }
+
+        function renderPosts(box, state, own) {
+            const owner = own ? { login: auth ? auth.login : '' } : (person.profile || {});
+            if (!own && state.hidden) {
+                box.innerHTML = `<div class="glass-card full-width feed-note">🔒 ${esc(owner.login || '')} показывает посты только друзьям</div>`;
+                return;
+            }
+            let html = state.items.map(p => `
+                <article class="glass-card full-width post" data-pid="${p.id}">
+                    <div class="post-head">
+                        ${own ? '<span class="avatar sm2 my-av"></span>' : personAvatar({ id: owner.id, av: owner.av, login: owner.login }, 'sm2')}
+                        <div class="who"><div class="nm">${esc(owner.login || '')}</div><div class="when">${fmtPostDate(p.created)}</div></div>
+                        ${own ? `<button type="button" class="icon-btn" onclick="deletePost(${p.id})" title="Удалить пост" aria-label="Удалить пост">🗑</button>` : ''}
+                    </div>
+                    <div class="post-img" style="aspect-ratio: ${Number(p.w)} / ${Number(p.h)};"><img data-post="${p.id}" data-mid="post-${p.id}" alt="Фото из поста" onclick="openImageViewer(this)"></div>
+                    ${p.caption ? `<div class="post-cap">${esc(p.caption)}</div>` : ''}
+                </article>`).join('');
+            if (!state.items.length) {
+                html = state.loading || !state.loaded
+                    ? (state.error ? '' : '<div class="feed-note">Загрузка…</div>')
+                    : `<div class="glass-card full-width feed-note">${own ? '📷 Здесь будут ваши посты. Нажмите «Новый пост», чтобы выложить первое фото.' : 'Пока нет постов'}</div>`;
+            }
+            if (state.error) html += `<div class="feed-note">${esc(state.error)} · <a href="#" onclick="event.preventDefault(); ${own ? 'loadMyPosts(false, ' + state.items.length + ' > 0)' : 'loadPersonPosts(' + (state.items.length > 0) + ')'}">повторить</a></div>`;
+            else if (state.hasMore) html += `<button type="button" class="glass-btn secondary feed-more" ${state.loading ? 'disabled' : ''} onclick="${own ? 'loadMyPosts(false, true)' : 'loadPersonPosts(true)'}">${state.loading ? 'Загрузка…' : 'Показать ещё'}</button>`;
+            // не перерисовываем уже показанные фото — меньше мигания
+            const shown = new Map([...box.querySelectorAll('img[data-post].ok')].map(i => [i.dataset.post, i.src]));
+            box.innerHTML = html;
+            box.querySelectorAll('img[data-post]').forEach(img => {
+                const id = Number(img.dataset.post);
+                const done = d => { if (d) { img.src = d; img.classList.add('ok'); } };
+                if (shown.has(img.dataset.post)) return done(shown.get(img.dataset.post));
+                const known = postMem.get(id);
+                if (known) done(known); else loadPostImage(id).then(done);
+            });
+            if (own) box.querySelectorAll('.avatar.my-av').forEach(paintAvatar);
+            else paintOthers(box);
+        }
+
+        // ---- профиль другого человека ----
+        function personHint(id) {
+            const lists = [social.friends, social.incoming, social.outgoing, Array.isArray(searchResults) ? searchResults : []];
+            for (const l of lists) { const u = l.find(x => x.id === id); if (u) return u; }
+            return null;
+        }
+        function openPerson(id) {
+            id = Number(id);
+            if (!auth || !id) return;
+            if (id === social.me || (myProfile && myProfile.id === id)) { openAccount(); return; }
+            const hint = personHint(id);
+            if (person.id !== id) {
+                person.id = id;
+                person.profile = hint ? { id, login: hint.login, av: hint.av, cover: 0, rel: relationOf(hint) } : null;
+                Object.assign(person.posts, { items: [], hasMore: false, loaded: false, loading: false, hidden: false, error: '' });
+            }
+            setMsg('pvMsg', '');
+            switchTab('person', dockIcon('social'));
+            window.scrollTo(0, 0);
+            renderPerson();
+            loadPerson();
+        }
+        function closePerson() { switchTab('social', dockIcon('social')); }
+        async function loadPerson() {
+            const id = person.id, seq = ++person.seq;
+            try {
+                const r = await api('/profile?user=' + id);
+                if (seq !== person.seq || person.id !== id) return;
+                person.profile = r.body.profile;
+                renderPerson();
+                if (person.profile.postsVisible) loadPersonPosts(false);
+                else { Object.assign(person.posts, { items: [], hasMore: false, loaded: true, hidden: true }); renderPerson(); }
+            } catch (e) {
+                if (seq !== person.seq) return;
+                setMsg('pvMsg', e.status === 404 ? 'Такого пользователя больше нет.' : e.offline ? 'Нет связи с сервером' : e.message);
+                if (!person.profile) $('pvName').textContent = '—';
+            }
+        }
+        async function loadPersonPosts(more) {
+            const id = person.id;
+            const p = fetchPosts(person.posts, id, more);
+            renderPerson();
+            await p;
+            if (person.id === id) renderPerson();
+        }
+        function renderPerson() {
+            const p = person.profile;
+            const av = $('pvAvatar');
+            av.dataset.uid = person.id;
+            av.dataset.av = p ? p.av || 0 : 0;
+            av.dataset.name = p ? p.login : '';
+            if (!p) { av.style.backgroundImage = ''; av.textContent = ''; }
+            paintOthers(av.parentElement);
+            $('pvName').textContent = p ? p.login : 'Загрузка…';
+            $('pvStats').textContent = p && p.posts !== undefined ? statsText(p) : '';
+            paintCover($('pvCover'), person.id, p ? p.cover : 0);
+            const rel = p ? p.rel : '';
+            $('pvActions').innerHTML = {
+                friend: `<button type="button" class="glass-btn compact" onclick="openChatWhenReady(${person.id})">💬 Написать</button><span class="rel-chip">✓ В друзьях</span>`,
+                none: `<button type="button" class="glass-btn compact" onclick="friendAction('request', ${person.id})">➕ Добавить в друзья</button>`,
+                outgoing: `<span class="rel-chip">Заявка отправлена</span><button type="button" class="glass-btn secondary compact" onclick="friendAction('remove', ${person.id})">Отменить</button>`,
+                incoming: `<button type="button" class="glass-btn compact" onclick="friendAction('accept', ${person.id})">✓ Принять заявку</button><button type="button" class="glass-btn secondary compact" onclick="friendAction('decline', ${person.id})">Отклонить</button>`
+            }[rel] || '';
+            renderPosts($('pvPosts'), person.posts, false);
+        }
+        function viewPersonAvatar() {
+            const c = othersAv[person.id];
+            if (c && c.data && person.profile) openAvatarViewer({ src: c.data, name: person.profile.login, fromEl: $('pvAvatar') });
+        }
+        function viewPersonCover() { if (person.profile) viewCoverOf(person.id, person.profile.cover); }
 
         // ================= ГОЛОСОВЫЕ =================
         const VOICE_MAX_MS = 120000;
@@ -7381,12 +7962,13 @@
             document.getElementById(`module-${moduleName}`).classList.add('active');
             document.querySelectorAll('.dock-icon').forEach(el => el.classList.remove('active'));
             if (element) element.classList.add('active');
-            $('accountPill').classList.toggle('active', moduleName === 'account');
+            $('accountPill').classList.toggle('active', moduleName === 'account' || moduleName === 'settings');
 
             if (moduleName !== 'cards') { stopCardScanner(); closeCodeView(); }
             if (moduleName === 'reminders') { renderReminders(); renderNotifStatus(); }
             document.documentElement.classList.toggle('no-anchor', moduleName === 'account');
-            if (moduleName === 'account') { renderAccount(); loadServerConfig(); setProfileHeadTarget(profileHeadWanted(), true); }
+            if (moduleName === 'account') { renderAccount(); loadServerConfig(); setProfileHeadTarget(profileHeadWanted(), true); loadMyProfile(); }
+            if (moduleName === 'settings') { renderAccount(); loadMyProfile(); }
             else $('module-account').style.minHeight = '';
             if (moduleName === 'games') { if (!gm.g) renderGameTiles(); else gameRedraw(); }
             else if (gm.state === 'running') pauseGame();
