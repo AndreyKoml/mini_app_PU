@@ -133,9 +133,9 @@ export default {
                 return await handleSocial(url.pathname, request, url, env, user, cors, ctx);
             }
 
-            if ((request.method === 'GET' && ['/profile', '/profile/cover', '/posts', '/posts/image'].includes(url.pathname)) ||
+            if ((request.method === 'GET' && ['/profile', '/profile/cover', '/posts', '/posts/image', '/posts/likers'].includes(url.pathname)) ||
                 (['PUT', 'DELETE'].includes(request.method) && url.pathname === '/profile/cover') ||
-                (request.method === 'POST' && ['/profile/settings', '/posts/create', '/posts/delete'].includes(url.pathname))) {
+                (request.method === 'POST' && ['/profile/settings', '/posts/create', '/posts/delete', '/posts/like'].includes(url.pathname))) {
                 const user = await authUser(request, env);
                 if (!user) return json({ error: 'Сессия истекла — войдите снова' }, 401, cors);
                 return await handleProfile(url.pathname, request, url, env, user, cors);
@@ -214,7 +214,10 @@ async function ensureSchema(env) {
         env.DB.prepare(`CREATE TABLE IF NOT EXISTS posts (
             id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, caption TEXT NOT NULL,
             data TEXT NOT NULL, w INTEGER NOT NULL, h INTEGER NOT NULL, created INTEGER NOT NULL)`),
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_posts_user ON posts (user_id, id)')
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_posts_user ON posts (user_id, id)'),
+        env.DB.prepare(`CREATE TABLE IF NOT EXISTS post_likes (
+            post_id INTEGER NOT NULL, user_id INTEGER NOT NULL, created INTEGER NOT NULL, PRIMARY KEY (post_id, user_id))`),
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_post_likes_user ON post_likes (user_id)')
     ]);
     schemaReady = true;
 }
@@ -365,6 +368,7 @@ async function handleAuth(action, request, env, cors) {
             env.DB.prepare('DELETE FROM messages WHERE a = ?1 OR b = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM reads WHERE user_id = ?1 OR peer_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM sub_users WHERE user_id = ?1').bind(me.id),
+            env.DB.prepare('DELETE FROM post_likes WHERE user_id = ?1 OR post_id IN (SELECT id FROM posts WHERE user_id = ?1)').bind(me.id),
             env.DB.prepare('DELETE FROM posts WHERE user_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM profiles WHERE user_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM users WHERE id = ?1').bind(me.id)
@@ -833,9 +837,12 @@ async function handleProfile(path, request, url, env, me, cors) {
         const uid = url.searchParams.has('user') ? readUserId(url.searchParams.get('user')) : me.id;
         if (!(await postsVisibleTo(env, me.id, uid))) return json({ posts: [], hasMore: false, hidden: true }, 200, cors);
         const before = Number(url.searchParams.get('before')) || Number.MAX_SAFE_INTEGER;
-        const { results } = await env.DB.prepare(`SELECT id, caption, w, h, created FROM posts
-            WHERE user_id = ?1 AND id < ?2 ORDER BY id DESC LIMIT ?3`).bind(uid, before, POSTS_PAGE + 1).all();
-        return json({ posts: results.slice(0, POSTS_PAGE), hasMore: results.length > POSTS_PAGE }, 200, cors);
+        const { results } = await env.DB.prepare(`SELECT p.id, p.caption, p.w, p.h, p.created,
+                (SELECT COUNT(*) FROM post_likes l WHERE l.post_id = p.id) AS likes,
+                EXISTS(SELECT 1 FROM post_likes l WHERE l.post_id = p.id AND l.user_id = ?4) AS liked
+            FROM posts p WHERE p.user_id = ?1 AND p.id < ?2 ORDER BY p.id DESC LIMIT ?3`).bind(uid, before, POSTS_PAGE + 1, me.id).all();
+        const posts = results.slice(0, POSTS_PAGE).map(p => ({ ...p, liked: !!p.liked }));
+        return json({ posts, hasMore: results.length > POSTS_PAGE }, 200, cors);
     }
 
     if (path === '/posts/image') {
@@ -863,7 +870,7 @@ async function handleProfile(path, request, url, env, me, cors) {
         if (today.n >= POSTS_PER_DAY) return json({ error: `Можно опубликовать не больше ${POSTS_PER_DAY} постов в сутки` }, 429, cors);
         const row = await env.DB.prepare('INSERT INTO posts (user_id, caption, data, w, h, created) VALUES (?1, ?2, ?3, ?4, ?5, ?6) RETURNING id')
             .bind(me.id, text, data, w, h, now).first();
-        return json({ post: { id: row.id, caption: text, w, h, created: now } }, 200, cors);
+        return json({ post: { id: row.id, caption: text, w, h, created: now, likes: 0, liked: false } }, 200, cors);
     }
 
     if (path === '/posts/delete') {
@@ -871,7 +878,33 @@ async function handleProfile(path, request, url, env, me, cors) {
         const r = await env.DB.prepare('DELETE FROM posts WHERE id = ?1 AND user_id = ?2').bind(id, me.id).run();
         const changed = r && r.meta ? r.meta.changes : 1;
         if (!changed) return json({ error: 'Пост не найден' }, 404, cors);
+        await env.DB.prepare('DELETE FROM post_likes WHERE post_id = ?1').bind(id).run();
         return json({ ok: true }, 200, cors);
+    }
+
+    // --- лайки: поставить можно любому посту, который вы видите (и своему тоже) ---
+    if (path === '/posts/like') {
+        const body = await readJson(request);
+        const id = readUserId(body.id);
+        const post = await env.DB.prepare('SELECT user_id FROM posts WHERE id = ?1').bind(id).first();
+        if (!post || !(await postsVisibleTo(env, me.id, post.user_id))) return json({ error: 'Пост не найден' }, 404, cors);
+        if (body.like) {
+            await env.DB.prepare('INSERT OR IGNORE INTO post_likes (post_id, user_id, created) VALUES (?1, ?2, ?3)').bind(id, me.id, Date.now()).run();
+        } else {
+            await env.DB.prepare('DELETE FROM post_likes WHERE post_id = ?1 AND user_id = ?2').bind(id, me.id).run();
+        }
+        const c = await env.DB.prepare('SELECT COUNT(*) AS n FROM post_likes WHERE post_id = ?1').bind(id).first();
+        return json({ likes: c.n, liked: !!body.like }, 200, cors);
+    }
+
+    if (path === '/posts/likers') {
+        const id = readUserId(url.searchParams.get('id'));
+        const post = await env.DB.prepare('SELECT user_id FROM posts WHERE id = ?1').bind(id).first();
+        if (!post || !(await postsVisibleTo(env, me.id, post.user_id))) return json({ error: 'Пост не найден' }, 404, cors);
+        const { results } = await env.DB.prepare(`SELECT u.id, u.display AS login, COALESCE(av.version, 0) AS av
+            FROM post_likes l JOIN users u ON u.id = l.user_id LEFT JOIN avatars av ON av.user_id = u.id
+            WHERE l.post_id = ?1 ORDER BY l.created DESC LIMIT 200`).bind(id).all();
+        return json({ users: results }, 200, cors);
     }
 
     return json({ error: 'not found' }, 404, cors);
