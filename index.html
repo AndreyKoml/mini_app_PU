@@ -1080,6 +1080,74 @@
         html[data-ui="flat"] .nav-btn { background: var(--soft); border-color: transparent; }
 
         /* ---------- карточка «Оформление» ---------- */
+        /* ---------- ТАЙМЕР ---------- */
+        #module-timer[data-mode="timer"] .tm-only-pomo { display: none; }
+        .tm-card { align-items: center; }
+        .tm-switch { width: 100%; max-width: 420px; }
+        .tm-pane { display: none; width: 100%; flex-direction: column; align-items: center; }
+        #module-timer[data-mode="timer"] .tm-pane[data-pane="timer"], #module-timer[data-mode="pomo"] .tm-pane[data-pane="pomo"] { display: flex; }
+        .tm-ring-wrap { position: relative; width: min(66vw, 290px); aspect-ratio: 1; margin: 18px auto 8px; }
+        .tm-ring { width: 100%; height: 100%; transform: rotate(-90deg); display: block; }
+        .tm-ring circle { fill: none; stroke-width: 12; }
+        .tm-ring .track { stroke: rgba(128,128,128,.18); }
+        .tm-ring .prog { stroke: var(--tm-color, var(--accent-color)); stroke-linecap: round; transition: stroke-dashoffset .3s linear, stroke .4s;
+            filter: drop-shadow(0 0 8px color-mix(in srgb, var(--tm-color, var(--accent-color)) 45%, transparent)); }
+        .tm-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-align: center; }
+        .tm-time { font-size: clamp(44px, 15vw, 64px); font-weight: 300; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; line-height: 1; }
+        .tm-time.long { font-size: clamp(36px, 12vw, 52px); }
+        .tm-sub { font-size: 14px; opacity: .6; max-width: 80%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .tm-phase { font-size: 15px; font-weight: 600; color: var(--tm-color); letter-spacing: .02em; }
+        .tm-ring-wrap.paused .tm-time { animation: tmBlink 1.2s steps(1) infinite; }
+        @keyframes tmBlink { 50% { opacity: .35; } }
+        .tm-setter { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 4px 0 12px; }
+        .tm-setter[hidden] { display: none; }
+        .tm-spin { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .tm-spin button { width: 64px; height: 30px; border-radius: 10px; border: 1px solid var(--glass-border); background: var(--soft); color: inherit; cursor: pointer; font-size: 12px; }
+        .tm-spin button:active { transform: scale(.95); }
+        .tm-spin input { width: 64px; height: 52px; text-align: center; font-size: 28px; font-weight: 400; font-variant-numeric: tabular-nums; border-radius: 14px;
+            border: 1px solid var(--glass-border); background: var(--soft); color: inherit; font-family: inherit; -moz-appearance: textfield; }
+        .tm-spin input::-webkit-outer-spin-button, .tm-spin input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .tm-spin input:focus { outline: none; border-color: var(--accent-color); }
+        .tm-spin span { font-size: 12px; opacity: .6; }
+        .tm-colon { font-size: 28px; opacity: .4; margin-bottom: 18px; }
+        .tm-presets { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: 460px; }
+        .tm-presets[hidden] { display: none; }
+        .tm-presets .chip-btn { padding: 7px 12px; font-size: 13px; border-radius: 999px; }
+        .tm-presets .chip-btn.on { background: var(--accent-color); color: #000; border-color: var(--accent-color); }
+        .tm-label { max-width: 420px; margin: 14px 0 4px; text-align: center; }
+        .tm-label[hidden] { display: none; }
+        .tm-controls { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 10px; width: 100%; max-width: 420px; }
+        .tm-controls .glass-btn { margin: 0; }
+        .tm-main { flex: 1; height: 56px; font-size: 17px; border-radius: 28px !important; }
+        .tm-side { width: 64px !important; height: 56px; flex: none; border-radius: 28px !important; font-size: 15px; padding: 0 !important; }
+        .tm-side:disabled { opacity: .35; cursor: default; }
+        .pm-phases { display: flex; gap: 6px; margin-top: 16px; flex-wrap: wrap; justify-content: center; }
+        .pm-phases span { font-size: 12px; padding: 4px 10px; border-radius: 999px; background: rgba(128,128,128,.12); opacity: .7; }
+        .pm-phases span.on { background: color-mix(in srgb, var(--tm-color) 25%, transparent); opacity: 1; font-weight: 600; }
+        .pm-dots { display: flex; gap: 7px; margin-top: 6px; }
+        .pm-dots i { width: 10px; height: 10px; border-radius: 50%; background: rgba(128,128,128,.28); }
+        .pm-dots i.on { background: #ff6b5b; box-shadow: 0 0 6px rgba(255,107,91,.6); }
+        .pm-dots i.cur { background: transparent; box-shadow: inset 0 0 0 2px #ff6b5b; }
+        .pm-today { margin-top: 16px; font-size: 14px; opacity: .75; text-align: center; }
+        .pm-settings { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+        .pm-settings label { display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+        .pm-settings label span { display: flex; align-items: center; gap: 8px; font-size: 13px; opacity: .85; }
+        .pm-settings input { width: 80px; margin: 0; text-align: center; font-size: 16px; }
+        @media (max-width: 420px) { .pm-settings { grid-template-columns: 1fr; } .pm-settings label { flex-direction: row; justify-content: space-between; align-items: center; } }
+        .tm-check { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 14px; cursor: pointer; }
+        .tm-check input { width: 18px; height: 18px; accent-color: var(--accent-color); margin: 0; flex: none; }
+        .tm-alarm { text-align: center; width: min(100%, 320px); }
+        .tm-alarm-ic { font-size: 56px; animation: tmShake .5s ease-in-out infinite; display: inline-block; }
+        @keyframes tmShake { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-14deg); } 75% { transform: rotate(14deg); } }
+        .tm-alarm-title { font-size: 1.4rem; font-weight: 600; margin: 8px 0 4px; }
+        .tm-alarm-sub { opacity: .7; margin-bottom: 18px; overflow-wrap: anywhere; }
+        .dock-live { position: absolute; top: 6px; right: 12px; width: 9px; height: 9px; border-radius: 50%; background: #ff6b5b; box-shadow: 0 0 0 2px var(--bg-color); animation: tmPulse 1.4s ease-in-out infinite; }
+        .dock-live[hidden] { display: none; }
+        .dock-live.paused { animation: none; background: var(--c-reminder); }
+        @keyframes tmPulse { 50% { transform: scale(1.35); opacity: .6; } }
+        @media (max-width: 360px) { .dock-icon .ic { font-size: 24px; } }
+        @media (prefers-reduced-motion: reduce) { .tm-alarm-ic, .dock-live, .tm-ring-wrap.paused .tm-time { animation: none; } }
+
         .ui-choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
         .ui-choice { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; padding: 10px; border-radius: 18px; cursor: pointer;
             border: 2px solid var(--glass-border); background: var(--soft); color: inherit; font: inherit; min-width: 0; }
@@ -1148,6 +1216,20 @@
                 <button type="button" class="glass-btn" onclick="closeCodeView()">Закрыть</button>
             </div>
             <div class="tip" id="codeViewTip">Прибавьте яркость экрана, чтобы код считался быстрее</div>
+        </div>
+    </div>
+
+    <!-- Таймер закончился -->
+    <div class="modal" id="tmAlarm" hidden>
+        <div class="modal-card tm-alarm" role="alertdialog" aria-modal="true" aria-labelledby="tmAlarmTitle">
+            <div class="tm-alarm-ic" aria-hidden="true">⏰</div>
+            <div class="tm-alarm-title" id="tmAlarmTitle">Время вышло!</div>
+            <div class="tm-alarm-sub" id="tmAlarmSub"></div>
+            <div class="flex-row">
+                <button type="button" class="glass-btn secondary" onclick="timerAlarmPlus()" style="margin: 0;">+1 мин</button>
+                <button type="button" class="glass-btn" onclick="timerAlarmStop()" style="margin: 0;">Стоп</button>
+            </div>
+            <button type="button" class="glass-btn secondary" onclick="timerAlarmRepeat()" style="margin: 10px 0 0;">↻ Ещё раз</button>
         </div>
     </div>
 
@@ -1673,6 +1755,107 @@
             <div class="full-width posts-feed" id="pvPosts"></div>
         </div>
 
+        <!-- ТАЙМЕР -->
+        <div class="dashboard" id="module-timer" data-mode="timer">
+            <div class="glass-card full-width tm-card">
+                <div class="segmented tm-switch" id="tmModeSwitch">
+                    <button type="button" data-m="timer" onclick="setTimerMode('timer')">⏱ Таймер</button>
+                    <button type="button" data-m="pomo" onclick="setTimerMode('pomo')">🍅 Помодоро</button>
+                </div>
+
+                <!-- обычный таймер -->
+                <div class="tm-pane" data-pane="timer">
+                    <div class="tm-ring-wrap">
+                        <svg class="tm-ring" viewBox="0 0 240 240" aria-hidden="true">
+                            <circle class="track" cx="120" cy="120" r="108"/>
+                            <circle class="prog" id="tmProg" cx="120" cy="120" r="108"/>
+                        </svg>
+                        <div class="tm-center">
+                            <div class="tm-time" id="tmTime" role="timer" aria-live="off">05:00</div>
+                            <div class="tm-sub" id="tmSub">Готов к запуску</div>
+                        </div>
+                    </div>
+                    <div class="tm-setter" id="tmSetter">
+                        <div class="tm-spin" data-u="h">
+                            <button type="button" onclick="tmStep('h', 1)" aria-label="Больше часов">▲</button>
+                            <input type="number" id="tmH" min="0" max="23" inputmode="numeric" value="0" oninput="tmSetterChanged()" onfocus="this.select()" aria-label="Часы">
+                            <button type="button" onclick="tmStep('h', -1)" aria-label="Меньше часов">▼</button>
+                            <span>ч</span>
+                        </div>
+                        <div class="tm-colon">:</div>
+                        <div class="tm-spin" data-u="m">
+                            <button type="button" onclick="tmStep('m', 1)" aria-label="Больше минут">▲</button>
+                            <input type="number" id="tmM" min="0" max="59" inputmode="numeric" value="5" oninput="tmSetterChanged()" onfocus="this.select()" aria-label="Минуты">
+                            <button type="button" onclick="tmStep('m', -1)" aria-label="Меньше минут">▼</button>
+                            <span>мин</span>
+                        </div>
+                        <div class="tm-colon">:</div>
+                        <div class="tm-spin" data-u="s">
+                            <button type="button" onclick="tmStep('s', 5)" aria-label="Больше секунд">▲</button>
+                            <input type="number" id="tmS" min="0" max="59" inputmode="numeric" value="0" oninput="tmSetterChanged()" onfocus="this.select()" aria-label="Секунды">
+                            <button type="button" onclick="tmStep('s', -5)" aria-label="Меньше секунд">▼</button>
+                            <span>сек</span>
+                        </div>
+                    </div>
+                    <div class="tm-controls">
+                        <button type="button" class="glass-btn secondary tm-side" id="tmResetBtn" onclick="timerReset()" aria-label="Сбросить">↺</button>
+                        <button type="button" class="glass-btn tm-main" id="tmMainBtn" onclick="timerMain()">▶ Старт</button>
+                        <button type="button" class="glass-btn secondary tm-side" id="tmPlusBtn" onclick="timerAdd(60000)">+1 мин</button>
+                    </div>
+                    <div class="tm-presets" id="tmPresets" style="margin-top: 16px;"></div>
+                    <input id="tmLabel" class="glass-input tm-label" placeholder="Название, например «Паста» (необязательно)" maxlength="60" oninput="tmLabelChanged()">
+                </div>
+
+                <!-- помодоро -->
+                <div class="tm-pane" data-pane="pomo">
+                    <div class="pm-phases" id="pmPhases"></div>
+                    <div class="tm-ring-wrap">
+                        <svg class="tm-ring" viewBox="0 0 240 240" aria-hidden="true">
+                            <circle class="track" cx="120" cy="120" r="108"/>
+                            <circle class="prog" id="pmProg" cx="120" cy="120" r="108"/>
+                        </svg>
+                        <div class="tm-center">
+                            <div class="tm-phase" id="pmPhase">Фокус</div>
+                            <div class="tm-time" id="pmTime" role="timer" aria-live="off">25:00</div>
+                            <div class="pm-dots" id="pmDots" aria-label="Помидоры в этом цикле"></div>
+                        </div>
+                    </div>
+                    <div class="tm-controls">
+                        <button type="button" class="glass-btn secondary tm-side" onclick="pomoReset()" aria-label="Сбросить цикл">↺</button>
+                        <button type="button" class="glass-btn tm-main" id="pmMainBtn" onclick="pomoMain()">▶ Фокус</button>
+                        <button type="button" class="glass-btn secondary tm-side" onclick="pomoSkip()" title="Перейти к следующему этапу">⏭</button>
+                    </div>
+                    <div class="pm-today" id="pmToday"></div>
+                </div>
+            </div>
+
+            <div class="glass-card full-width tm-only-pomo">
+                <div class="card-header">⚙️ Настройки помодоро</div>
+                <div class="pm-settings">
+                    <label>🍅 Фокус<span><input type="number" class="glass-input" id="pmFocus" min="1" max="180" onchange="pomoSettingsChanged()"> мин</span></label>
+                    <label>☕ Короткий перерыв<span><input type="number" class="glass-input" id="pmShort" min="1" max="60" onchange="pomoSettingsChanged()"> мин</span></label>
+                    <label>🛋 Длинный перерыв<span><input type="number" class="glass-input" id="pmLong" min="1" max="120" onchange="pomoSettingsChanged()"> мин</span></label>
+                    <label>🔁 Длинный перерыв после<span><input type="number" class="glass-input" id="pmRounds" min="2" max="12" onchange="pomoSettingsChanged()"> помидоров</span></label>
+                </div>
+                <label class="tm-check"><input type="checkbox" id="pmAutoBreak" onchange="pomoSettingsChanged()"> Перерыв начинается сам после фокуса</label>
+                <label class="tm-check"><input type="checkbox" id="pmAutoFocus" onchange="pomoSettingsChanged()"> Фокус начинается сам после перерыва</label>
+                <div class="tm-presets" style="margin-top: 12px;">
+                    <button type="button" class="chip-btn" onclick="pomoPreset(25, 5, 15, 4)">Классика 25/5</button>
+                    <button type="button" class="chip-btn" onclick="pomoPreset(50, 10, 30, 3)">Длинный 50/10</button>
+                    <button type="button" class="chip-btn" onclick="pomoPreset(15, 3, 10, 4)">Короткий 15/3</button>
+                </div>
+                <div class="hint">Метод помодоро: работаете без отвлечений один «помидор», потом короткий перерыв. После нескольких помидоров — длинный перерыв. За каждый законченный помидор — 2 монеты.</div>
+            </div>
+
+            <div class="glass-card full-width">
+                <div class="card-header">🔔 Сигнал</div>
+                <label class="tm-check"><input type="checkbox" id="tmSound" onchange="tmSignalChanged()"> Звук</label>
+                <label class="tm-check"><input type="checkbox" id="tmVibrate" onchange="tmSignalChanged()"> Вибрация (на телефоне)</label>
+                <button type="button" class="glass-btn secondary compact" onclick="tmTestSound()" style="margin-top: 10px;">🔊 Проверить звук</button>
+                <div class="hint" id="tmNotifHint"></div>
+            </div>
+        </div>
+
         <!-- ФИНАНСЫ -->
         <div class="dashboard" id="module-finance">
             <div class="glass-card full-width">
@@ -1729,6 +1912,7 @@
         <div class="dock" id="mainDock" role="navigation" aria-label="Разделы">
             <div class="dock-icon active" title="Календарь" onclick="switchTab('calendar', this)"><span class="ic">📅</span><span class="lbl">Календарь</span></div>
             <div class="dock-icon" title="Напоминания" onclick="switchTab('reminders', this)"><span class="ic">🔔</span><span class="lbl">Напоминания</span><span class="dock-badge" id="remDockBadge"></span></div>
+            <div class="dock-icon" title="Таймер и помодоро" onclick="switchTab('timer', this)"><span class="ic">⏱️</span><span class="lbl">Таймер</span><span class="dock-live" id="tmDockLive" hidden></span></div>
             <div class="dock-icon" title="Дневник" onclick="switchTab('diary', this)"><span class="ic">📔</span><span class="lbl">Дневник</span></div>
             <div class="dock-icon" title="Друзья и сообщения" onclick="switchTab('social', this)"><span class="ic">💬</span><span class="lbl">Друзья</span><span class="dock-badge" id="socDockBadge"></span></div>
             <div class="dock-icon" title="Игры" onclick="switchTab('games', this)"><span class="ic">🎮</span><span class="lbl">Игры</span></div>
@@ -3169,6 +3353,9 @@
         const absDate = s => { const d = parseYmd(s); return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]}`; };
 
         function pendingReminders() {
+            return timerPushItems().concat(pendingRemindersEvents());
+        }
+        function pendingRemindersEvents() {
             return data.events
                 .filter(e => hasNotify(e) && !e.done && !e.notified)
                 .map(e => ({
@@ -8379,6 +8566,7 @@
 
             if (moduleName !== 'cards') { stopCardScanner(); closeCodeView(); }
             if (moduleName === 'reminders') { renderReminders(); renderNotifStatus(); }
+            if (moduleName === 'timer') renderTimer();
             document.documentElement.classList.toggle('no-anchor', moduleName === 'account');
             if (moduleName === 'account') { renderAccount(); loadServerConfig(); setProfileHeadTarget(profileHeadWanted(), true); loadMyProfile(); }
             if (moduleName === 'settings') { renderAccount(); loadMyProfile(); }
@@ -9035,6 +9223,350 @@
         // экран может снять блокировку, если приложение сворачивали — возвращаем её
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !$('codeView').hidden) keepScreenOn(true); });
 
+        // ================= ТАЙМЕР И ПОМОДОРО =================
+        // Время считается от момента окончания (endAt), а не тиками — поэтому таймер не «отстаёт»
+        // в фоновой вкладке и продолжает идти после перезагрузки страницы.
+        const TM_KEY = 'produ_timer';
+        const TM_RING = 2 * Math.PI * 108;
+        const PM_COLORS = { focus: '#ff6b5b', short: '#3b9cff', long: '#9b6bff' };
+        const PM_NAMES = { focus: 'Фокус', short: 'Короткий перерыв', long: 'Длинный перерыв' };
+        const TM_PRESETS = [1, 3, 5, 10, 15, 20, 30, 45, 60];
+        const tm = {
+            mode: 'timer',
+            timer: { status: 'idle', base: 300000, total: 300000, remaining: 300000, endAt: 0, label: '' },
+            pomo: { phase: 'focus', status: 'idle', total: 0, remaining: 0, endAt: 0, cycle: 0 },
+            ps: { focus: 25, short: 5, long: 15, rounds: 4, autoBreak: true, autoFocus: false },
+            stats: { day: '', count: 0, minutes: 0 },
+            sound: true, vibrate: true
+        };
+        let tmTicker = null, tmAudio = null, tmRinging = null;
+        const tmOrigTitle = document.title;
+
+        (function loadTimer() {
+            try {
+                const s = JSON.parse(localStorage.getItem(TM_KEY));
+                if (s) {
+                    ['mode', 'sound', 'vibrate'].forEach(k => { if (k in s) tm[k] = s[k]; });
+                    ['timer', 'pomo', 'ps', 'stats'].forEach(k => { if (s[k]) Object.assign(tm[k], s[k]); });
+                }
+            } catch (e) {}
+            if (!tm.pomo.total) { tm.pomo.total = tm.pomo.remaining = pomoDur(tm.pomo.phase); }
+            if (!tm.timer.base) tm.timer.base = tm.timer.total;
+        })();
+        function saveTimer() {
+            try { localStorage.setItem(TM_KEY, JSON.stringify(tm)); } catch (e) {}
+            syncRemindersToSW();
+            schedulePushSync();
+        }
+        function pomoDur(phase) { return Math.round((tm.ps[phase] || 1) * 60000); }
+        function fmtClock(ms) {
+            const t = Math.max(0, Math.ceil(ms / 1000));
+            const h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), s = t % 60;
+            return h ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+        }
+        const remainingOf = st => st.status === 'running' ? Math.max(0, st.endAt - Date.now()) : st.remaining;
+        function todayStats() {
+            const d = todayStr();
+            if (tm.stats.day !== d) Object.assign(tm.stats, { day: d, count: 0, minutes: 0 });
+            return tm.stats;
+        }
+
+        // Окончание таймера — в список напоминаний для сервера: так придёт push, даже если приложение закрыто.
+        // id уникальный для каждого запуска, иначе сервер посчитает его уже отправленным.
+        function timerPushItems() {
+            try {
+                const out = [];
+                if (tm.timer.status === 'running') out.push({ id: 8e15 + tm.timer.endAt, due: tm.timer.endAt,
+                    title: '⏰ ' + (tm.timer.label || 'Таймер'), body: `Время вышло (${fmtClock(tm.timer.total)})` });
+                if (tm.pomo.status === 'running') out.push({ id: 8.5e15 + tm.pomo.endAt, due: tm.pomo.endAt,
+                    title: tm.pomo.phase === 'focus' ? '🍅 Помидор готов!' : '☕ Перерыв закончился',
+                    body: tm.pomo.phase === 'focus' ? 'Пора отдохнуть' : 'Пора вернуться к делу' });
+                return out;
+            } catch (e) { return []; }
+        }
+
+        // ---- звук и вибрация ----
+        function tmAudioCtx() {
+            try {
+                if (!tmAudio) tmAudio = new (window.AudioContext || window.webkitAudioContext)();
+                if (tmAudio.state === 'suspended') tmAudio.resume();
+                return tmAudio;
+            } catch (e) { return null; }
+        }
+        function chime(kind) {
+            if (!tm.sound) return;
+            const ctx = tmAudioCtx();
+            if (!ctx) return;
+            const seq = kind === 'alarm' ? [[880, 0], [1175, .18], [1568, .36]] : kind === 'break' ? [[784, 0], [988, .2]] : [[988, 0], [784, .2]];
+            const t0 = ctx.currentTime + .02;
+            seq.forEach(([f, dt]) => {
+                const o = ctx.createOscillator(), g = ctx.createGain();
+                o.type = 'sine'; o.frequency.value = f;
+                g.gain.setValueAtTime(0, t0 + dt);
+                g.gain.linearRampToValueAtTime(.35, t0 + dt + .02);
+                g.gain.exponentialRampToValueAtTime(.001, t0 + dt + .55);
+                o.connect(g).connect(ctx.destination);
+                o.start(t0 + dt); o.stop(t0 + dt + .6);
+            });
+        }
+        function buzz(pattern) { if (tm.vibrate && navigator.vibrate) try { navigator.vibrate(pattern); } catch (e) {} }
+
+        // ---- общий цикл ----
+        function tmTick() {
+            const now = Date.now();
+            if (tm.timer.status === 'running' && now >= tm.timer.endAt) timerFinished(false);
+            if (tm.pomo.status === 'running' && now >= tm.pomo.endAt) pomoFinished(false);
+            renderTimerLive();
+            const running = tm.timer.status === 'running' || tm.pomo.status === 'running';
+            if (running && !tmTicker) tmTicker = setInterval(tmTick, 250);
+            if (!running && tmTicker) { clearInterval(tmTicker); tmTicker = null; }
+        }
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) tmTick(); });
+
+        function renderTimerLive() {
+            const t = tm.timer, p = tm.pomo;
+            const tRem = remainingOf(t), pRem = remainingOf(p);
+            // вкладка браузера и значок в меню
+            const show = t.status === 'running' ? ['⏱', tRem] : p.status === 'running' ? [p.phase === 'focus' ? '🍅' : '☕', pRem] : null;
+            document.title = show ? `${show[0]} ${fmtClock(show[1])} · ProdU` : tmOrigTitle;
+            const live = $('tmDockLive');
+            if (live) {
+                const anyPaused = t.status === 'paused' || p.status === 'paused';
+                live.hidden = !show && !anyPaused;
+                live.classList.toggle('paused', !show && anyPaused);
+            }
+            if (!$('module-timer').classList.contains('active')) return;
+            // обычный таймер
+            $('tmTime').textContent = fmtClock(tRem);
+            $('tmTime').classList.toggle('long', tRem >= 3600000);
+            $('tmProg').style.strokeDasharray = TM_RING;
+            $('tmProg').style.strokeDashoffset = t.status === 'idle' ? 0 : TM_RING * (1 - tRem / Math.max(1, t.total));
+            $('tmProg').closest('.tm-ring-wrap').classList.toggle('paused', t.status === 'paused');
+            // помодоро
+            $('pmTime').textContent = fmtClock(pRem);
+            $('pmProg').style.strokeDasharray = TM_RING;
+            $('pmProg').style.strokeDashoffset = p.status === 'idle' ? 0 : TM_RING * (1 - pRem / Math.max(1, p.total));
+            $('pmProg').closest('.tm-ring-wrap').classList.toggle('paused', p.status === 'paused');
+        }
+
+        function renderTimer() {
+            const mod = $('module-timer');
+            mod.dataset.mode = tm.mode;
+            mod.style.setProperty('--tm-color', tm.mode === 'pomo' ? PM_COLORS[tm.pomo.phase] : 'var(--accent-color)');
+            $('tmModeSwitch').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.m === tm.mode));
+            const t = tm.timer;
+            const idle = t.status === 'idle';
+            $('tmSetter').hidden = !idle;
+            $('tmPresets').hidden = !idle;
+            if (idle) {
+                const sec = Math.round(t.base / 1000);
+                $('tmH').value = Math.floor(sec / 3600); $('tmM').value = Math.floor(sec % 3600 / 60); $('tmS').value = sec % 60;
+            }
+            $('tmPresets').innerHTML = TM_PRESETS.map(m => `<button type="button" class="chip-btn${t.base === m * 60000 ? ' on' : ''}" onclick="timerPreset(${m})">${m < 60 ? m + ' мин' : m / 60 + ' ч'}</button>`).join('');
+            if (document.activeElement !== $('tmLabel')) $('tmLabel').value = t.label;
+            $('tmSub').textContent = { idle: t.label || 'Готов к запуску', running: t.label || 'Идёт', paused: 'Пауза' + (t.label ? ' · ' + t.label : '') }[t.status];
+            $('tmMainBtn').textContent = { idle: '▶ Старт', running: '⏸ Пауза', paused: '▶ Дальше' }[t.status];
+            $('tmResetBtn').disabled = idle;
+            $('tmPlusBtn').disabled = idle;
+            // помодоро
+            const p = tm.pomo, st = todayStats();
+            $('pmPhase').textContent = PM_NAMES[p.phase] + (p.status === 'paused' ? ' · пауза' : '');
+            $('pmPhases').innerHTML = ['focus', 'short', 'long'].map(ph => `<span class="${ph === p.phase ? 'on' : ''}">${{ focus: '🍅 Фокус', short: '☕ Перерыв', long: '🛋 Длинный перерыв' }[ph]}</span>`).join('');
+            const rounds = tm.ps.rounds;
+            $('pmDots').innerHTML = Array.from({ length: rounds }, (_, i) => `<i class="${i < p.cycle ? 'on' : (i === p.cycle && p.phase === 'focus' ? 'cur' : '')}"></i>`).join('');
+            $('pmMainBtn').textContent = p.status === 'running' ? '⏸ Пауза' : p.status === 'paused' ? '▶ Дальше' : (p.phase === 'focus' ? '▶ Фокус' : '▶ Перерыв');
+            $('pmToday').innerHTML = st.count
+                ? `Сегодня: <b>${st.count}</b> ${ruPlural(st.count, 'помидор', 'помидора', 'помидоров')} · ${st.minutes} мин фокуса`
+                : 'Сегодня помидоров пока нет';
+            $('pmFocus').value = tm.ps.focus; $('pmShort').value = tm.ps.short; $('pmLong').value = tm.ps.long; $('pmRounds').value = tm.ps.rounds;
+            $('pmAutoBreak').checked = tm.ps.autoBreak; $('pmAutoFocus').checked = tm.ps.autoFocus;
+            $('tmSound').checked = tm.sound; $('tmVibrate').checked = tm.vibrate;
+            const perm = notifSupported() ? Notification.permission : 'unsupported';
+            $('tmNotifHint').textContent = perm === 'granted'
+                ? (SERVER_BASE ? 'Если свернуть или закрыть приложение, придёт уведомление (при закрытом — с точностью до минуты, через сервер).' : 'Если свернуть приложение, придёт уведомление. При закрытом приложении сигнал не прозвучит — для этого нужен сервер (см. раздел «Напоминания»).')
+                : perm === 'denied' ? 'Уведомления запрещены в настройках браузера — сигнал будет только на открытой странице.'
+                : 'При первом запуске таймер попросит разрешение на уведомления, чтобы сообщить об окончании, даже если приложение свёрнуто.';
+            renderTimerLive();
+        }
+        function setTimerMode(m) { tm.mode = m; saveTimer(); renderTimer(); }
+
+        // ---- обычный таймер ----
+        function tmSetterChanged() {
+            const clamp = (v, max) => Math.min(max, Math.max(0, Math.floor(Number(v) || 0)));
+            const h = clamp($('tmH').value, 23), m = clamp($('tmM').value, 59), s = clamp($('tmS').value, 59);
+            tm.timer.base = tm.timer.total = tm.timer.remaining = (h * 3600 + m * 60 + s) * 1000;
+            saveTimer();
+            $('tmPresets').querySelectorAll('.chip-btn').forEach((b, i) => b.classList.toggle('on', tm.timer.base === TM_PRESETS[i] * 60000));
+            renderTimerLive();
+        }
+        function tmStep(u, d) {
+            const el = $({ h: 'tmH', m: 'tmM', s: 'tmS' }[u]);
+            const max = u === 'h' ? 23 : 59;
+            let v = (Number(el.value) || 0) + d;
+            if (u !== 'h') v = ((v % 60) + 60) % 60; else v = Math.min(max, Math.max(0, v));
+            el.value = v;
+            tmSetterChanged();
+        }
+        function timerPreset(min) {
+            tm.timer.base = tm.timer.total = tm.timer.remaining = min * 60000;
+            saveTimer(); renderTimer();
+        }
+        function tmLabelChanged() { tm.timer.label = $('tmLabel').value.trim(); saveTimer(); renderTimerLive(); $('tmSub').textContent = tm.timer.label || ({ idle: 'Готов к запуску', running: 'Идёт', paused: 'Пауза' })[tm.timer.status]; }
+        function askNotifOnce() {
+            try { if (notifSupported() && Notification.permission === 'default') requestNotif(); } catch (e) {}
+        }
+        function timerMain() {
+            const t = tm.timer;
+            tmAudioCtx();                         // браузер разрешает звук только после нажатия
+            if (t.status === 'running') {
+                t.remaining = Math.max(0, t.endAt - Date.now()); t.status = 'paused';
+            } else {
+                if (t.status === 'idle') {
+                    if (t.base < 1000) return showToast('Задайте время', 'Хотя бы одну секунду.', 3000);
+                    t.total = t.remaining = t.base;
+                    askNotifOnce();
+                }
+                t.endAt = Date.now() + t.remaining; t.status = 'running';
+            }
+            saveTimer(); renderTimer(); tmTick();
+        }
+        function timerReset() {
+            Object.assign(tm.timer, { status: 'idle', total: tm.timer.base, remaining: tm.timer.base, endAt: 0 });
+            saveTimer(); renderTimer(); tmTick();
+        }
+        function timerAdd(ms) {
+            const t = tm.timer;
+            if (t.status === 'idle') return;
+            if (t.status === 'running') t.endAt += ms; else t.remaining += ms;
+            t.total += ms;
+            saveTimer(); renderTimer(); tmTick();
+        }
+        function timerFinished(silent) {
+            const t = tm.timer;
+            const label = t.label || 'Таймер', total = t.total, endAt = t.endAt;
+            Object.assign(t, { status: 'idle', total: t.base, remaining: t.base, endAt: 0 });
+            saveTimer();
+            if (silent) { showToast('⏰ ' + label, 'Время вышло, пока приложение было закрыто.', 8000); renderTimer(); return; }
+            $('tmAlarmTitle').textContent = 'Время вышло!';
+            $('tmAlarmSub').textContent = `${label} · ${fmtClock(total)}`;
+            $('tmAlarm').hidden = false;
+            if (document.hidden) sysNotify('⏰ ' + label, `Время вышло (${fmtClock(total)})`, 'produ-' + (8e15 + endAt));
+            startRinging();
+            renderTimer();
+        }
+        function startRinging() {
+            stopRinging();
+            let n = 0;
+            const ring = () => { chime('alarm'); buzz([300, 120, 300]); if (++n >= 20) stopRinging(); };
+            ring();
+            tmRinging = setInterval(ring, 1500);
+        }
+        function stopRinging() { clearInterval(tmRinging); tmRinging = null; }
+        function timerAlarmStop() { stopRinging(); $('tmAlarm').hidden = true; }
+        function timerAlarmPlus() {
+            timerAlarmStop();
+            const t = tm.timer;
+            Object.assign(t, { total: 60000, remaining: 60000, endAt: Date.now() + 60000, status: 'running' });   // base не меняем
+            saveTimer(); renderTimer(); tmTick();
+        }
+        function timerAlarmRepeat() {
+            timerAlarmStop();
+            const t = tm.timer;
+            Object.assign(t, { total: t.base, remaining: t.base, endAt: Date.now() + t.base, status: 'running' });
+            saveTimer(); renderTimer(); tmTick();
+        }
+
+        // ---- помодоро ----
+        function pomoMain() {
+            const p = tm.pomo;
+            tmAudioCtx();
+            if (p.status === 'running') {
+                p.remaining = Math.max(0, p.endAt - Date.now()); p.status = 'paused';
+            } else {
+                if (p.status === 'idle') { p.total = p.remaining = pomoDur(p.phase); askNotifOnce(); }
+                p.endAt = Date.now() + p.remaining; p.status = 'running';
+            }
+            saveTimer(); renderTimer(); tmTick();
+        }
+        function pomoGo(phase, autostart) {
+            const p = tm.pomo;
+            p.phase = phase;
+            p.total = p.remaining = pomoDur(phase);
+            p.status = autostart ? 'running' : 'idle';
+            p.endAt = autostart ? Date.now() + p.total : 0;
+        }
+        function pomoNext(counted) {
+            const p = tm.pomo;
+            if (p.phase === 'focus') {
+                if (counted) {
+                    const st = todayStats();
+                    st.count++; st.minutes += Math.round(p.total / 60000);
+                    addCoins(2); saveData();
+                }
+                p.cycle++;
+                const long = p.cycle >= tm.ps.rounds;
+                pomoGo(long ? 'long' : 'short', tm.ps.autoBreak);
+            } else {
+                if (p.phase === 'long') p.cycle = 0;
+                pomoGo('focus', tm.ps.autoFocus);
+            }
+        }
+        function pomoFinished(silent) {
+            const p = tm.pomo;
+            const was = p.phase, endAt = p.endAt;
+            pomoNext(true);
+            if (silent) p.status = 'idle', p.endAt = 0;      // время давно прошло — следующий этап не запускаем сам
+            saveTimer();
+            const title = was === 'focus' ? '🍅 Помидор готов! +2 монеты' : '☕ Перерыв закончился';
+            const body = was === 'focus' ? (p.phase === 'long' ? 'Время для длинного перерыва.' : 'Сделайте короткий перерыв.') : 'Пора вернуться к делу.';
+            showToast(title, silent ? body + ' (пока приложение было закрыто)' : body, 8000);
+            if (!silent) {
+                chime(was === 'focus' ? 'break' : 'focus');
+                buzz([200, 100, 200]);
+                if (document.hidden) sysNotify(title, body, 'produ-' + (8.5e15 + endAt));
+            }
+            renderTimer();
+        }
+        function pomoSkip() {
+            const p = tm.pomo;
+            const keep = p.status === 'running';
+            pomoNext(false);
+            if (keep && p.status !== 'running') { p.status = 'running'; p.endAt = Date.now() + p.total; }
+            saveTimer(); renderTimer(); tmTick();
+        }
+        function pomoReset() {
+            tm.pomo.cycle = 0;
+            pomoGo('focus', false);
+            saveTimer(); renderTimer(); tmTick();
+        }
+        function pomoSettingsChanged() {
+            const num = (id, min, max, def) => { const v = Math.round(Number($(id).value)); return Number.isFinite(v) && v >= min ? Math.min(max, v) : def; };
+            Object.assign(tm.ps, {
+                focus: num('pmFocus', 1, 180, 25), short: num('pmShort', 1, 60, 5), long: num('pmLong', 1, 120, 15), rounds: num('pmRounds', 2, 12, 4),
+                autoBreak: $('pmAutoBreak').checked, autoFocus: $('pmAutoFocus').checked
+            });
+            const p = tm.pomo;
+            if (p.status === 'idle') p.total = p.remaining = pomoDur(p.phase);    // идущий этап не трогаем
+            if (p.cycle >= tm.ps.rounds) p.cycle = tm.ps.rounds - 1;
+            saveTimer(); renderTimer();
+        }
+        function pomoPreset(f, s, l, r) {
+            $('pmFocus').value = f; $('pmShort').value = s; $('pmLong').value = l; $('pmRounds').value = r;
+            pomoSettingsChanged();
+            showToast('🍅 Настройки помодоро', `Фокус ${f} мин, перерыв ${s} мин, длинный ${l} мин`, 3000);
+        }
+        function tmSignalChanged() { tm.sound = $('tmSound').checked; tm.vibrate = $('tmVibrate').checked; saveTimer(); }
+        function tmTestSound() { const was = tm.sound; tm.sound = true; chime('alarm'); tm.sound = was; buzz([200]); }
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('tmAlarm').hidden) timerAlarmStop(); });
+
+        // таймер, закончившийся пока страница была закрыта
+        function timerStartup() {
+            const now = Date.now();
+            if (tm.timer.status === 'running' && now >= tm.timer.endAt) timerFinished(true);
+            if (tm.pomo.status === 'running' && now >= tm.pomo.endAt) pomoFinished(true);
+            tmTick();
+        }
+
         // ================= СПИСКИ =================
         function createNewList() {
             const title = document.getElementById('newListTitle').value.trim();
@@ -9558,6 +10090,7 @@
             openChatWhenReady(Number(m[1]));
         }
         handleChatHash();
+        timerStartup();
         window.addEventListener('hashchange', handleChatHash);
         handleInviteHash();
         window.addEventListener('hashchange', handleInviteHash);
