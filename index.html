@@ -333,6 +333,10 @@
         .t-task { --tc: var(--c-task); }
         .t-reminder { --tc: var(--c-reminder); }
         .t-event { --tc: var(--c-event); }
+        .type-badge .sec-ic svg, .type-badge .ui-ic svg { height: 13px; }
+        .type-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; box-sizing: border-box; }
+        .hdr-ic { display: inline-flex; margin-right: 8px; vertical-align: middle; }
+        .hdr-ic .sec-ic svg, .hdr-ic .ui-ic svg { height: 18px; }
         .type-badge {
             font-size: 11px; padding: 2px 7px; border-radius: 8px; white-space: nowrap; flex-shrink: 0;
             background: color-mix(in srgb, var(--tc) 30%, transparent);
@@ -557,6 +561,8 @@
         .pc-start { display: flex; align-items: center; gap: 14px; width: 100%; padding: 6px; border: none; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: 14px; }
         .pc-start:hover { background: rgba(128,128,128,.1); }
         .pc-start[hidden] { display: none; }
+        .pc-start .pc-ic .ui-ic svg { height: 22px; }
+        .pc-start .pc-ic { color: #000; }
         .pc-start .pc-ic { width: 48px; height: 48px; border-radius: 14px; background: var(--accent-color); display: grid; place-items: center; font-size: 22px; flex: none; }
         .pc-start .pc-sub { display: block; font-size: 13px; opacity: .6; margin-top: 2px; }
         .pc-form { display: flex; flex-direction: column; gap: 12px; }
@@ -658,9 +664,10 @@
         .share-qr img { width: 200px; height: 200px; border-radius: 16px; background: #fff; padding: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.15); image-rendering: pixelated; }
         .avatar-wrap { position: relative; cursor: pointer; border: none; padding: 0; background: none; border-radius: 50%; }
         .avatar-wrap.has-photo::after { display: none; }
+        body[data-theme="dark"] .avatar-wrap::after { background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2051%2051%22%3E%3Cpath%20d%3D%22M2.5%2014v-1.5a10%2010%200%200%201%2010-10H14M2.5%2037v1.5a10%2010%200%200%200%2010%2010H14M37%202.5h1.5a10%2010%200%200%201%2010%2010V14M37%2048.5h1.5a10%2010%200%200%200%2010-10V37%22%20fill%3D%22none%22%20stroke%3D%22%23eee%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22/%3E%3Cg%20fill%3D%22%23eee%22%3E%3Ccircle%20cx%3D%2225.5%22%20cy%3D%2225.5%22%20r%3D%2210%22/%3E%3Ccircle%20cx%3D%2214%22%20cy%3D%2213%22%20r%3D%222.5%22/%3E%3C/g%3E%3C/svg%3E"); }
         .avatar-wrap::after {
-            content: '📷'; position: absolute; right: -2px; bottom: -2px; width: 26px; height: 26px; border-radius: 50%;
-            background: var(--bg-color); border: 1px solid var(--glass-border);
+            content: ''; position: absolute; right: -2px; bottom: -2px; width: 26px; height: 26px; border-radius: 50%;
+            background: var(--bg-color) url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2051%2051%22%3E%3Cpath%20d%3D%22M2.5%2014v-1.5a10%2010%200%200%201%2010-10H14M2.5%2037v1.5a10%2010%200%200%200%2010%2010H14M37%202.5h1.5a10%2010%200%200%201%2010%2010V14M37%2048.5h1.5a10%2010%200%200%200%2010-10V37%22%20fill%3D%22none%22%20stroke%3D%22%23222%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22/%3E%3Cg%20fill%3D%22%23222%22%3E%3Ccircle%20cx%3D%2225.5%22%20cy%3D%2225.5%22%20r%3D%2210%22/%3E%3Ccircle%20cx%3D%2214%22%20cy%3D%2213%22%20r%3D%222.5%22/%3E%3C/g%3E%3C/svg%3E") center / 14px no-repeat; border: 1px solid var(--glass-border);
             display: flex; align-items: center; justify-content: center; font-size: 13px;
         }
 
@@ -726,6 +733,7 @@
         .chat-input { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--glass-border); align-items: flex-end; }
         .chat-input textarea { margin: 0; resize: none; min-height: 44px; max-height: 140px; line-height: 1.35; flex: 1; }
         .chat-input .glass-btn { width: 46px; height: 44px; margin: 0; padding: 0; font-size: 18px; flex-shrink: 0; }
+        .chat-input .glass-btn .ui-ic svg { height: 20px; }
         .chat-input .attach-btn { background: transparent; border: 1px solid var(--glass-border); color: inherit; font-weight: normal; }
         .chat-attach { display: none; align-items: center; gap: 10px; padding: 10px 12px 0; }
         .chat-attach.on { display: flex; }
@@ -1567,6 +1575,19 @@
 
         /* ---------- иконки разделов (календарь, напоминания, таймер) ---------- */
         .sec-ic { display: inline-flex; vertical-align: middle; }
+        .ui-ic { display: inline-flex; align-items: center; justify-content: center; vertical-align: -0.14em; line-height: 0; }
+        .ui-ic svg { display: block; height: 1em; width: auto; max-width: 1.3em; }
+        .icon-btn .ui-ic svg { height: 17px; }
+        .icon-btn.on { color: var(--accent-color); }
+        .chip .ui-ic, .check-label .ui-ic { margin-right: 5px; }
+        .diary-title .ui-ic { margin-right: 6px; opacity: .75; }
+        .pp-app-ic .ui-ic svg { height: 24px; }
+        .tm-main .ui-ic, #wTimerBtn .ui-ic, .tm-sound .ui-ic { margin-right: 8px; }
+        .tm-main .ui-ic svg, #wTimerBtn .ui-ic svg { height: .85em; }
+        .search-box { position: relative; margin-bottom: 10px; }
+        .search-box .glass-input { margin-bottom: 0 !important; padding-left: 40px; }
+        .search-box > .ui-ic { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); opacity: .55; pointer-events: none; z-index: 1; }
+        .search-box > .ui-ic svg { height: 17px; }
         .sec-ic svg { display: block; height: 1.15em; width: auto; }
         .sec-ic .ic-d { display: none; }
         body[data-theme="dark"] .sec-ic .ic-l { display: none; }
@@ -1664,7 +1685,7 @@
         <img id="avViewerImg" alt="Фото профиля" onclick="closeAvatarViewer()">
         <div class="nm" id="avViewerName"></div>
         <div class="bar">
-            <button type="button" class="glass-btn own-only" onclick="closeAvatarViewer(true); pickAvatar()">📷 Сменить фото</button>
+            <button type="button" class="glass-btn own-only" onclick="closeAvatarViewer(true); pickAvatar()"><span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 51 51"><path d="M2.5 14v-1.5a10 10 0 0 1 10-10H14M2.5 37v1.5a10 10 0 0 0 10 10H14M37 2.5h1.5a10 10 0 0 1 10 10V14M37 48.5h1.5a10 10 0 0 0 10-10V37" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><g fill="currentColor"><circle cx="25.5" cy="25.5" r="10"/><circle cx="14" cy="13" r="2.5"/></g></svg></span> Сменить фото</button>
             <button type="button" class="glass-btn secondary own-only" onclick="closeAvatarViewer(true); removeAvatar()">Убрать</button>
             <button type="button" class="glass-btn secondary" onclick="closeAvatarViewer()">Закрыть</button>
         </div>
@@ -1733,9 +1754,9 @@
                     <input type="text" id="evTitle" class="glass-input" placeholder="Добавить дело, событие или напоминание">
                     <div class="flex-row">
                         <select id="evType" class="glass-select">
-                            <option value="task">✅ Дело</option>
-                            <option value="reminder">🔔 Напоминание</option>
-                            <option value="event">📌 Событие</option>
+                            <option value="task">Дело</option>
+                            <option value="reminder">Напоминание</option>
+                            <option value="event">Событие</option>
                         </select>
                         <input type="time" id="evTime" class="glass-input" title="Время (необязательно)">
                     </div>
@@ -1802,7 +1823,7 @@
                     Дневник
                     <button class="glass-btn compact" onclick="openDiaryEditor()">+ Новая запись</button>
                 </div>
-                <input type="text" id="diarySearchInput" class="glass-input" placeholder="🔍 Поиск по записям" oninput="setDiarySearch(this.value)">
+                <div class="search-box"><span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 35 37"><circle cx="12.99" cy="12.99" r="10.49" fill="none" stroke="currentColor" stroke-width="5"/><path d="M20.42 22.4 32 33.98" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg></span><input type="text" id="diarySearchInput" class="glass-input" placeholder="Поиск по записям" oninput="setDiarySearch(this.value)"></div>
                 <div id="diaryChips" class="chip-row"></div>
             </div>
 
@@ -1812,8 +1833,8 @@
                 <textarea id="diaryBody" class="glass-input" rows="8" placeholder="О чём хочется написать?"></textarea>
                 <input type="text" id="diaryTags" class="glass-input" placeholder="Метки через запятую: работа, идеи, путешествия">
                 <div class="flex-row" style="gap: 20px;">
-                    <label class="check-label"><input type="checkbox" id="diaryPinned"> 📌 Закрепить</label>
-                    <label class="check-label"><input type="checkbox" id="diaryBookmarked"> 🔖 В закладки</label>
+                    <label class="check-label"><input type="checkbox" id="diaryPinned"> <span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 44 44"><path d="M18 25.89 4.12 39.77" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><g fill="currentColor"><path d="M20.38 21.05a2 2 0 0 1 2.03 2.03l-.16 11.23c-.03 1.77-2.16 2.64-3.41 1.39L7.77 24.63c-1.25-1.25-.38-3.39 1.38-3.42Z"/><path d="M19.92 25.81a2 2 0 0 1-2.27-2.27l2.1-14.25c.25-1.62 2.24-2.28 3.4-1.12l12.14 12.14c1.16 1.16.5 3.15-1.12 3.39Z"/></g></svg></span>Закрепить</label>
+                    <label class="check-label"><input type="checkbox" id="diaryBookmarked"> <span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 48 50"><path d="M10 4.5h28a7.5 7.5 0 0 1 7.5 7.5v28a7.5 7.5 0 0 1-7.5 7.5H10A7.5 7.5 0 0 1 2.5 40V12A7.5 7.5 0 0 1 10 4.5Z" fill="none" stroke="currentColor" stroke-width="5"/><g fill="currentColor"><path d="M17.06 21.58a2 2 0 0 1 0-3.17L34.28 5.16c1.32-1.01 3.22-.08 3.22 1.58v26.52c0 1.66-1.9 2.6-3.22 1.58Z"/><path d="M30.94 21.58a2 2 0 0 0 0-3.17L13.72 5.16c-1.32-1.01-3.22-.08-3.22 1.58v26.52c0 1.66 1.9 2.6 3.22 1.58Z"/><path d="M25.58 24.94a2 2 0 0 1-3.17 0L10.89 9.97c-1.01-1.32-.08-3.22 1.58-3.22h23.05c1.66 0 2.6 1.9 1.58 3.22Z"/></g></svg></span>В закладки</label>
                 </div>
                 <div class="flex-row">
                     <button class="glass-btn" onclick="saveDiaryEntry()">Сохранить</button>
@@ -1843,7 +1864,7 @@
 
                 <div id="qrReader"></div>
 
-                <button class="glass-btn" id="btnStartCardScan" onclick="startCardScanner()">📷 Сканировать штрих/QR код</button>
+                <button class="glass-btn" id="btnStartCardScan" onclick="startCardScanner()"><span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 51 51"><path d="M2.5 14v-1.5a10 10 0 0 1 10-10H14M2.5 37v1.5a10 10 0 0 0 10 10H14M37 2.5h1.5a10 10 0 0 1 10 10V14M37 48.5h1.5a10 10 0 0 0 10-10V37" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><g fill="currentColor"><rect x="14" y="20" width="4" height="12" rx="1.5"/><rect x="23" y="14" width="4" height="23" rx="1.5"/><rect x="32" y="20" width="4" height="17" rx="1.5"/><circle cx="16" cy="14" r="2.5"/><circle cx="34" cy="14" r="2.5"/><circle cx="16" cy="38" r="2.5"/></g></svg></span> Сканировать штрих/QR код</button>
                 <button class="glass-btn secondary" id="btnStopCardScan" onclick="stopCardScanner()" style="display: none;">Отмена сканирования</button>
 
                 <div id="scanResultForm" style="display: none; margin-top: 15px;">
@@ -1868,7 +1889,7 @@
 
             <div class="glass-card full-width soc-list">
                 <div class="card-header">Друзья <span class="day-badge" id="socFriendCount"></span></div>
-                <input type="search" id="socSearch" class="glass-input" placeholder="🔍 Найти по никнейму" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="32" oninput="onSocialSearch(this.value)" style="margin-bottom: 0;">
+                <div class="search-box" style="margin-bottom: 0;"><span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 35 37"><circle cx="12.99" cy="12.99" r="10.49" fill="none" stroke="currentColor" stroke-width="5"/><path d="M20.42 22.4 32 33.98" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg></span><input type="search" id="socSearch" class="glass-input" placeholder="Найти по никнейму" autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="32" oninput="onSocialSearch(this.value)"></div>
                 <div id="socSearchResults"></div>
                 <div id="socIncoming"></div>
                 <div id="socFriends"></div>
@@ -1890,9 +1911,9 @@
                     <button type="button" class="icon-btn" onclick="clearAttach()" aria-label="Убрать картинку">✕</button>
                 </div>
                 <form class="chat-input" id="chatForm" onsubmit="sendMessage(event)">
-                    <button type="button" class="glass-btn attach-btn" onclick="pickChatImage()" title="Прикрепить картинку" aria-label="Прикрепить картинку">📎</button>
+                    <button type="button" class="glass-btn attach-btn" onclick="pickChatImage()" title="Прикрепить картинку" aria-label="Прикрепить картинку"><span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 45 42"><path d="M28.5 30.5 39.64 19.36A11.3 11.3 0 0 0 43 11.25v-1.21A8.54 8.54 0 0 0 34.46 1.5h-1.21a11.3 11.3 0 0 0-8.11 3.36L3.97 26.03a8.2 8.2 0 0 0 0 11.95l.23.22a7.9 7.9 0 0 0 11.1 0l13.58-13.58A7.2 7.2 0 0 0 31 19.5v-.88a5.12 5.12 0 0 0-5.12-5.12h-.38a5.3 5.3 0 0 0-4.27 1.77L9 27.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span></button>
                     <textarea id="chatText" class="glass-input" rows="1" placeholder="Сообщение" maxlength="2000" aria-label="Текст сообщения"></textarea>
-                    <button type="button" class="glass-btn mic-btn" id="micBtn" onclick="startRecording()" title="Записать голосовое" aria-label="Записать голосовое">🎤</button>
+                    <button type="button" class="glass-btn mic-btn" id="micBtn" onclick="startRecording()" title="Записать голосовое" aria-label="Записать голосовое"><span class="ui-ic" aria-hidden="true"><svg viewBox="10 4 50 37"><path d="M15.45 38.25c-2.31 0-3.75-2.5-2.6-4.5L25.41 12c1.15-2 4.04-2 5.19 0l12.56 21.75c1.15 2-.29 4.5-2.6 4.5Z" fill="currentColor"/><path d="M39 16.05a6 6 0 0 1 6.1 10.57M33.53 9.1a14.6 14.6 0 0 1 16.04 24.57" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span></button>
                     <button class="glass-btn send-btn" type="submit" aria-label="Отправить">➤</button>
                 </form>
                 <div class="rec-bar" id="recBar" role="group" aria-label="Запись голосового">
@@ -1975,7 +1996,7 @@
             <div class="glass-card full-width acc-noserver">
                 <div class="card-header">Аккаунт</div>
                 <div class="sync-line" id="accNoServerText"></div>
-                <button type="button" class="glass-btn secondary" onclick="openSettings()" style="margin: 15px 0 0;">⚙️ Настройки и оформление</button>
+                <button type="button" class="glass-btn secondary" onclick="openSettings()" style="margin: 15px 0 0;"><span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M33.67 20c0 7.55-6.12 13.67-13.67 13.67S6.33 27.55 6.33 20 12.45 6.33 20 6.33 33.67 12.45 33.67 20Z" fill="none" stroke="currentColor" stroke-width="6"/><g fill="currentColor"><rect x="16.67" width="6.67" height="5" rx=".8"/><rect x="31.87" y="3.33" width="6.67" height="5" rx=".8" transform="rotate(45 31.87 3.33)"/><rect x="3.33" y="8.05" width="6.67" height="5" rx=".8" transform="rotate(-45 3.33 8.05)"/><rect y="23.33" width="6.67" height="5" rx=".8" transform="rotate(-90 0 23.33)"/><rect x="35" y="23.33" width="6.67" height="5" rx=".8" transform="rotate(-90 35 23.33)"/><rect x="8.05" y="36.58" width="6.67" height="5" rx=".8" transform="rotate(-135 8.05 36.58)"/><rect x="28.33" y="33.05" width="6.67" height="5" rx=".8" transform="rotate(-45 28.33 33.05)"/><rect x="16.67" y="35" width="6.67" height="5" rx=".8"/></g></svg></span> Настройки и оформление</button>
             </div>
 
             <div class="glass-card full-width acc-out">
@@ -1992,7 +2013,7 @@
                     <div class="form-msg" id="accMsg"></div>
                     <button class="glass-btn" id="accSubmit" type="submit" style="margin-bottom: 0;">Войти</button>
                 </form>
-                <button type="button" class="glass-btn secondary" onclick="openSettings()" style="margin: 12px 0 0;">⚙️ Настройки и оформление</button>
+                <button type="button" class="glass-btn secondary" onclick="openSettings()" style="margin: 12px 0 0;"><span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M33.67 20c0 7.55-6.12 13.67-13.67 13.67S6.33 27.55 6.33 20 12.45 6.33 20 6.33 33.67 12.45 33.67 20Z" fill="none" stroke="currentColor" stroke-width="6"/><g fill="currentColor"><rect x="16.67" width="6.67" height="5" rx=".8"/><rect x="31.87" y="3.33" width="6.67" height="5" rx=".8" transform="rotate(45 31.87 3.33)"/><rect x="3.33" y="8.05" width="6.67" height="5" rx=".8" transform="rotate(-45 3.33 8.05)"/><rect y="23.33" width="6.67" height="5" rx=".8" transform="rotate(-90 0 23.33)"/><rect x="35" y="23.33" width="6.67" height="5" rx=".8" transform="rotate(-90 35 23.33)"/><rect x="8.05" y="36.58" width="6.67" height="5" rx=".8" transform="rotate(-135 8.05 36.58)"/><rect x="28.33" y="33.05" width="6.67" height="5" rx=".8" transform="rotate(-45 28.33 33.05)"/><rect x="16.67" y="35" width="6.67" height="5" rx=".8"/></g></svg></span> Настройки и оформление</button>
                 <div class="hint">Аккаунт синхронизирует календарь, напоминания, дневник, списки, финансы, карты и монеты между вашими устройствами.<br>
                     Восстановить пароль нельзя, поэтому сохраните его в надёжном месте.</div>
             </div>
@@ -2005,9 +2026,9 @@
                     </button>
                     <div class="nick" id="accName"></div>
                     <div class="actions" id="accActions">
-                        <button type="button" class="glass-btn secondary compact" onclick="pickAvatar()" id="accAvBtn">📷 Фото</button>
+                        <button type="button" class="glass-btn secondary compact" onclick="pickAvatar()" id="accAvBtn"><span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 51 51"><path d="M2.5 14v-1.5a10 10 0 0 1 10-10H14M2.5 37v1.5a10 10 0 0 0 10 10H14M37 2.5h1.5a10 10 0 0 1 10 10V14M37 48.5h1.5a10 10 0 0 0 10-10V37" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><g fill="currentColor"><circle cx="25.5" cy="25.5" r="10"/><circle cx="14" cy="13" r="2.5"/></g></svg></span> Фото</button>
                         <button type="button" class="glass-btn secondary compact" onclick="openCoverMenu()" id="accCoverBtn">🖼 Фон</button>
-                        <button type="button" class="glass-btn secondary compact" onclick="openSettings()" id="accSettingsBtn">⚙️ Настройки</button>
+                        <button type="button" class="glass-btn secondary compact" onclick="openSettings()" id="accSettingsBtn"><span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M33.67 20c0 7.55-6.12 13.67-13.67 13.67S6.33 27.55 6.33 20 12.45 6.33 20 6.33 33.67 12.45 33.67 20Z" fill="none" stroke="currentColor" stroke-width="6"/><g fill="currentColor"><rect x="16.67" width="6.67" height="5" rx=".8"/><rect x="31.87" y="3.33" width="6.67" height="5" rx=".8" transform="rotate(45 31.87 3.33)"/><rect x="3.33" y="8.05" width="6.67" height="5" rx=".8" transform="rotate(-45 3.33 8.05)"/><rect y="23.33" width="6.67" height="5" rx=".8" transform="rotate(-90 0 23.33)"/><rect x="35" y="23.33" width="6.67" height="5" rx=".8" transform="rotate(-90 35 23.33)"/><rect x="8.05" y="36.58" width="6.67" height="5" rx=".8" transform="rotate(-135 8.05 36.58)"/><rect x="28.33" y="33.05" width="6.67" height="5" rx=".8" transform="rotate(-45 28.33 33.05)"/><rect x="16.67" y="35" width="6.67" height="5" rx=".8"/></g></svg></span> Настройки</button>
                     </div>
                 </div>
                 <input type="file" id="avatarFile" accept="image/*" hidden onchange="onAvatarFile(this)">
@@ -2017,13 +2038,13 @@
             </div>
 
             <div class="full-width pp-apps acc-in page-apps">
-                <button type="button" class="pp-app" onclick="switchTab('social')"><span class="pp-app-ic" aria-hidden="true">💬</span>Друзья<span class="w-badge" id="socPageBadge"></span></button>
+                <button type="button" class="pp-app" onclick="switchTab('social')"><span class="pp-app-ic" aria-hidden="true"><span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 31 36"><g fill="currentColor"><path d="M31 29.64c0 6.6-7.72 5.75-15.5 5.75S0 36.24 0 29.64s7.72-10.45 15.5-10.45S31 23.05 31 29.64Z"/><ellipse cx="15.5" cy="7.38" rx="8.12" ry="7.38"/></g></svg></span></span>Друзья<span class="w-badge" id="socPageBadge"></span></button>
                 <button type="button" class="pp-app" onclick="switchTab('games')"><span class="pp-app-ic" aria-hidden="true">🎮</span>Игры</button>
             </div>
 
             <div class="glass-card full-width acc-in post-composer" id="postComposer">
                 <button type="button" class="pc-start" id="pcStart" onclick="pickPostImage()">
-                    <span class="pc-ic">📷</span>
+                    <span class="pc-ic"><span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 51 51"><path d="M2.5 14v-1.5a10 10 0 0 1 10-10H14M2.5 37v1.5a10 10 0 0 0 10 10H14M37 2.5h1.5a10 10 0 0 1 10 10V14M37 48.5h1.5a10 10 0 0 0 10-10V37" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><g fill="currentColor"><circle cx="25.5" cy="25.5" r="10"/><circle cx="14" cy="13" r="2.5"/></g></svg></span></span>
                     <span><b>Новый пост</b><span class="pc-sub">Фото с подписью — появится у вас в профиле</span></span>
                 </button>
                 <div class="pc-form" id="pcForm" hidden>
@@ -2061,7 +2082,7 @@
             </div>
 
             <div class="glass-card full-width">
-                <div class="card-header">🎨 Оформление</div>
+                <div class="card-header">Оформление</div>
                 <div class="ui-choices" id="uiChoices" role="radiogroup" aria-label="Стиль интерфейса">
                     <button type="button" class="ui-choice" data-ui="liquid" role="radio" onclick="setUiStyle('liquid')">
                         <span class="ui-prev p-liquid" aria-hidden="true"><i></i><i></i><i></i></span>
@@ -2082,8 +2103,8 @@
                 <div class="set-row">
                     <span>Тема</span>
                     <div class="segmented" id="themeSwitch">
-                        <button type="button" data-t="light" onclick="applyTheme(false, true)">☀️ Светлая</button>
-                        <button type="button" data-t="dark" onclick="applyTheme(true, true)">🌙 Тёмная</button>
+                        <button type="button" data-t="light" onclick="applyTheme(false, true)">Светлая</button>
+                        <button type="button" data-t="dark" onclick="applyTheme(true, true)">Тёмная</button>
                     </div>
                 </div>
                 <div class="hint">Выбор сохраняется на этом устройстве.</div>
@@ -2212,7 +2233,7 @@
                     </div>
                     <div class="tm-controls">
                         <button type="button" class="glass-btn secondary tm-side" id="tmResetBtn" onclick="timerReset()" aria-label="Сбросить">↺</button>
-                        <button type="button" class="glass-btn tm-main" id="tmMainBtn" onclick="timerMain()">▶ Старт</button>
+                        <button type="button" class="glass-btn tm-main" id="tmMainBtn" onclick="timerMain()"><span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 28 32"><path d="M26.25 12.96c2 1.16 2 4.04 0 5.2L4.5 30.72c-2 1.15-4.5-.29-4.5-2.6V3c0-2.31 2.5-3.75 4.5-2.6Z" fill="currentColor"/></svg></span>Старт</button>
                         <button type="button" class="glass-btn secondary tm-side" id="tmPlusBtn" onclick="timerAdd(60000)">+1 мин</button>
                     </div>
                     <div class="tm-presets" id="tmPresets" style="margin-top: 16px;"></div>
@@ -2235,7 +2256,7 @@
                     </div>
                     <div class="tm-controls">
                         <button type="button" class="glass-btn secondary tm-side" onclick="pomoReset()" aria-label="Сбросить цикл">↺</button>
-                        <button type="button" class="glass-btn tm-main" id="pmMainBtn" onclick="pomoMain()">▶ Фокус</button>
+                        <button type="button" class="glass-btn tm-main" id="pmMainBtn" onclick="pomoMain()"><span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 28 32"><path d="M26.25 12.96c2 1.16 2 4.04 0 5.2L4.5 30.72c-2 1.15-4.5-.29-4.5-2.6V3c0-2.31 2.5-3.75 4.5-2.6Z" fill="currentColor"/></svg></span>Фокус</button>
                         <button type="button" class="glass-btn secondary tm-side" onclick="pomoSkip()" title="Перейти к следующему этапу">⏭</button>
                     </div>
                     <div class="pm-today" id="pmToday"></div>
@@ -2243,7 +2264,7 @@
             </div>
 
             <div class="glass-card full-width tm-only-pomo">
-                <div class="card-header">⚙️ Настройки помодоро</div>
+                <div class="card-header"><span class="hdr-ic"><span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M33.67 20c0 7.55-6.12 13.67-13.67 13.67S6.33 27.55 6.33 20 12.45 6.33 20 6.33 33.67 12.45 33.67 20Z" fill="none" stroke="currentColor" stroke-width="6"/><g fill="currentColor"><rect x="16.67" width="6.67" height="5" rx=".8"/><rect x="31.87" y="3.33" width="6.67" height="5" rx=".8" transform="rotate(45 31.87 3.33)"/><rect x="3.33" y="8.05" width="6.67" height="5" rx=".8" transform="rotate(-45 3.33 8.05)"/><rect y="23.33" width="6.67" height="5" rx=".8" transform="rotate(-90 0 23.33)"/><rect x="35" y="23.33" width="6.67" height="5" rx=".8" transform="rotate(-90 35 23.33)"/><rect x="8.05" y="36.58" width="6.67" height="5" rx=".8" transform="rotate(-135 8.05 36.58)"/><rect x="28.33" y="33.05" width="6.67" height="5" rx=".8" transform="rotate(-45 28.33 33.05)"/><rect x="16.67" y="35" width="6.67" height="5" rx=".8"/></g></svg></span></span>Настройки помодоро</div>
                 <div class="pm-settings">
                     <label>🍅 Фокус<span><input type="number" class="glass-input" id="pmFocus" min="1" max="180" onchange="pomoSettingsChanged()"> мин</span></label>
                     <label>☕ Короткий перерыв<span><input type="number" class="glass-input" id="pmShort" min="1" max="60" onchange="pomoSettingsChanged()"> мин</span></label>
@@ -2261,10 +2282,10 @@
             </div>
 
             <div class="glass-card full-width">
-                <div class="card-header">🔔 Сигнал</div>
+                <div class="card-header"><span class="hdr-ic" data-sec="reminders"></span>Сигнал</div>
                 <label class="tm-check"><input type="checkbox" id="tmSound" onchange="tmSignalChanged()"> Звук</label>
                 <label class="tm-check"><input type="checkbox" id="tmVibrate" onchange="tmSignalChanged()"> Вибрация (на телефоне)</label>
-                <button type="button" class="glass-btn secondary compact" onclick="tmTestSound()" style="margin-top: 10px;">🔊 Проверить звук</button>
+                <button type="button" class="glass-btn secondary compact tm-sound" onclick="tmTestSound()" style="margin-top: 10px;"><span class="ui-ic" aria-hidden="true"><svg viewBox="10 4 50 37"><path d="M15.45 38.25c-2.31 0-3.75-2.5-2.6-4.5L25.41 12c1.15-2 4.04-2 5.19 0l12.56 21.75c1.15 2-.29 4.5-2.6 4.5Z" fill="currentColor"/><path d="M39 16.05a6 6 0 0 1 6.1 10.57M33.53 9.1a14.6 14.6 0 0 1 16.04 24.57" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></span>Проверить звук</button>
                 <div class="hint" id="tmNotifHint"></div>
             </div>
         </div>
@@ -2357,7 +2378,7 @@
             </button>
             <div class="pp-hello" id="popHello">Привет, <b>гость</b>!</div>
             <div class="pp-apps">
-                <button type="button" class="pp-app" onclick="closePops(); switchTab('social')"><span class="pp-app-ic" aria-hidden="true">💬</span>Друзья<span class="w-badge" id="socDockBadge"></span></button>
+                <button type="button" class="pp-app" onclick="closePops(); switchTab('social')"><span class="pp-app-ic" aria-hidden="true"><span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 31 36"><g fill="currentColor"><path d="M31 29.64c0 6.6-7.72 5.75-15.5 5.75S0 36.24 0 29.64s7.72-10.45 15.5-10.45S31 23.05 31 29.64Z"/><ellipse cx="15.5" cy="7.38" rx="8.12" ry="7.38"/></g></svg></span></span>Друзья<span class="w-badge" id="socDockBadge"></span></button>
                 <button type="button" class="pp-app" onclick="closePops(); switchTab('games')"><span class="pp-app-ic" aria-hidden="true">🎮</span>Игры</button>
             </div>
             <div class="pp-actions" id="popIn">
@@ -5070,7 +5091,7 @@
                         <div class="info">
                             <div class="nm">${esc(f.login)}</div>
                             <div class="sub">${f.last
-                                ? (f.last.sender === social.me ? 'Вы: ' : '') + (f.last.voice ? `🎤 Голосовое (${fmtDur(f.last.voice.dur)})` : '') + (f.last.img ? '📷 Фото' + (f.last.body ? ' · ' : '') : '') + esc(f.last.body.split('\n')[0])
+                                ? (f.last.sender === social.me ? 'Вы: ' : '') + (f.last.voice ? `${uiIc('sound')} Голосовое (${fmtDur(f.last.voice.dur)})` : '') + (f.last.img ? uiIc('photo') + ' Фото' + (f.last.body ? ' · ' : '') : '') + esc(f.last.body.split('\n')[0])
                                 : 'Напишите первое сообщение'}</div>
                         </div>
                         <div class="side">
@@ -5723,7 +5744,7 @@
             if (!state.items.length) {
                 html = state.loading || !state.loaded
                     ? (state.error ? '' : LOGO_LOADER)
-                    : `<div class="glass-card full-width feed-note">${own ? '📷 Здесь будут ваши посты. Нажмите «Новый пост», чтобы выложить первое фото.' : 'Пока нет постов'}</div>`;
+                    : `<div class="glass-card full-width feed-note">${own ? uiIc('photo') + ' Здесь будут ваши посты. Нажмите «Новый пост», чтобы выложить первое фото.' : 'Пока нет постов'}</div>`;
             }
             if (state.error) html += `<div class="feed-note">${esc(state.error)} · <a href="#" onclick="event.preventDefault(); ${own ? 'loadMyPosts(false, ' + state.items.length + ' > 0)' : 'loadPersonPosts(' + (state.items.length > 0) + ')'}">повторить</a></div>`;
             else if (state.hasMore) html += `<button type="button" class="glass-btn secondary feed-more" ${state.loading ? 'disabled' : ''} onclick="${own ? 'loadMyPosts(false, true)' : 'loadPersonPosts(true)'}">${state.loading ? 'Загрузка…' : 'Показать ещё'}</button>`;
@@ -9113,7 +9134,21 @@
 
         // ---- заголовок с кнопкой «назад» в каждом разделе ----
         // Иконки разделов в двух вариантах: светлая тема — залитые чёрные, тёмная — белые контурные
+        const UI_ICONS = {
+            photo: '<svg viewBox="0 0 51 51"><path d="M2.5 14v-1.5a10 10 0 0 1 10-10H14M2.5 37v1.5a10 10 0 0 0 10 10H14M37 2.5h1.5a10 10 0 0 1 10 10V14M37 48.5h1.5a10 10 0 0 0 10-10V37" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><g fill="currentColor"><circle cx="25.5" cy="25.5" r="10"/><circle cx="14" cy="13" r="2.5"/></g></svg>',
+            attach: '<svg viewBox="0 0 45 42"><path d="M28.5 30.5 39.64 19.36A11.3 11.3 0 0 0 43 11.25v-1.21A8.54 8.54 0 0 0 34.46 1.5h-1.21a11.3 11.3 0 0 0-8.11 3.36L3.97 26.03a8.2 8.2 0 0 0 0 11.95l.23.22a7.9 7.9 0 0 0 11.1 0l13.58-13.58A7.2 7.2 0 0 0 31 19.5v-.88a5.12 5.12 0 0 0-5.12-5.12h-.38a5.3 5.3 0 0 0-4.27 1.77L9 27.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>',
+            pin: '<svg viewBox="0 0 44 44"><path d="M18 25.89 4.12 39.77" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><g fill="currentColor"><path d="M20.38 21.05a2 2 0 0 1 2.03 2.03l-.16 11.23c-.03 1.77-2.16 2.64-3.41 1.39L7.77 24.63c-1.25-1.25-.38-3.39 1.38-3.42Z"/><path d="M19.92 25.81a2 2 0 0 1-2.27-2.27l2.1-14.25c.25-1.62 2.24-2.28 3.4-1.12l12.14 12.14c1.16 1.16.5 3.15-1.12 3.39Z"/></g></svg>',
+            bookmark: '<svg viewBox="0 0 48 50"><path d="M10 4.5h28a7.5 7.5 0 0 1 7.5 7.5v28a7.5 7.5 0 0 1-7.5 7.5H10A7.5 7.5 0 0 1 2.5 40V12A7.5 7.5 0 0 1 10 4.5Z" fill="none" stroke="currentColor" stroke-width="5"/><g fill="currentColor"><path d="M17.06 21.58a2 2 0 0 1 0-3.17L34.28 5.16c1.32-1.01 3.22-.08 3.22 1.58v26.52c0 1.66-1.9 2.6-3.22 1.58Z"/><path d="M30.94 21.58a2 2 0 0 0 0-3.17L13.72 5.16c-1.32-1.01-3.22-.08-3.22 1.58v26.52c0 1.66 1.9 2.6 3.22 1.58Z"/><path d="M25.58 24.94a2 2 0 0 1-3.17 0L10.89 9.97c-1.01-1.32-.08-3.22 1.58-3.22h23.05c1.66 0 2.6 1.9 1.58 3.22Z"/></g></svg>',
+            edit: '<svg viewBox="0 0 22 30"><g fill="none" stroke="currentColor" stroke-width="2"><path d="M15.67.38 2.15 23.79M7.36 26.8 20.87 3.38M21.15 4.4 15.95 1.4M13.69 5.3l3.9 2.26"/><path d="M1.99 23.29l1.1 4.1M3.77 27.79l4.1-1.1" stroke-width="1.5"/></g><path d="M4.95 20.73l3.42 1.97-2.01 3.49-3.42-1.97Z" fill="currentColor" stroke="currentColor"/></svg>',
+            search: '<svg viewBox="0 0 35 37"><circle cx="12.99" cy="12.99" r="10.49" fill="none" stroke="currentColor" stroke-width="5"/><path d="M20.42 22.4 32 33.98" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg>',
+            friend: '<svg viewBox="0 0 31 36"><g fill="currentColor"><path d="M31 29.64c0 6.6-7.72 5.75-15.5 5.75S0 36.24 0 29.64s7.72-10.45 15.5-10.45S31 23.05 31 29.64Z"/><ellipse cx="15.5" cy="7.38" rx="8.12" ry="7.38"/></g></svg>',
+            sound: '<svg viewBox="10 4 50 37"><path d="M15.45 38.25c-2.31 0-3.75-2.5-2.6-4.5L25.41 12c1.15-2 4.04-2 5.19 0l12.56 21.75c1.15 2-.29 4.5-2.6 4.5Z" fill="currentColor"/><path d="M39 16.05a6 6 0 0 1 6.1 10.57M33.53 9.1a14.6 14.6 0 0 1 16.04 24.57" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>',
+            play: '<svg viewBox="0 0 28 32"><path d="M26.25 12.96c2 1.16 2 4.04 0 5.2L4.5 30.72c-2 1.15-4.5-.29-4.5-2.6V3c0-2.31 2.5-3.75 4.5-2.6Z" fill="currentColor"/></svg>',
+            pause: '<svg viewBox="0 0 28 32"><g fill="currentColor"><rect x="2" y="1" width="8.5" height="30" rx="3.5"/><rect x="17.5" y="1" width="8.5" height="30" rx="3.5"/></g></svg>',
+        };
+        const uiIc = k => `<span class="ui-ic" aria-hidden="true">${UI_ICONS[k]}</span>`;
         const SEC_ICONS = {
+            friend: [UI_ICONS.friend, UI_ICONS.friend],
             check: ['<svg viewBox="0 0 49 49"><path d="M10 2.5h29a7.5 7.5 0 0 1 7.5 7.5v29a7.5 7.5 0 0 1-7.5 7.5H10A7.5 7.5 0 0 1 2.5 39V10A7.5 7.5 0 0 1 10 2.5Z" fill="none" stroke="currentColor" stroke-width="5"/><path d="M38.57 15 21.23 32.33M11 22.1l12 12" fill="none" stroke="currentColor" stroke-width="5"/></svg>', '<svg viewBox="0 0 49 49"><path d="M10 2.5h29a7.5 7.5 0 0 1 7.5 7.5v29a7.5 7.5 0 0 1-7.5 7.5H10A7.5 7.5 0 0 1 2.5 39V10A7.5 7.5 0 0 1 10 2.5Z" fill="none" stroke="currentColor" stroke-width="5"/><path d="M38.57 15 21.23 32.33M11 22.1l12 12" fill="none" stroke="currentColor" stroke-width="5"/></svg>'],
             goal: ['<svg viewBox="0 0 63 62"><path d="M51 35a24 24 0 1 1-24-24" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><path d="M31.2 33.61a2 2 0 0 1-2.56-2.55l7.24-20.51a2 2 0 0 1 3.3-.75l13.27 13.27a2 2 0 0 1-.75 3.3Z" fill="currentColor"/><path d="M35 35a8 8 0 1 1-8-8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>', '<svg viewBox="0 0 63 62"><path d="M51 35a24 24 0 1 1-24-24" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><path d="M31.2 33.61a2 2 0 0 1-2.56-2.55l7.24-20.51a2 2 0 0 1 3.3-.75l13.27 13.27a2 2 0 0 1-.75 3.3Z" fill="currentColor"/><path d="M35 35a8 8 0 1 1-8-8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>'],
             finance: ['<svg viewBox="0 0 35 53"><g fill="currentColor"><rect x="14.93" y="23.29" width="5.94" height="29.72" rx="2"/><rect x="26.81" y="11.4" width="5.94" height="41.6" rx="2"/><rect x="3.04" y="35.17" width="5.94" height="17.83" rx="2"/></g><path d="M3.04 29.23 8.99 20.31l10.4-5.94 2.97-7.43 10.4-4.46" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>', '<svg viewBox="0 0 35 53"><g fill="currentColor"><rect x="14.93" y="23.29" width="5.94" height="29.72" rx="2"/><rect x="26.81" y="11.4" width="5.94" height="41.6" rx="2"/><rect x="3.04" y="35.17" width="5.94" height="17.83" rx="2"/></g><path d="M3.04 29.23 8.99 20.31l10.4-5.94 2.97-7.43 10.4-4.46" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>'],
@@ -9129,8 +9164,11 @@
         };
         // какой значок у вкладки виджета и у заголовка раздела
         const TAB_ICON = { calendar: 'calendar', reminders: 'reminders', timer: 'timer', tasks: 'check', goal: 'goal', lists: 'list', diary: 'diary', finance: 'finance', cards: 'scan' };
-        const PAGE_ICON = { calendar: 'calendar', reminders: 'reminders', timer: 'timer', tasks: 'list', diary: 'diary', finance: 'finance', cards: 'scan' };
+        const PAGE_ICON = { social: 'friend', calendar: 'calendar', reminders: 'reminders', timer: 'timer', tasks: 'list', diary: 'diary', finance: 'finance', cards: 'scan' };
+        // значки типов в календаре: дело — как «Задачи», напоминание — как раздел «Напоминания», событие — «Закрепить»
+        const typeIc = t => t === 'event' ? uiIc('pin') : secIcon(t === 'reminder' ? 'reminders' : 'check');
         const secIcon = id => SEC_ICONS[id] ? `<span class="sec-ic"><span class="ic-l">${SEC_ICONS[id][0]}</span><span class="ic-d">${SEC_ICONS[id][1]}</span></span>` : '';
+        document.querySelectorAll('[data-sec]').forEach(el => { el.innerHTML = secIcon(el.dataset.sec); });
         const PAGE_TITLES = { calendar: 'Календарь', reminders: 'Напоминания', timer: 'Таймер', diary: 'Дневник', social: 'Друзья',
                               games: 'Игры', tasks: 'Списки', finance: 'Финансы', cards: 'Карты', account: 'Профиль', settings: 'Настройки', person: 'Профиль' };
         Object.entries(PAGE_TITLES).forEach(([id, title]) => {
@@ -9447,7 +9485,7 @@
             const btn = $('wTimerBtn');
             if (btn) {
                 const st = tm.mode === 'pomo' ? p.status : t.status;
-                btn.textContent = st === 'running' ? '⏸ Пауза' : st === 'paused' ? '▶ Дальше' : '▶ Старт';
+                btn.innerHTML = st === 'running' ? uiIc('pause') + 'Пауза' : uiIc('play') + (st === 'paused' ? 'Дальше' : 'Старт');
             }
         }
 
@@ -9584,7 +9622,7 @@
                 <div class="list-item-left">
                     <input type="checkbox" ${e.done ? 'checked' : ''} onchange="toggleEvent(${e.id})">
                     ${withDate ? '' : timeHtml}
-                    <span class="type-badge" title="${info.label}">${info.icon}</span>
+                    <span class="type-badge" title="${info.label}" aria-label="${info.label}">${typeIc(e.type)}</span>
                     <div style="min-width: 0;">
                         <div class="item-text" style="${e.done ? 'text-decoration: line-through;' : ''}">${esc(e.title)} ${withDate ? '' : notify}</div>
                         ${sub}
@@ -9915,9 +9953,9 @@
             const tags = [...new Set(data.diary.flatMap(e => e.tags || []))].sort((a, b) => a.localeCompare(b, 'ru'));
             if (diaryFilter.startsWith('tag:') && !tags.includes(diaryFilter.slice(4))) diaryFilter = 'all';
 
-            const chips = [['all', 'Все'], ['pinned', '📌 Закреплённые'], ['bookmarked', '🔖 Закладки'], ...tags.map(t => ['tag:' + t, '#' + t])];
-            document.getElementById('diaryChips').innerHTML = chips.map(([k, label]) =>
-                `<button class="chip ${diaryFilter === k ? 'active' : ''}" data-filter="${esc(k)}" onclick="setDiaryFilter(this.dataset.filter)">${esc(label)}</button>`
+            const chips = [['all', 'Все'], ['pinned', 'Закреплённые', 'pin'], ['bookmarked', 'Закладки', 'bookmark'], ...tags.map(t => ['tag:' + t, '#' + t])];
+            document.getElementById('diaryChips').innerHTML = chips.map(([k, label, icon]) =>
+                `<button class="chip ${diaryFilter === k ? 'active' : ''}" data-filter="${esc(k)}" onclick="setDiaryFilter(this.dataset.filter)">${icon ? uiIc(icon) : ''}${esc(label)}</button>`
             ).join('');
 
             const list = data.diary.filter(e => {
@@ -9947,13 +9985,13 @@
                 return `<div class="glass-card full-width diary-entry ${e.pinned ? 'pinned' : ''}">
                     <div class="diary-head">
                         <div style="min-width: 0;">
-                            <div class="diary-title">${e.pinned ? '📌 ' : ''}${e.bookmarked ? '🔖 ' : ''}${esc(e.title)}</div>
+                            <div class="diary-title">${e.pinned ? uiIc('pin') : ''}${e.bookmarked ? uiIc('bookmark') : ''}${esc(e.title)}</div>
                             <div class="diary-meta">${fmtDateTime(e.created)}${e.updated ? ' · изменено ' + fmtDateTime(e.updated) : ''}</div>
                         </div>
                         <div class="diary-actions">
-                            <button class="icon-btn ${e.pinned ? 'on' : ''}" title="${e.pinned ? 'Открепить' : 'Закрепить'}" onclick="toggleDiaryFlag(${e.id}, 'pinned')">📌</button>
-                            <button class="icon-btn ${e.bookmarked ? 'on' : ''}" title="${e.bookmarked ? 'Убрать из закладок' : 'В закладки'}" onclick="toggleDiaryFlag(${e.id}, 'bookmarked')">🔖</button>
-                            <button class="icon-btn" title="Редактировать" onclick="openDiaryEditor(${e.id})">✏️</button>
+                            <button class="icon-btn ${e.pinned ? 'on' : ''}" title="${e.pinned ? 'Открепить' : 'Закрепить'}" onclick="toggleDiaryFlag(${e.id}, 'pinned')">${uiIc('pin')}</button>
+                            <button class="icon-btn ${e.bookmarked ? 'on' : ''}" title="${e.bookmarked ? 'Убрать из закладок' : 'В закладки'}" onclick="toggleDiaryFlag(${e.id}, 'bookmarked')">${uiIc('bookmark')}</button>
+                            <button class="icon-btn" title="Редактировать" onclick="openDiaryEditor(${e.id})">${uiIc('edit')}</button>
                             <button class="icon-btn" title="Удалить" onclick="deleteDiaryEntry(${e.id})">🗑</button>
                         </div>
                     </div>
@@ -10268,7 +10306,7 @@
             $('tmPresets').innerHTML = TM_PRESETS.map(m => `<button type="button" class="chip-btn${t.base === m * 60000 ? ' on' : ''}" onclick="timerPreset(${m})">${m < 60 ? m + ' мин' : m / 60 + ' ч'}</button>`).join('');
             if (document.activeElement !== $('tmLabel')) $('tmLabel').value = t.label;
             $('tmSub').textContent = { idle: t.label || 'Готов к запуску', running: t.label || 'Идёт', paused: 'Пауза' + (t.label ? ' · ' + t.label : '') }[t.status];
-            $('tmMainBtn').textContent = { idle: '▶ Старт', running: '⏸ Пауза', paused: '▶ Дальше' }[t.status];
+            $('tmMainBtn').innerHTML = t.status === 'running' ? uiIc('pause') + 'Пауза' : uiIc('play') + (t.status === 'paused' ? 'Дальше' : 'Старт');
             $('tmResetBtn').disabled = idle;
             $('tmPlusBtn').disabled = idle;
             // помодоро
@@ -10277,7 +10315,7 @@
             $('pmPhases').innerHTML = ['focus', 'short', 'long'].map(ph => `<span class="${ph === p.phase ? 'on' : ''}">${{ focus: '🍅 Фокус', short: '☕ Перерыв', long: '🛋 Длинный перерыв' }[ph]}</span>`).join('');
             const rounds = tm.ps.rounds;
             $('pmDots').innerHTML = Array.from({ length: rounds }, (_, i) => `<i class="${i < p.cycle ? 'on' : (i === p.cycle && p.phase === 'focus' ? 'cur' : '')}"></i>`).join('');
-            $('pmMainBtn').textContent = p.status === 'running' ? '⏸ Пауза' : p.status === 'paused' ? '▶ Дальше' : (p.phase === 'focus' ? '▶ Фокус' : '▶ Перерыв');
+            $('pmMainBtn').innerHTML = p.status === 'running' ? uiIc('pause') + 'Пауза' : uiIc('play') + (p.status === 'paused' ? 'Дальше' : p.phase === 'focus' ? 'Фокус' : 'Перерыв');
             $('pmToday').innerHTML = st.count
                 ? `Сегодня: <b>${st.count}</b> ${ruPlural(st.count, 'помидор', 'помидора', 'помидоров')} · ${st.minutes} мин фокуса`
                 : 'Сегодня помидоров пока нет';
@@ -10890,7 +10928,7 @@
                     : `<div class="fin-item"><span class="fin-dot" style="background: ${c.color}"></span>
                         <div class="nm">${esc(c.name)}<small>${c.pct ? `${c.pct}% от каждого дохода` : 'распределение вручную'}</small></div>
                         <span class="val ${sum.cats.get(c.id) < 0 ? 'neg' : ''}">${money(sum.cats.get(c.id))}</span>
-                        <button class="icon-btn" onclick="finCatEdit = ${c.id}; renderFinance(); $('finCatEditName').focus()" title="Изменить" aria-label="Изменить">✏️</button>
+                        <button class="icon-btn" onclick="finCatEdit = ${c.id}; renderFinance(); $('finCatEditName').focus()" title="Изменить" aria-label="Изменить">${uiIc('edit')}</button>
                         <button class="icon-btn" onclick="deleteFinCat(${c.id})" title="Удалить" aria-label="Удалить">🗑</button></div>`).join('') +
                   (pctSum > 100 ? '<div class="form-msg">Сумма долей больше 100% — при распределении по долям получится больше, чем сам доход.</div>' : '')
                 : `<div class="hint" style="margin: 0 0 10px;">Категорий пока нет. Можно начать с популярного правила 50/30/20:</div>
