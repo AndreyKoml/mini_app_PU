@@ -16,7 +16,7 @@
         (function () {
             var d = document.documentElement, u = {};
             try { u = JSON.parse(localStorage.getItem('produ_ui') || '{}') || {}; } catch (e) {}
-            d.setAttribute('data-ui', ['liquid', 'glass', 'flat'].indexOf(u.ui) >= 0 ? u.ui : 'liquid');
+            d.setAttribute('data-ui', u.ui === 'flat' ? 'flat' : 'liquid');     // «Стекло» или «Классика»
             d.setAttribute('data-font', u.font === 'normal' ? 'normal' : 'thin');
             try { if (localStorage.getItem('produ_theme') === 'dark') d.classList.add('pre-dark'); } catch (e) {}
             // запасной выход: если что-то пошло не так, экран загрузки не останется навсегда
@@ -585,7 +585,7 @@
         .like-btn:hover svg { transform: scale(1.08); }
         .like-btn.on { color: #ff3b5c; }
         .like-btn.on svg { fill: #ff3b5c; stroke: #ff3b5c; }
-        .like-btn.pop svg { animation: likePop .45s cubic-bezier(.2,1.6,.4,1); }
+        .like-btn.like-pop svg { animation: likePop .45s cubic-bezier(.2,1.6,.4,1); }
         .like-btn .n:empty { display: none; }
         @keyframes likePop { 0% { transform: scale(.6); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
         .likers-link { border: none; background: none; color: inherit; font: inherit; font-size: 14px; opacity: .7; cursor: pointer; padding: 4px 0; text-align: left; }
@@ -1201,7 +1201,7 @@
         @media (max-width: 360px) { .dock-icon .ic { font-size: 24px; } }
         @media (prefers-reduced-motion: reduce) { .tm-alarm-ic, .dock-live, .tm-ring-wrap.paused .tm-time { animation: none; } }
 
-        .ui-choices { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+        .ui-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
         .ui-choice { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; text-align: left; padding: 10px; border-radius: 18px; cursor: pointer;
             border: 2px solid var(--glass-border); background: var(--soft); color: inherit; font: inherit; min-width: 0; }
         .ui-choice b { font-weight: 600; font-size: 14px; margin-top: 4px; }
@@ -1252,6 +1252,303 @@
         }
         html[data-ui="glass"] body[data-theme="dark"] { --glass-bg: rgba(36, 35, 37, 0.7); }
         html[data-ui="glass"] body:not([data-theme="dark"]) { --glass-bg: rgba(255, 255, 255, 0.5); }
+
+        /* =====================================================================
+           НОВЫЙ ДИЗАЙН (по макетам): карточки с «пилюлей»-заголовком, плитки, нижняя панель из трёх иконок
+           «Стекло» = data-ui="liquid", «Классика» = data-ui="flat"
+           ===================================================================== */
+        :root { --accent-color: #8fe11a; }
+        html[data-ui] body {
+            --surface: rgba(250, 248, 245, 0.6); --surface-edge: rgba(255, 255, 255, 0.85);
+            --tile: rgba(255, 255, 255, 0.82); --tile-shadow: 0 2px 10px rgba(40, 30, 20, 0.08);
+            --pill: #ffffff; --pill-shadow: 0 2px 8px rgba(40, 30, 20, 0.13);
+            --plus: #8f8f8f; --ring-track: #c7c7c7; --nav-bg: rgba(247, 244, 240, 0.86); --nav-active: rgba(0, 0, 0, 0.07);
+            --card-shadow: 0 8px 28px rgba(60, 50, 40, 0.08); --green: linear-gradient(180deg, #9EF01A, #70E000);
+            --glass-bg: var(--surface); --glass-border: var(--surface-edge); --soft: var(--tile);
+        }
+        html[data-ui] body[data-theme="dark"] {
+            --surface: rgba(66, 66, 66, 0.6); --surface-edge: rgba(255, 255, 255, 0.07);
+            --tile: rgba(24, 24, 24, 0.86); --tile-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+            --pill: rgba(86, 86, 86, 0.95); --pill-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+            --plus: #6b6b6b; --ring-track: #c4c4c4; --nav-bg: rgba(60, 60, 60, 0.8); --nav-active: rgba(255, 255, 255, 0.14);
+            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+        }
+        html[data-ui="flat"] body { --surface: #ebe7e2; --surface-edge: rgba(0, 0, 0, 0.04); --tile: #fbfaf8; --nav-bg: #ebe7e2; }
+        html[data-ui="flat"] body[data-theme="dark"] { --surface: #333333; --surface-edge: rgba(255, 255, 255, 0.05); --tile: #1e1e1e; --pill: #4b4b4b; --nav-bg: #333333; }
+
+        /* карточки разделов */
+        html[data-ui] .glass-card { background: var(--surface); border: 1px solid var(--surface-edge); border-radius: 22px; box-shadow: var(--card-shadow); }
+        html[data-ui="liquid"] .glass-card, html[data-ui="liquid"] .w-card, html[data-ui="liquid"] .pop, html[data-ui="liquid"] .nav3 {
+            -webkit-backdrop-filter: blur(18px) saturate(140%); backdrop-filter: blur(18px) saturate(140%);
+        }
+        html[data-ui] .profile-cover, html[data-ui] .person-card .profile-cover { border-radius: 21px 21px 0 0; }
+        html[data-ui] .card-header {
+            align-self: flex-start; display: inline-flex; width: auto; max-width: 100%; flex-wrap: wrap; justify-content: flex-start;
+            background: var(--pill); box-shadow: var(--pill-shadow); border: none; border-radius: 10px;
+            padding: 7px 16px; margin-bottom: 14px; font-size: 1.02rem; font-weight: 600;
+        }
+        html[data-ui] .card-header .delete-btn, html[data-ui] .card-header .glass-btn { margin-left: 6px; }
+        html[data-ui] .list-item { background: var(--tile); box-shadow: var(--tile-shadow); border-radius: 14px; }
+        html[data-ui] .glass-input, html[data-ui] .glass-select {
+            background: var(--tile); border: 1px solid transparent; border-radius: 14px; box-shadow: var(--tile-shadow);
+        }
+        html[data-ui] .glass-input:focus, html[data-ui] .glass-select:focus { border-color: var(--accent-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 25%, transparent); }
+        html[data-ui] .glass-btn { border-radius: 12px; }
+        html[data-ui] .glass-btn:not(.secondary):not(.danger) {
+            background: var(--green); color: #fff; border: none; font-weight: 600; text-shadow: 0 1px 1px rgba(40, 90, 0, 0.35);
+            box-shadow: 0 3px 10px rgba(112, 224, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+        }
+        html[data-ui] .glass-btn.secondary { background: var(--tile); color: var(--text-color); border: none; box-shadow: var(--tile-shadow); }
+        html[data-ui] .glass-btn.danger { background: linear-gradient(180deg, #ff6b7a, #ef3d52); color: #fff; border: none; box-shadow: 0 3px 10px rgba(239, 61, 82, 0.3); }
+        html[data-ui] .nav-btn, html[data-ui] .icon-btn, html[data-ui] .chip-btn { background: var(--tile); border-color: transparent; box-shadow: var(--tile-shadow); }
+        html[data-ui] .segmented { background: rgba(128, 128, 128, 0.16); box-shadow: none; }
+        html[data-ui] .segmented button.active { background: var(--pill); color: var(--text-color); box-shadow: var(--pill-shadow); }
+        html[data-ui] .cal-day { background: var(--tile); }
+        html[data-ui] .settings-head { border-bottom: none; }
+        html[data-ui] .pv-back { display: none; }
+        html[data-ui] .dock-icon.active, html[data-ui] .tm-presets .chip-btn.on { background: var(--green); color: #fff; }
+
+        /* флажки и переключатели как на макете */
+        html[data-ui] input[type="checkbox"], html[data-ui] input[type="radio"] {
+            -webkit-appearance: none; appearance: none; width: 18px; height: 18px; margin: 0; flex: none; cursor: pointer;
+            border-radius: 5px; background: rgba(128, 128, 128, 0.28); border: none; vertical-align: middle; transition: background-color .15s;
+        }
+        html[data-ui] input[type="checkbox"]:checked, html[data-ui] input[type="radio"]:checked {
+            background: #e3f7c8 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M2.2 6.3l2.4 2.4 5.2-5.4' fill='none' stroke='%2366c80e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>") center / 12px no-repeat;
+        }
+        html[data-ui] body[data-theme="dark"] input[type="checkbox"]:checked, html[data-ui] body[data-theme="dark"] input[type="radio"]:checked { background-color: rgba(255, 255, 255, 0.85); }
+        html[data-ui] input[type="checkbox"]:focus-visible, html[data-ui] input[type="radio"]:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 2px; }
+
+        /* заголовок раздела с кнопкой «назад» */
+        .page-head { grid-column: 1 / -1; display: flex; align-items: center; gap: 12px; }
+        .back-btn { width: 42px; height: 42px; flex: none; border-radius: 12px; border: none; cursor: pointer; display: grid; place-items: center;
+            background: var(--pill); box-shadow: var(--pill-shadow); color: var(--text-color); font-size: 26px; line-height: 1; padding-bottom: 3px; }
+        .title-pill { background: var(--pill); box-shadow: var(--pill-shadow); border-radius: 12px; padding: 9px 20px; font-weight: 600; font-size: 1.15rem; }
+
+        /* нижняя панель */
+        .bottom-bar { position: fixed; left: 0; right: 0; bottom: 18px; z-index: 100; display: flex; align-items: center; justify-content: center;
+            gap: clamp(18px, 7vw, 110px); pointer-events: none; }
+        .bottom-bar > * { pointer-events: auto; }
+        .nav3 { display: flex; gap: 6px; padding: 6px; border-radius: 18px; background: var(--nav-bg); border: 1px solid var(--surface-edge); box-shadow: var(--card-shadow); }
+        .nav3-btn { position: relative; width: 98px; height: 66px; border: none; border-radius: 14px; background: transparent; color: var(--text-color);
+            display: grid; place-items: center; cursor: pointer; transition: background .2s, transform .15s; -webkit-tap-highlight-color: transparent; }
+        .nav3-btn svg { width: 38px; height: 38px; display: block; }
+        #navHome svg { width: 31px; height: 31px; }
+        #navProfile svg { width: 34px; height: 34px; }
+        .nav3-btn:hover { background: color-mix(in srgb, var(--nav-active) 60%, transparent); }
+        .nav3-btn:active { transform: scale(.95); }
+        .nav3-btn.active { background: var(--nav-active); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .06); }
+        .nav3-btn .sync-dot { position: absolute; top: 12px; right: 26px; width: 9px; height: 9px; box-shadow: 0 0 0 2px var(--nav-bg); }
+        .nav-badge { position: absolute; top: 8px; right: 22px; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box; border-radius: 9px;
+            background: #ff5a5f; color: #fff; font-size: 11px; font-weight: 600; display: grid; place-items: center; }
+        .nav-badge:empty { display: none; }
+        .theme-switch { position: relative; width: 56px; height: 28px; flex: none; border: none; border-radius: 14px; padding: 0; cursor: pointer;
+            background: #707070; box-shadow: inset 0 1px 3px rgba(0, 0, 0, .25); transition: background .25s; }
+        .theme-switch .knob { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .3); transition: transform .25s cubic-bezier(.3, 1.4, .5, 1), background .25s; }
+        .theme-switch[aria-checked="true"] { background: #3e3e3e; }
+        .theme-switch[aria-checked="true"] .knob { transform: translateX(28px); background: #8fe11a; }
+        .logo-btn { width: 52px; height: 52px; flex: none; padding: 0; border: none; background: none; border-radius: 15px; cursor: pointer;
+            filter: drop-shadow(0 4px 10px rgba(112, 224, 0, .35)); }
+        .logo-btn svg { width: 100%; height: 100%; display: block; }
+        .logo-btn.bounce { animation: logoBounce .6s cubic-bezier(.3, 1.6, .5, 1); }
+        @keyframes logoBounce { 0% { transform: scale(1); } 30% { transform: scale(.82) rotate(-8deg); } 65% { transform: scale(1.12) rotate(4deg); } 100% { transform: scale(1); } }
+        @media (max-width: 600px) {
+            .bottom-bar { bottom: 10px; gap: 14px; }
+            .nav3 { gap: 4px; padding: 5px; border-radius: 16px; }
+            .nav3-btn { width: 62px; height: 54px; border-radius: 12px; }
+            .nav3-btn svg { width: 30px; height: 30px; }
+            #navHome svg { width: 25px; height: 25px; }
+            #navProfile svg { width: 27px; height: 27px; }
+            .nav3-btn .sync-dot { top: 9px; right: 12px; }
+            .nav-badge { top: 4px; right: 8px; }
+            .theme-switch { width: 50px; height: 26px; }
+            .theme-switch .knob { width: 20px; height: 20px; }
+            .theme-switch[aria-checked="true"] .knob { transform: translateX(24px); }
+            .logo-btn { width: 46px; height: 46px; border-radius: 13px; }
+        }
+        @media (max-width: 350px) { .bottom-bar { gap: 8px; } .nav3-btn { width: 56px; } }
+
+        /* всплывающие окна */
+        .pop { position: fixed; z-index: 120; width: 270px; box-sizing: border-box; padding: 14px; border-radius: 22px; display: flex; flex-direction: column; gap: 12px;
+            background: var(--surface); border: 1px solid var(--surface-edge); box-shadow: 0 18px 50px rgba(0, 0, 0, .2); animation: popIn .22s cubic-bezier(.2, .8, .2, 1); }
+        html[data-ui="liquid"] .pop { background: color-mix(in srgb, var(--surface) 70%, var(--bg-color)); }
+        html[data-ui="flat"] .pop { background: var(--surface); }
+        .pop[hidden] { display: none; }
+        @keyframes popIn { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+        .pop-title { text-align: center; background: var(--pill); box-shadow: var(--pill-shadow); border-radius: 10px; padding: 7px; font-weight: 600; font-size: 17px; }
+        .pop-tile { background: var(--tile); box-shadow: var(--tile-shadow); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 11px; }
+        .pop-row { flex-direction: row; justify-content: space-between; align-items: center; font-size: 17px; }
+        .pop-link-text { text-decoration: underline; text-underline-offset: 3px; }
+        .pop-sub { font-size: 17px; }
+        .chk { display: flex; align-items: center; gap: 12px; font-size: 14px; cursor: pointer; }
+        .pop-more { border: none; background: none; color: inherit; font: inherit; font-size: 14px; opacity: .7; cursor: pointer; padding: 2px 6px; align-self: center; }
+        .pop-more:hover { opacity: 1; }
+        .pp-avatar { align-self: center; position: relative; width: 94px; height: 94px; padding: 3px; border-radius: 50%; cursor: pointer;
+            border: 1.5px solid #8fe11a; background: none; margin-top: 4px; }
+        .pp-avatar .avatar { width: 100%; height: 100%; font-size: 38px; }
+        .pp-avatar .avatar.empty { font-size: 0; background: #d6d6d6 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'><g fill='white'><circle cx='15' cy='9' r='6'/><path d='M4 27c0-6 5-9.5 11-9.5s11 3.5 11 9.5z'/></g></svg>") center 70% / 62% no-repeat; }
+        .pp-edit { position: absolute; right: -2px; bottom: 2px; width: 28px; height: 28px; border-radius: 50%; background: #8f8f8f; color: #fff;
+            display: grid; place-items: center; box-shadow: 0 0 0 2px var(--bg-color); }
+        .pp-edit[hidden] { display: none; }
+        .pp-edit svg { width: 15px; height: 15px; }
+        .pp-hello { align-self: center; max-width: 100%; overflow-wrap: anywhere; text-align: center; background: var(--pill); box-shadow: var(--pill-shadow); border-radius: 10px; padding: 7px 14px; font-size: 16px; }
+        .pp-actions { display: flex; flex-direction: column; gap: 10px; }
+        .pp-actions[hidden] { display: none; }
+        .pp-actions .glass-btn { margin: 0; }
+        .pp-sync { font-size: 12px; opacity: .6; text-align: center; line-height: 1.4; }
+        .pp-sync:empty { display: none; }
+
+        /* главная: виджеты */
+        #module-home { position: relative; }
+        .w-grid { grid-column: 1 / -1; position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; grid-auto-flow: row dense; margin-top: 30px; }
+        .coin-badge { position: absolute; top: -44px; right: 2px; display: flex; align-items: center; gap: 8px; color: var(--text-color); }
+        .coin-ic { width: 36px; height: 36px; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .2)); transform: rotate(-12deg); }
+        .coin-badge .pix svg { height: 18px; display: block; }
+        body[data-theme="dark"] .coin-badge .pix svg { filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .7)); }
+        body:not([data-theme="dark"]) .coin-badge .pix svg { filter: drop-shadow(0 1px 1px rgba(255, 255, 255, .8)); }
+        .w-card { position: relative; min-width: 0; padding: 12px; border-radius: 22px; display: flex; flex-direction: column; gap: 12px; cursor: pointer;
+            background: var(--surface); border: 1px solid var(--surface-edge); box-shadow: var(--card-shadow); transition: transform .15s, box-shadow .2s; outline: none; }
+        .w-card:hover { transform: translateY(-2px); }
+        .w-card:focus-visible { box-shadow: 0 0 0 3px var(--accent-color); }
+        .w-card.span2 { grid-column: span 2; }
+        .w-card.tall { grid-row: span 2; }
+        .w-head { position: relative; display: flex; }
+        .w-title { flex: 1; text-align: center; background: var(--pill); box-shadow: var(--pill-shadow); border-radius: 10px; padding: 6px 10px; font-weight: 600; font-size: 16px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .w-card.span2 .w-title { flex: 0 0 calc(50% - 6px); }
+        .w-badge { position: absolute; top: -7px; right: -5px; min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 10px;
+            background: #ff5a5f; color: #fff; font-size: 11px; font-weight: 600; display: grid; place-items: center; }
+        .w-badge:empty { display: none; }
+        .w-head .dock-live { top: -3px; right: -2px; }
+        .w-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex: 1; }
+        .w-tile { position: relative; min-width: 0; min-height: 104px; box-sizing: border-box; padding: 11px 12px; border-radius: 14px; border: none;
+            background: var(--tile); box-shadow: var(--tile-shadow); color: inherit; font: inherit; text-align: left; font-size: 13px;
+            display: flex; flex-direction: column; gap: 6px; }
+        .w-add { align-items: center; justify-content: center; cursor: pointer; transition: transform .15s; }
+        .w-add:hover { transform: scale(1.02); }
+        .plus { position: relative; width: 30px; height: 30px; border-radius: 50%; background: var(--plus); }
+        .plus::before, .plus::after { content: ''; position: absolute; left: 50%; top: 50%; width: 14px; height: 2px; border-radius: 1px; background: #fff; transform: translate(-50%, -50%); }
+        .plus::after { transform: translate(-50%, -50%) rotate(90deg); }
+        .tall > .w-add { min-height: 104px; flex: none; }
+        .w-sub { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .w-mini { font-size: 12px; opacity: .6; line-height: 1.35; }
+        .w-line { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+        .w-big { font-size: 26px; font-weight: 600; line-height: 1.1; overflow-wrap: anywhere; }
+        .w-empty { font-size: 13px; opacity: .55; margin: auto 0; }
+        .w-clip { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; opacity: .75; line-height: 1.4; }
+        .w-scroll { max-height: 150px; overflow: hidden; }
+        .w-check { display: flex; align-items: center; gap: 10px; font-size: 13px; cursor: pointer; min-width: 0; }
+        .w-check span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .w-check.done span { text-decoration: line-through; opacity: .5; }
+        .w-rem { min-height: 0; gap: 2px; padding: 9px 12px; }
+        .w-goal { display: flex; align-items: center; gap: 10px; }
+        .w-box { width: 16px; height: 16px; flex: none; border-radius: 5px; background: rgba(128, 128, 128, .28); }
+        .w-goal.done .w-box { background: #e3f7c8 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'><path d='M2.2 6.3l2.4 2.4 5.2-5.4' fill='none' stroke='%2366c80e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>") center / 11px no-repeat; }
+        .w-goal.done .w-line { opacity: .55; }
+        .w-ring-tile { align-items: center; justify-content: center; gap: 0; padding-bottom: 6px; }
+        .w-ring { width: 108px; height: 108px; display: block; }
+        .w-pct { position: absolute; left: 0; right: 0; top: 43%; transform: translateY(-50%); text-align: center; font-size: 21px; font-weight: 600; }
+        .w-ring-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: -10px; }
+        .w-chev { width: 13px; height: 8px; margin-top: 4px; }
+        .w-listcard { gap: 4px; }
+        .w-listtop { display: flex; justify-content: space-between; align-items: center; }
+        .w-tag { font-size: 10.5px; padding: 1px 10px; border-radius: 999px; background: #fff3db; color: #e6a23c; border: 1px solid #f6cf8f; }
+        body[data-theme="dark"] .w-tag { background: rgba(246, 207, 143, .15); }
+        .w-arrow { width: 8px; height: 13px; }
+        .w-listcard ul { margin: 2px 0 0; padding-left: 20px; font-size: 11.5px; line-height: 1.45; }
+        .w-listcard li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .w-listcard li.done { text-decoration: line-through; opacity: .5; }
+        .w-cal { gap: 10px; }
+        .w-calday { display: flex; align-items: center; gap: 10px; }
+        .w-calday .w-big { font-size: 34px; color: #70e000; }
+        .w-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; font-size: 11px; }
+        .w-week span { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 3px 0 7px; border-radius: 8px; }
+        .w-week i { font-style: normal; opacity: .5; font-size: 9px; }
+        .w-week span.on { background: var(--green); color: #fff; }
+        .w-week span.on i { opacity: .85; }
+        .w-week b { position: absolute; bottom: 2px; width: 4px; height: 4px; border-radius: 50%; background: #70e000; }
+        .w-week span.on b { background: #fff; }
+        .w-timer { align-items: center; justify-content: center; }
+        .w-tring { position: relative; width: 74px; height: 74px; }
+        .w-tring svg { width: 100%; height: 100%; display: block; }
+        .w-tring span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
+        .w-people { display: flex; flex-direction: column; gap: 7px; }
+        .w-person { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        .w-person .avatar { width: 26px; height: 26px; font-size: 12px; }
+        .w-person b { margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px; box-sizing: border-box; border-radius: 9px; background: #ff5a5f; color: #fff; font-size: 10.5px; display: grid; place-items: center; }
+        .w-games { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .w-games button { border: none; border-radius: 12px; background: rgba(128, 128, 128, .12); font-size: 24px; padding: 8px 0; cursor: pointer; transition: transform .15s; }
+        .w-games button:hover { transform: scale(1.06); }
+        .w-listcard ul { list-style: disc; }
+        .flex-row > .glass-btn[style*="width: auto"] { flex: none; }
+        .chat-card { height: calc(100vh - 290px); height: calc(100dvh - 290px); }
+        html[data-ui] .delete-btn { border-radius: 9px; padding: 5px 10px; background: linear-gradient(180deg, #ff8796, #f2475b); box-shadow: 0 2px 6px rgba(242, 71, 91, .3); font-weight: 600; }
+        html[data-ui] .list-item .delete-btn { width: 26px; height: 26px; padding: 0; border-radius: 50%; font-size: 12px; display: grid; place-items: center; }
+        @media (max-width: 600px) {
+            .w-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 26px; }
+            .pop { width: auto; }
+            .w-card { padding: 10px; gap: 10px; border-radius: 20px; }
+            .w-title { font-size: 15px; }
+            .w-row { gap: 10px; }
+            .w-tile { min-height: 96px; padding: 10px; }
+            .w-ring { width: 96px; height: 96px; }
+            .coin-badge { top: -42px; }
+            .title-pill { font-size: 1.05rem; padding: 8px 16px; }
+            .back-btn { width: 40px; height: 40px; }
+            .chat-card { height: calc(100vh - 262px); height: calc(100dvh - 262px); }
+        }
+
+        /* ---------- три виджета с вкладками ---------- */
+        .w-grid { grid-template-columns: 1.15fr 1fr; }
+        .w-card.w-plan { grid-row: span 2; }
+        .w-head .w-title { flex: 0 0 auto; min-width: 46%; }
+        .w-tabs { display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: rgba(128, 128, 128, .14); }
+        .w-tab { position: relative; flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 6px;
+            border: none; border-radius: 10px; background: transparent; color: inherit; font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; transition: background .2s, box-shadow .2s; }
+        .w-tab:hover:not(.on) { background: rgba(128, 128, 128, .12); }
+        .w-tab.on { background: var(--pill); box-shadow: var(--pill-shadow); font-weight: 600; }
+        .w-tab-ic { font-size: 15px; line-height: 1; }
+        .w-tab-lbl { overflow: hidden; text-overflow: ellipsis; }
+        .w-tab:not(.on) .w-tab-lbl { display: none; }       /* у неактивных вкладок — только значок, так спокойнее */
+        .w-tab.on { flex: 2.6 1 0; }
+        .w-tab .w-badge { top: -6px; right: -4px; }
+        .w-tab .dock-live { top: 2px; right: 4px; }
+        .w-tabbody { flex: 1; display: flex; flex-direction: column; }
+        .w-tabbody > .w-row, .w-tabbody > .w-tile { flex: 1; }
+        .w-plan .w-tile { min-height: 150px; }
+        .w-plan .w-scroll { max-height: none; }
+        .w-more { align-self: flex-end; border: none; background: none; color: inherit; font: inherit; font-size: 13px; opacity: .6; cursor: pointer; padding: 0 4px; }
+        .w-more:hover { opacity: 1; }
+        .w-rem2 { display: flex; flex-direction: column; gap: 1px; padding: 6px 0; border-bottom: 1px solid rgba(128, 128, 128, .15); min-width: 0; }
+        .w-rem2:last-of-type { border-bottom: none; }
+        .w-calcount { margin-left: auto; text-align: right; }
+        .w-timer-actions { justify-content: center; gap: 8px; }
+        .w-timer-actions .glass-btn { margin: 0; padding: 9px 10px; font-size: 13px; }
+        .w-cards { gap: 6px; }
+        .w-cardchip { display: flex; align-items: center; gap: 8px; width: 100%; border: none; border-radius: 10px; padding: 8px 10px; cursor: pointer;
+            background: rgba(128, 128, 128, .12); color: inherit; font: inherit; font-size: 13px; text-align: left; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+        .w-cardchip span { font-size: 11px; letter-spacing: -1px; opacity: .6; flex: none; }
+        .w-cardchip:hover { background: rgba(128, 128, 128, .2); }
+        /* друзья и игры в профиле */
+        .pp-apps { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .pp-app { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 6px; border: none; border-radius: 14px; cursor: pointer;
+            background: var(--tile); box-shadow: var(--tile-shadow); color: inherit; font: inherit; font-size: 14px; font-weight: 600; transition: transform .15s; }
+        .pp-app:hover { transform: translateY(-1px); }
+        .pp-app-ic { font-size: 26px; line-height: 1; }
+        .pp-app .w-badge { top: 6px; right: 8px; }
+        .page-apps { display: none; }
+        #module-account[data-state="in"] .page-apps { display: grid; }
+        .page-apps .pp-app { flex-direction: row; justify-content: center; gap: 10px; padding: 14px; font-size: 15px; }
+        .nav3-btn .sync-dot { top: auto; bottom: 10px; }
+        @media (max-width: 600px) {
+            .w-grid { grid-template-columns: 1fr; }
+            .w-card.w-plan { grid-row: auto; }
+            .w-tab { padding: 7px 4px; font-size: 12px; }
+            .w-tab:not(.on) .w-tab-lbl { display: none; }
+            .w-plan .w-tile { min-height: 120px; }
+            .nav3-btn .sync-dot { bottom: 8px; }
+        }
     </style>
 </head>
 <body>
@@ -1270,19 +1567,10 @@
     <div class="lg-backdrop" aria-hidden="true"></div>
 
     <div class="top-left">
-        <button class="account-pill" id="accountPill" onclick="openAccount()" title="Аккаунт и синхронизация">
-            <span class="avatar empty" id="pillAvatar">👤</span><span class="name" id="accountPillName">Войти</span><span class="sync-dot" id="syncDot" data-s="none"></span>
-        </button>
         <button class="theme-btn fx-btn" id="fxBtn" type="button" hidden onclick="toggleFx()" aria-pressed="false"></button>
     </div>
     <canvas id="fxCanvas" class="fx-canvas" aria-hidden="true" hidden></canvas>
 
-    <div class="top-right">
-        <div class="coin-counter" id="coinCounter" title="Монеты за выполненные дела">
-            🪙 <span id="coinValue">0</span>
-        </div>
-        <button class="theme-btn" id="themeToggle" type="button" title="Тёмная тема" aria-label="Переключить тему">🌙</button>
-    </div>
 
     <div id="toastContainer"></div>
 
@@ -1377,8 +1665,15 @@
 
     <div id="mainAppContainer" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
 
+        <!-- ГЛАВНАЯ: виджеты всех разделов -->
+        <div class="dashboard active" id="module-home">
+            <div class="w-grid" id="wGrid">
+                <div class="coin-badge" id="coinCounter" title="Монеты за выполненные дела"><svg class="coin-ic" viewBox="0 0 76 75" aria-hidden="true"><g fill="#FDC100"><rect x="70.61" y="22.07" width="4.41" height="30.89"/><rect x="66.2" y="13.24" width="4.41" height="8.83"/><rect x="61.78" y="8.83" width="4.41" height="4.41"/><rect x="52.96" y="4.41" width="8.83" height="4.41"/><rect x="22.07" width="30.89" height="4.41"/><rect x="13.24" y="4.41" width="8.83" height="4.41"/><rect x="8.83" y="8.83" width="4.41" height="4.41"/><rect x="4.41" y="13.24" width="4.41" height="8.83"/><rect y="22.07" width="4.41" height="30.89"/><rect x="4.41" y="52.93" width="4.41" height="8.83"/><rect x="8.83" y="61.76" width="4.41" height="4.41"/><rect x="13.24" y="66.17" width="8.83" height="4.41"/><rect x="22.07" y="70.59" width="30.89" height="4.41"/><rect x="52.96" y="66.17" width="8.83" height="4.41"/><rect x="61.78" y="61.76" width="4.41" height="4.41"/><rect x="66.2" y="52.93" width="4.41" height="8.83"/></g><g fill="#FFF056"><rect x="13.24" y="13.24" width="48.54" height="48.54"/><rect x="4.41" y="22.07" width="8.83" height="30.89"/><rect x="61.78" y="22.07" width="8.83" height="30.89"/><rect x="22.07" y="4.41" width="30.89" height="8.83"/><rect x="22.07" y="61.76" width="30.89" height="8.83"/><rect x="61.78" y="52.93" width="4.41" height="8.83"/><rect x="52.96" y="61.76" width="8.83" height="4.41"/><rect x="13.24" y="61.76" width="8.83" height="4.41"/><rect x="52.96" y="8.83" width="8.83" height="4.41"/><rect x="61.78" y="13.24" width="4.41" height="8.83"/><rect x="8.83" y="52.93" width="4.41" height="8.83"/></g><g fill="#FFFDF7"><rect x="13.24" y="8.83" width="8.83" height="4.41"/><rect x="8.83" y="13.24" width="4.41" height="8.83"/><rect x="4.41" y="22.04" width="4.41" height="13.24"/><rect x="61.78" y="61.76" width="4.41" height="4.41"/><rect x="26.48" y="66.17" width="13.24" height="4.41"/><rect x="44.13" y="61.76" width="8.83" height="4.41"/></g><g fill="#EEBA0B"><rect x="16" y="23" width="5" height="15"/><rect x="16" y="44" width="5" height="10"/><rect x="21" y="54" width="16" height="5"/><rect x="37" y="44" width="5" height="10"/><rect x="37" y="28" width="5" height="10"/><rect x="42" y="23" width="16" height="5"/><rect x="58" y="28" width="5" height="10"/></g></svg><span class="pix" id="coinValue" aria-label="0 монет"></span></div>
+            </div>
+        </div>
+
         <!-- КАЛЕНДАРЬ -->
-        <div class="dashboard active" id="module-calendar">
+        <div class="dashboard" id="module-calendar">
             <div class="glass-card full-width">
                 <div class="cal-toolbar">
                     <button class="nav-btn" onclick="calNav(-1)" aria-label="Назад">‹</button>
@@ -1693,6 +1988,11 @@
                 <div class="profile-stats" id="accStats"></div>
             </div>
 
+            <div class="full-width pp-apps acc-in page-apps">
+                <button type="button" class="pp-app" onclick="switchTab('social')"><span class="pp-app-ic" aria-hidden="true">💬</span>Друзья<span class="w-badge" id="socPageBadge"></span></button>
+                <button type="button" class="pp-app" onclick="switchTab('games')"><span class="pp-app-ic" aria-hidden="true">🎮</span>Игры</button>
+            </div>
+
             <div class="glass-card full-width acc-in post-composer" id="postComposer">
                 <button type="button" class="pc-start" id="pcStart" onclick="pickPostImage()">
                     <span class="pc-ic">📷</span>
@@ -1718,7 +2018,6 @@
         <div class="dashboard" id="module-settings">
             <div class="glass-card full-width">
                 <div class="settings-head">
-                    <button type="button" class="nav-btn" onclick="openAccount()" aria-label="Назад в профиль">‹</button>
                     <span class="avatar md" id="setAvatar"></span>
                     <div class="who"><div class="ttl">Настройки</div><div class="sub" id="setName"></div></div>
                 </div>
@@ -1738,15 +2037,11 @@
                 <div class="ui-choices" id="uiChoices" role="radiogroup" aria-label="Стиль интерфейса">
                     <button type="button" class="ui-choice" data-ui="liquid" role="radio" onclick="setUiStyle('liquid')">
                         <span class="ui-prev p-liquid" aria-hidden="true"><i></i><i></i><i></i></span>
-                        <b>Жидкое стекло</b><small>Прозрачные окна с бликами и преломлением по краям</small>
-                    </button>
-                    <button type="button" class="ui-choice" data-ui="glass" role="radio" onclick="setUiStyle('glass')">
-                        <span class="ui-prev p-glass" aria-hidden="true"><i></i><i></i><i></i></span>
-                        <b>Стекло</b><small>Матовое стекло, как было раньше</small>
+                        <b>Стекло</b><small>Полупрозрачные карточки с размытием фона</small>
                     </button>
                     <button type="button" class="ui-choice" data-ui="flat" role="radio" onclick="setUiStyle('flat')">
                         <span class="ui-prev p-flat" aria-hidden="true"><i></i><i></i><i></i></span>
-                        <b>Обычный</b><small>Без стекла: спокойные сплошные цвета</small>
+                        <b>Классика</b><small>Без стекла: сплошные спокойные цвета</small>
                     </button>
                 </div>
                 <div class="set-row">
@@ -1998,17 +2293,55 @@
             </div>
         </div>
 
-        <!-- НАВИГАЦИОННОЕ МЕНЮ (DOCK) -->
-        <div class="dock" id="mainDock" role="navigation" aria-label="Разделы">
-            <div class="dock-icon active" title="Календарь" onclick="switchTab('calendar', this)"><span class="ic">📅</span><span class="lbl">Календарь</span></div>
-            <div class="dock-icon" title="Напоминания" onclick="switchTab('reminders', this)"><span class="ic">🔔</span><span class="lbl">Напоминания</span><span class="dock-badge" id="remDockBadge"></span></div>
-            <div class="dock-icon" title="Таймер и помодоро" onclick="switchTab('timer', this)"><span class="ic">⏱️</span><span class="lbl">Таймер</span><span class="dock-live" id="tmDockLive" hidden></span></div>
-            <div class="dock-icon" title="Дневник" onclick="switchTab('diary', this)"><span class="ic">📔</span><span class="lbl">Дневник</span></div>
-            <div class="dock-icon" title="Друзья и сообщения" onclick="switchTab('social', this)"><span class="ic">💬</span><span class="lbl">Друзья</span><span class="dock-badge" id="socDockBadge"></span></div>
-            <div class="dock-icon" title="Игры" onclick="switchTab('games', this)"><span class="ic">🎮</span><span class="lbl">Игры</span></div>
-            <div class="dock-icon" title="Списки" onclick="switchTab('tasks', this)"><span class="ic">📋</span><span class="lbl">Списки</span></div>
-            <div class="dock-icon" title="Финансы" onclick="switchTab('finance', this)"><span class="ic">💰</span><span class="lbl">Финансы</span></div>
-            <div class="dock-icon" title="Карты" onclick="switchTab('cards', this)"><span class="ic">💳</span><span class="lbl">Карты</span></div>
+        <!-- НИЖНЯЯ ПАНЕЛЬ: тема — навигация — логотип -->
+        <div class="bottom-bar" id="bottomBar">
+            <button class="theme-switch" id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="Тёмная тема" title="Тёмная тема"><span class="knob"></span></button>
+            <nav class="nav3" id="mainDock" aria-label="Навигация">
+                <button type="button" class="nav3-btn" id="navSettings" onclick="togglePop('settings')" aria-label="Настройки" title="Настройки"><svg viewBox="0 0 40 40" aria-hidden="true"><path d="M33.67 20c0 7.55-6.12 13.67-13.67 13.67S6.33 27.55 6.33 20 12.45 6.33 20 6.33 33.67 12.45 33.67 20Z" fill="none" stroke="currentColor" stroke-width="6"/><g fill="currentColor"><rect x="16.67" width="6.67" height="5" rx=".8"/><rect x="31.87" y="3.33" width="6.67" height="5" rx=".8" transform="rotate(45 31.87 3.33)"/><rect x="3.33" y="8.05" width="6.67" height="5" rx=".8" transform="rotate(-45 3.33 8.05)"/><rect y="23.33" width="6.67" height="5" rx=".8" transform="rotate(-90 0 23.33)"/><rect x="35" y="23.33" width="6.67" height="5" rx=".8" transform="rotate(-90 35 23.33)"/><rect x="8.05" y="36.58" width="6.67" height="5" rx=".8" transform="rotate(-135 8.05 36.58)"/><rect x="28.33" y="33.05" width="6.67" height="5" rx=".8" transform="rotate(-45 28.33 33.05)"/><rect x="16.67" y="35" width="6.67" height="5" rx=".8"/></g></svg></button>
+                <button type="button" class="nav3-btn active" id="navHome" onclick="goHome()" aria-label="Главная" title="Главная"><svg viewBox="0 0 30 30" aria-hidden="true"><g fill="currentColor"><rect width="14" height="14" rx="5"/><rect x="16" width="14" height="14" rx="5"/><rect y="16" width="14" height="14" rx="5"/></g><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 18h10M18 23h10M18 28h10"/></g></svg></button>
+                <button type="button" class="nav3-btn" id="navProfile" onclick="togglePop('profile')" aria-label="Профиль" title="Профиль"><svg viewBox="0 0 30 30" aria-hidden="true"><g fill="currentColor"><circle cx="15" cy="8.5" r="6.5"/><path d="M3 26.5C3 20.2 8.4 16.8 15 16.8s12 3.4 12 9.7c0 1.4-1.1 2.5-2.5 2.5h-19C4.1 29 3 27.9 3 26.5Z"/></g></svg><span class="sync-dot" id="syncDot" data-s="none"></span><span class="nav-badge" id="homeBadge"></span></button>
+            </nav>
+            <button type="button" class="logo-btn" id="logoBtn" onclick="logoTap()" aria-label="ProdU"><svg viewBox="0 0 50 50" aria-hidden="true"><defs><linearGradient id="logoGrad" x1="25" y1="0" x2="25" y2="50" gradientUnits="userSpaceOnUse"><stop stop-color="#9EF01A"/><stop offset="1" stop-color="#70E000"/></linearGradient></defs><rect width="50" height="50" rx="15" fill="url(#logoGrad)"/><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><path d="M26.06 30.28a8.45 8.45 0 0 1-16.9 0"/><path d="M26.06 22.54a8.45 8.45 0 0 1 16.9 0"/><path d="M32 21.53l1.87 2.24 3.52-2.76" stroke-width="2"/></g><rect x="7.04" y="11.97" width="4.23" height="12.68" rx="1" fill="#fff"/></svg></button>
+        </div>
+
+        <!-- Быстрые настройки -->
+        <div class="pop pop-left" id="popSettings" hidden role="dialog" aria-label="Настройки">
+            <div class="pop-title">Настройки</div>
+            <div class="pop-tile pop-row"><span>Язык</span><span class="pop-link-text">русский</span></div>
+            <div class="pop-tile">
+                <div class="pop-sub">Интерфейс</div>
+                <label class="chk"><input type="radio" name="popUi" value="liquid" onchange="setUiStyle('liquid')"> Стекло</label>
+                <label class="chk"><input type="radio" name="popUi" value="flat" onchange="setUiStyle('flat')"> Классика</label>
+            </div>
+            <div class="pop-tile">
+                <div class="pop-sub">Шрифт</div>
+                <label class="chk"><input type="radio" name="popFont" value="thin" onchange="setFontStyle('thin')"> Тонкий</label>
+                <label class="chk"><input type="radio" name="popFont" value="normal" onchange="setFontStyle('normal')"> Обычный</label>
+            </div>
+            <button type="button" class="pop-more" onclick="openSettings()">Все настройки <span aria-hidden="true">›</span></button>
+        </div>
+
+        <!-- Профиль -->
+        <div class="pop pop-right" id="popProfile" hidden role="dialog" aria-label="Профиль">
+            <button type="button" class="pp-avatar" onclick="popAvatarTap()" aria-label="Фото профиля">
+                <span class="avatar" id="popAvatar"></span>
+                <span class="pp-edit" id="popAvatarEdit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.2-4.6L15.6 5a2.1 2.1 0 0 1 3 0l.4.4a2.1 2.1 0 0 1 0 3L8.6 18.8 4 20z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></span>
+            </button>
+            <div class="pp-hello" id="popHello">Привет, <b>гость</b>!</div>
+            <div class="pp-apps">
+                <button type="button" class="pp-app" onclick="closePops(); switchTab('social')"><span class="pp-app-ic" aria-hidden="true">💬</span>Друзья<span class="w-badge" id="socDockBadge"></span></button>
+                <button type="button" class="pp-app" onclick="closePops(); switchTab('games')"><span class="pp-app-ic" aria-hidden="true">🎮</span>Игры</button>
+            </div>
+            <div class="pp-actions" id="popIn">
+                <button type="button" class="glass-btn" onclick="closePops(); openAccount()">Мой профиль</button>
+                <button type="button" class="glass-btn" onclick="openPasswordForm()">Изменить пароль</button>
+                <button type="button" class="glass-btn secondary" onclick="closePops(); logout()">Выйти</button>
+                <div class="pp-sync" id="popSync"></div>
+            </div>
+            <div class="pp-actions" id="popOut">
+                <button type="button" class="glass-btn" onclick="closePops(); openAccount()">Войти или зарегистрироваться</button>
+                <div class="pp-sync">Аккаунт синхронизирует данные между устройствами, открывает друзей, сообщения и посты.</div>
+            </div>
         </div>
     </div>
 
@@ -3306,14 +3639,17 @@
     </script>
 
     <script>
+        // состояние нового интерфейса (var — чтобы было доступно с самого начала работы скрипта)
+        var currentTab = 'home', socialBadgeTotal = 0, openPop = null, homeReady = false;
+
         // ================= ТЕМА =================
         const themeToggle = document.getElementById('themeToggle');
         function applyTheme(dark, save) {
             if (dark) document.body.setAttribute('data-theme', 'dark'); else document.body.removeAttribute('data-theme');
-            themeToggle.textContent = dark ? '☀️' : '🌙';
+            themeToggle.setAttribute('aria-checked', String(!!dark));
             document.querySelectorAll('#themeSwitch button').forEach(b => b.classList.toggle('active', (b.dataset.t === 'dark') === !!dark));
             syncThemeColor();
-            themeToggle.title = dark ? 'Светлая тема' : 'Тёмная тема';
+            themeToggle.title = dark ? 'Тёмная тема включена' : 'Тёмная тема';
             if (save) { try { localStorage.setItem('produ_theme', dark ? 'dark' : 'light'); } catch (e) {} }
             try { gameRedraw(); } catch (e) { /* игры ещё не загружены */ }
             try { fxThemeChanged(); } catch (e) { /* сезонные эффекты ещё не загружены */ }
@@ -3334,6 +3670,8 @@
                 b.setAttribute('aria-checked', String(on));
             });
             document.querySelectorAll('#fontSwitch button').forEach(b => b.classList.toggle('active', b.dataset.f === f));
+            document.querySelectorAll('input[name="popUi"]').forEach(r => { r.checked = r.value === ui; });
+            document.querySelectorAll('input[name="popFont"]').forEach(r => { r.checked = r.value === f; });
         }
         function syncThemeColor() {
             const m = document.querySelector('meta[name="theme-color"]');
@@ -3923,10 +4261,8 @@
                     : 'Страница открыта как файл с компьютера. Вход в аккаунт работает, только если открыть приложение через сайт по https.';
             }
 
-            const pillName = $('accountPillName');
             const dot = $('syncDot');
             if (auth) {
-                pillName.textContent = auth.login;
                 dot.dataset.s = ['idle', 'ok'].includes(syncState) ? (data && data._meta && data._meta.dirty ? 'pending' : 'ok') : syncState;
                 $('accName').textContent = auth.login;
                 $('setName').textContent = auth.login;
@@ -3945,14 +4281,13 @@
                 $('accSyncBtn').disabled = syncState === 'syncing';
             } else {
                 $('setName').textContent = 'Без аккаунта';
-                pillName.textContent = 'Войти';
                 dot.dataset.s = 'none';
             }
-            $('accountPill').hidden = !SERVER_BASE;
             renderAvatars();
             updateSocialView();
             renderShareLink();
             renderMyProfile();
+            renderPopProfile();
             if (auth && pendingInvite) setTimeout(() => applyPendingInvite(false), 0);
         }
 
@@ -4077,7 +4412,7 @@
             pendingInvite = '';
             try { sessionStorage.removeItem('produ_invite'); } catch (e) { /* ничего */ }
             if (nick.toLowerCase() === String(auth.login).toLowerCase()) return;
-            switchTab('social', document.querySelector('.dock-icon[onclick*="\'social\'"]'));
+            switchTab('social');
             if (typeof chat !== 'undefined' && chat.peer) closeChat(true);
             $('socSearch').value = nick;
             onSocialSearch(nick);
@@ -4110,7 +4445,7 @@
         }
 
         function renderAvatars() {
-            ['pillAvatar', 'accAvatar', 'setAvatar'].forEach(id => { const el = $(id); if (el) paintAvatar(el); });
+            ['popAvatar', 'accAvatar', 'setAvatar'].forEach(id => { const el = $(id); if (el) paintAvatar(el); });
             document.querySelectorAll('.avatar.my-av').forEach(paintAvatar);
             const has = !!myAvatar();
             const wrap = $('accAvatarWrap');
@@ -4579,7 +4914,7 @@
         try { othersAv = JSON.parse(localStorage.getItem('produ_avatars')) || {}; } catch (e) {}
         const avFetching = new Set();
         const socialActive = () => $('module-social').classList.contains('active');
-        const dockIcon = name => document.querySelector(`.dock-icon[onclick*="'${name}'"]`);
+        const dockIcon = () => null;      // старое нижнее меню убрано; оставлено, чтобы не трогать вызовы
         const firstChar = s => [...String(s || '?')][0] || '?';
 
         function resetSocial(owner) {
@@ -4683,7 +5018,10 @@
         function renderSocial() {
             updateSocialView();
             const total = social.friends.reduce((s, f) => s + (f.unread || 0), 0) + social.incoming.length;
-            $('socDockBadge').textContent = auth && total ? (total > 99 ? '99+' : total) : '';
+            socialBadgeTotal = auth ? total : 0;
+            ['socDockBadge', 'socPageBadge'].forEach(id => { const sb = $(id); if (sb) sb.textContent = socialBadgeTotal ? (socialBadgeTotal > 99 ? '99+' : socialBadgeTotal) : ''; });
+            updateHomeBadge();
+
             $('socFriendCount').textContent = social.friends.length || '';
 
             $('socIncoming').innerHTML = social.incoming.length
@@ -5417,7 +5755,7 @@
             p.liked = want;
             p.likes = Math.max(0, prev.likes + (want ? 1 : -1));
             paintLike(id);
-            if (want) document.querySelectorAll(`.post[data-pid="${id}"] .like-btn`).forEach(b => { b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); });
+            if (want) document.querySelectorAll(`.post[data-pid="${id}"] .like-btn`).forEach(b => { b.classList.remove('like-pop'); void b.offsetWidth; b.classList.add('like-pop'); });
             if (likeBusy.has(id)) return;          // запрос уже летит — отправим итог после него
             likeBusy.add(id);
             try {
@@ -8654,13 +8992,315 @@
         function saveData() { persist(); renderAll(); }
         persist(false);
 
+
+        // ================= НОВЫЙ ИНТЕРФЕЙС: панель, всплывающие окна, главная из виджетов =================
+        function goHome() { switchTab('home'); }
+        function updateHomeBadge() {
+            const b = $('homeBadge');
+            if (b) b.textContent = currentTab !== 'social' && socialBadgeTotal ? (socialBadgeTotal > 99 ? '99+' : socialBadgeTotal) : '';
+        }
+        function logoTap() {
+            const b = $('logoBtn');
+            b.classList.remove('bounce'); void b.offsetWidth; b.classList.add('bounce');
+        }
+
+        // монеты пиксельными цифрами, в стиле пиксельной монетки
+        const PIX = { 0: '111101101101111', 1: '010110010010111', 2: '111001111100111', 3: '111001111001111', 4: '101101111001001',
+                      5: '111100111001111', 6: '111100111101111', 7: '111001001001001', 8: '111101111101111', 9: '111101111001111' };
+        function pixelNumber(n) {
+            const str = String(Math.max(0, Math.floor(Number(n) || 0)));
+            let rects = '';
+            [...str].forEach((d, i) => {
+                const m = PIX[d];
+                for (let k = 0; k < 15; k++) if (m[k] === '1') rects += `<rect x="${i * 4 + k % 3}" y="${Math.floor(k / 3)}" width="1" height="1"/>`;
+            });
+            return `<svg viewBox="0 0 ${str.length * 4 - 1} 5" style="width: ${(str.length * 4 - 1) * 3.6}px" shape-rendering="crispEdges" fill="currentColor" aria-hidden="true">${rects}</svg>`;
+        }
+        function setCoins(n) {
+            const el = $('coinValue');
+            if (!el) return;
+            el.innerHTML = pixelNumber(n);
+            el.setAttribute('aria-label', `${n} ${ruPlural(n, 'монета', 'монеты', 'монет')}`);
+        }
+
+        // ---- всплывающие окна «Настройки» и «Профиль» ----
+        function togglePop(name) {
+            if (openPop === name) return closePops();
+            closePops();
+            const el = $(name === 'settings' ? 'popSettings' : 'popProfile');
+            if (name === 'settings') renderUiChoices(); else renderPopProfile();
+            el.hidden = false;
+            openPop = name;
+            placePop(el, name);
+            $(name === 'settings' ? 'navSettings' : 'navProfile').classList.add('active', 'pop-open');
+            $('navHome').classList.remove('active');
+        }
+        function closePops() {
+            if (!openPop) return;
+            $('popSettings').hidden = true; $('popProfile').hidden = true;
+            openPop = null;
+            ['navSettings', 'navProfile'].forEach(id => $(id).classList.remove('pop-open'));
+            $('navHome').classList.toggle('active', !['settings', 'account', 'social', 'games', 'person'].includes(currentTab));
+            $('navSettings').classList.toggle('active', currentTab === 'settings');
+            $('navProfile').classList.toggle('active', ['account', 'social', 'games', 'person'].includes(currentTab));
+        }
+        function placePop(el, name) {
+            const nav = $('mainDock').getBoundingClientRect();
+            el.style.bottom = Math.round(window.innerHeight - nav.top + 14) + 'px';
+            if (window.innerWidth < 600) { el.style.left = '12px'; el.style.right = '12px'; return; }
+            const w = el.offsetWidth;
+            let left = name === 'settings' ? nav.left - w * .62 : nav.right - w * .38;
+            left = Math.max(12, Math.min(window.innerWidth - w - 12, left));
+            el.style.left = Math.round(left) + 'px'; el.style.right = 'auto';
+        }
+        document.addEventListener('click', e => {
+            if (!openPop) return;
+            if (e.target.closest('.pop') || e.target.closest('#navSettings') || e.target.closest('#navProfile')) return;
+            closePops();
+        }, true);
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closePops(); });
+        window.addEventListener('resize', () => { if (openPop) placePop($(openPop === 'settings' ? 'popSettings' : 'popProfile'), openPop); });
+
+        function renderPopProfile() {
+            const box = $('popProfile');
+            if (!box) return;
+            const name = auth ? auth.login : 'гость';
+            $('popHello').innerHTML = `Привет, <b>${esc(name)}</b>!`;
+            $('popIn').hidden = !auth;
+            $('popOut').hidden = !!auth;
+            $('popAvatarEdit').hidden = !auth;
+            $('popSync').textContent = auth ? $('accSyncText').textContent : '';
+            const noServer = !SERVER_BASE || location.protocol === 'file:';
+            $('popOut').querySelector('.glass-btn').textContent = noServer ? 'Об аккаунтах' : 'Войти или зарегистрироваться';
+        }
+        function popAvatarTap() {
+            if (!auth) { closePops(); openAccount(); return; }
+            pickAvatar();
+        }
+        function openPasswordForm() {
+            closePops();
+            openSettings();
+            setTimeout(() => { const f = $('accOldPw'); if (f) { f.scrollIntoView({ block: 'center', behavior: 'smooth' }); f.focus({ preventScroll: true }); } }, 60);
+        }
+
+        // ---- заголовок с кнопкой «назад» в каждом разделе ----
+        const PAGE_TITLES = { calendar: 'Календарь', reminders: 'Напоминания', timer: 'Таймер', diary: 'Дневник', social: 'Друзья',
+                              games: 'Игры', tasks: 'Списки', finance: 'Финансы', cards: 'Карты', account: 'Профиль', settings: 'Настройки', person: 'Профиль' };
+        Object.entries(PAGE_TITLES).forEach(([id, title]) => {
+            const m = $('module-' + id);
+            if (!m) return;
+            const h = document.createElement('div');
+            h.className = 'page-head full-width';
+            const back = id === 'person' ? 'closePerson()' : (id === 'social' || id === 'games') ? 'openAccount()' : 'goHome()';
+            h.innerHTML = `<button type="button" class="back-btn" onclick="${back}" aria-label="${back === 'goHome()' ? 'На главную' : 'Назад'}">‹</button><span class="title-pill">${title}</span>`;
+            m.prepend(h);
+        });
+
+        // ---- виджеты ----
+        const W_CHEVRON = '<svg class="w-chev" viewBox="0 0 14 8" aria-hidden="true"><path d="M1 1l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        const W_ARROW = '<svg class="w-arrow" viewBox="0 0 8 14" aria-hidden="true"><path d="M1 1l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        const wAdd = (kind, label) => `<button type="button" class="w-tile w-add" data-stop onclick="wQuick('${kind}')" aria-label="${label}"><span class="plus"></span></button>`;
+        function wCard(id, open, title, body, cls = '', badge = '') {
+            return `<section class="w-card ${cls}" data-w="${id}" data-open="${open}" onclick="wOpen(event, '${open}')" role="button" tabindex="0"
+                onkeydown="if ((event.key === 'Enter' || event.key === ' ') && event.target === this) { event.preventDefault(); switchTab('${open}'); }">
+                <div class="w-head"><span class="w-title">${title}</span>${badge}</div>${body}</section>`;
+        }
+        function wOpen(e, name) { if (e.target.closest('[data-stop]')) return; switchTab(name); }
+        function wQuick(kind) {
+            const focus = id => setTimeout(() => { const el = $(id); if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); el.focus({ preventScroll: true }); } }, 80);
+            if (kind === 'task') {
+                switchTab('calendar');
+                selectedDate = todayStr(); renderCalendar();
+                const t = $('evType'); if (t) { t.value = 'task'; t.dispatchEvent(new Event('change')); }
+                focus('evTitle');
+            } else if (kind === 'reminder') { switchTab('reminders'); focus('remTitle'); }
+            else if (kind === 'list') { switchTab('tasks'); focus('newListTitle'); }
+            else if (kind === 'goal') { switchTab('finance'); focus('finGoalName'); }
+            else if (kind === 'diary') { switchTab('diary'); openDiaryEditor(); }
+            else if (kind === 'money') { switchTab('finance'); focus('financeAmount'); }
+            else if (kind === 'card') { switchTab('cards'); }
+        }
+        function wToggleEvent(id) { toggleEvent(id); }
+        function wToggleListItem(l, i) { toggleListItem(l, i); }
+        function ringSvg(pct, big) {
+            const r = 40, C = 2 * Math.PI * r, arc = C * .75, v = Math.max(0, Math.min(1, pct));
+            return `<svg class="w-ring${big ? ' big' : ''}" viewBox="0 0 100 100" aria-hidden="true">
+                <defs><linearGradient id="ringG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9EF01A"/><stop offset="1" stop-color="#70E000"/></linearGradient></defs>
+                <circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--ring-track)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${arc} ${C}" transform="rotate(135 50 50)"/>
+                ${v > 0 ? `<circle cx="50" cy="50" r="${r}" fill="none" stroke="url(#ringG)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${arc * v} ${C}" transform="rotate(135 50 50)"/>` : ''}
+            </svg>`;
+        }
+        function remWhen(e) {
+            const t = eventStart(e), d = new Date(t);
+            const hm = e.time ? `${pad(d.getHours())}:${pad(d.getMinutes())}` : 'весь день';
+            if (e.date === todayStr()) return 'сегодня, ' + hm;
+            if (e.date === ymd(addDays(new Date(), 1))) return 'завтра, ' + hm;
+            return `${d.getDate()} ${MONTHS_GEN[d.getMonth()]}, ${hm}`;
+        }
+
+        // Главная — три виджета с вкладками внутри: «Дела», «Мой день», «Кошелёк».
+        const HOME_W = {
+            plan: { title: 'Дела', tabs: [['tasks', '✅', 'Задачи'], ['reminders', '🔔', 'Напоминания'], ['goal', '🎯', 'Цель'], ['lists', '📋', 'Списки']] },
+            day: { title: 'Мой день', tabs: [['calendar', '📅', 'Календарь'], ['timer', '⏱️', 'Таймер'], ['diary', '📔', 'Дневник']] },
+            wallet: { title: 'Кошелёк', tabs: [['finance', '💰', 'Финансы'], ['cards', '💳', 'Карты']] }
+        };
+        const TAB_OPEN = { tasks: 'calendar', reminders: 'reminders', goal: 'finance', lists: 'tasks', calendar: 'calendar', timer: 'timer', diary: 'diary', finance: 'finance', cards: 'cards' };
+        let homeTabs = { plan: 'tasks', day: 'calendar', wallet: 'finance' };
+        try { Object.assign(homeTabs, JSON.parse(localStorage.getItem('produ_home_tabs')) || {}); } catch (e) {}
+        function wTab(w, tab) {
+            homeTabs[w] = tab;
+            try { localStorage.setItem('produ_home_tabs', JSON.stringify(homeTabs)); } catch (e) {}
+            renderHome();
+            const btn = document.querySelector(`.w-card[data-w="${w}"] .w-tab[data-tab="${tab}"]`);
+            if (btn) btn.focus({ preventScroll: true });
+        }
+
+        function homeTabBody(tab, ctx) {
+            const { today, now, sum } = ctx;
+            if (tab === 'tasks') {
+                const tasks = eventsOn(today).filter(e => (e.type || 'task') === 'task');
+                return `<div class="w-row">${wAdd('task', 'Добавить задачу на сегодня')}
+                    <div class="w-tile w-scroll">${tasks.length ? tasks.slice(0, 5).map(e => `
+                        <label class="w-check${e.done ? ' done' : ''}" data-stop><input type="checkbox" ${e.done ? 'checked' : ''} onchange="wToggleEvent(${e.id})"><span>${esc(e.title)}</span></label>`).join('')
+                        + (tasks.length > 5 ? `<div class="w-mini">и ещё ${tasks.length - 5}</div>` : '')
+                        : '<div class="w-empty">На сегодня задач нет</div>'}</div></div>`;
+            }
+            if (tab === 'reminders') {
+                const rems = ctx.rems;
+                return `<div class="w-row">${wAdd('reminder', 'Добавить напоминание')}
+                    <div class="w-tile w-scroll">${rems.length ? rems.slice(0, 3).map(e => `<div class="w-rem2"><span class="w-mini">${esc(remWhen(e))}</span><span class="w-line">${esc(e.title)}</span></div>`).join('')
+                        + (rems.length > 3 ? `<div class="w-mini">и ещё ${rems.length - 3}</div>` : '')
+                        : '<div class="w-empty">Нет предстоящих напоминаний</div>'}</div></div>`;
+            }
+            if (tab === 'goal') {
+                const goals = data.finGoals.map(g => ({ ...g, saved: Math.max(0, sum.goals.get(g.id) || 0) }));
+                const main = goals.find(g => g.saved < g.target) || goals[0];
+                const pct = main && main.target ? main.saved / main.target : 0;
+                return `<div class="w-row">
+                    ${goals.length ? `<div class="w-tile w-scroll"><div class="w-sub">${goals.length > 1 ? 'Цели' : esc(goals[0].name)}</div>
+                        ${goals.length > 1 ? goals.slice(0, 4).map(g => `<div class="w-goal${g.saved >= g.target ? ' done' : ''}"><span class="w-box"></span><span class="w-line">${esc(g.name)}</span></div>`).join('')
+                            : `<div class="w-mini">накоплено ${money(goals[0].saved)}</div><div class="w-mini">из ${money(goals[0].target)}</div><div class="w-mini">осталось ${money(Math.max(0, goals[0].target - goals[0].saved))}</div>`}
+                      </div>` : wAdd('goal', 'Добавить цель')}
+                    <div class="w-tile w-ring-tile">${ringSvg(pct)}<span class="w-pct">${Math.round(pct * 100)}%</span>${main ? `<span class="w-mini w-ring-name">${esc(main.name)}</span>` : ''}${W_CHEVRON}</div>
+                </div>`;
+            }
+            if (tab === 'lists') {
+                const l = data.lists[0];
+                return `<div class="w-row">${wAdd('list', 'Новый список')}
+                    ${l ? (() => { const done = l.items.filter(i => i.done).length;
+                        return `<div class="w-tile w-listcard"><div class="w-listtop"><span class="w-tag">${done}/${l.items.length}</span>${W_ARROW}</div>
+                            <div class="w-sub">${esc(l.title)}</div>
+                            <ul>${l.items.slice(0, 3).map(i => `<li class="${i.done ? 'done' : ''}">${esc(i.text)}</li>`).join('')}</ul>
+                            ${l.items.length > 3 ? `<div class="w-mini">и ещё ${l.items.length - 3}</div>` : ''}${data.lists.length > 1 ? `<div class="w-mini">всего списков: ${data.lists.length}</div>` : ''}</div>`; })()
+                        : '<div class="w-tile"><div class="w-empty">Списков пока нет</div></div>'}</div>`;
+            }
+            if (tab === 'calendar') {
+                const d0 = new Date(), mon = addDays(d0, -((d0.getDay() + 6) % 7));
+                const week = Array.from({ length: 7 }, (_, i) => addDays(mon, i));
+                const n = eventsOn(today).length;
+                return `<div class="w-tile w-cal">
+                    <div class="w-calday"><span class="w-big">${d0.getDate()}</span><span class="w-mini">${MONTHS_GEN[d0.getMonth()]}<br>${['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'][d0.getDay()]}</span>
+                        <span class="w-mini w-calcount">${n ? `${n} ${ruPlural(n, 'запись', 'записи', 'записей')} сегодня` : 'сегодня свободно'}</span></div>
+                    <div class="w-week">${week.map(d => { const s2 = ymd(d), k = eventsOn(s2).length;
+                        return `<span class="${s2 === today ? 'on' : ''}"><i>${'пвсчпсв'[(d.getDay() + 6) % 7]}</i>${d.getDate()}${k ? '<b></b>' : ''}</span>`; }).join('')}</div></div>`;
+            }
+            if (tab === 'timer') {
+                return `<div class="w-row"><div class="w-tile w-timer" id="wTimer"></div>
+                    <div class="w-tile w-timer-actions">
+                        <button type="button" class="glass-btn" data-stop id="wTimerBtn" onclick="wTimerMain()"></button>
+                        <button type="button" class="glass-btn secondary" data-stop onclick="setTimerMode(tm.mode === 'pomo' ? 'timer' : 'pomo'); renderHome()">${tm.mode === 'pomo' ? '⏱ Таймер' : '🍅 Помодоро'}</button>
+                    </div></div>`;
+            }
+            if (tab === 'diary') {
+                const last = [...data.diary].sort((a, b) => (b.updated || b.created) - (a.updated || a.created))[0];
+                return `<div class="w-row">${wAdd('diary', 'Новая запись')}${last ? `<div class="w-tile"><div class="w-sub">${esc(last.title)}</div>
+                    <div class="w-clip">${esc((last.body || '').slice(0, 140))}</div><div class="w-mini">${fmtPostDate(last.updated || last.created)}</div></div>`
+                    : '<div class="w-tile"><div class="w-empty">Записей пока нет</div></div>'}</div>`;
+            }
+            if (tab === 'finance') {
+                const lastFin = data.finance[data.finance.length - 1];
+                return `<div class="w-row">${wAdd('money', 'Новая операция')}<div class="w-tile"><div class="w-mini">Баланс</div><div class="w-big">${money(sum.total)}</div>
+                    ${lastFin ? `<div class="w-mini">${lastFin.type === 'income' ? '+' : lastFin.type === 'expense' ? '−' : '⇄'} ${money(lastFin.amount)}${lastFin.desc ? ' · ' + esc(lastFin.desc) : ''}</div>` : '<div class="w-mini">операций пока нет</div>'}</div></div>`;
+            }
+            if (tab === 'cards') {
+                const cs = data.digitalCards;
+                return `<div class="w-row">${wAdd('card', 'Добавить карту')}<div class="w-tile w-cards">${cs.length
+                    ? cs.slice(0, 3).map(c => `<button type="button" class="w-cardchip" data-stop onclick="openCodeView(${c.id})" title="Показать код"><span>${c.format === 'QR_CODE' ? '▦' : '║▌║'}</span>${esc(c.name)}</button>`).join('')
+                        + (cs.length > 3 ? `<div class="w-mini">и ещё ${cs.length - 3}</div>` : '')
+                    : '<div class="w-empty">Отсканируйте карту магазина</div>'}</div></div>`;
+            }
+            return '';
+        }
+
+        function renderHome() {
+            const grid = $('wGrid');
+            if (!homeReady || !grid || !data) return;
+            const today = todayStr(), now = Date.now();
+            const rems = data.events.filter(e => hasNotify(e) && !e.done && eventStart(e) >= now).sort((a, b) => eventStart(a) - eventStart(b));
+            const ctx = { today, now, sum: finSummary(), rems };
+            const tasksLeft = eventsOn(today).filter(e => (e.type || 'task') === 'task' && !e.done).length;
+            const remToday = rems.filter(e => e.date === today).length;
+            const dot = { tasks: tasksLeft, reminders: remToday };
+            const html = Object.entries(HOME_W).map(([w, def]) => {
+                const cur = def.tabs.some(t => t[0] === homeTabs[w]) ? homeTabs[w] : def.tabs[0][0];
+                const tabs = def.tabs.map(([id, ic, label]) => `<button type="button" class="w-tab${id === cur ? ' on' : ''}" data-tab="${id}" data-stop role="tab" aria-selected="${id === cur}"
+                    onclick="wTab('${w}', '${id}')" title="${label}"><span class="w-tab-ic" aria-hidden="true">${ic}</span><span class="w-tab-lbl">${label}</span>${
+                    id === 'reminders' ? `<span class="w-badge" id="remDockBadge">${remToday || ''}</span>` : dot[id] ? `<span class="w-badge">${dot[id]}</span>` : ''}${
+                    id === 'timer' ? '<span class="dock-live" id="tmDockLive" hidden></span>' : ''}</button>`).join('');
+                const curLabel = def.tabs.find(t => t[0] === cur)[2];
+                return `<section class="w-card w-${w}" data-w="${w}" data-open="${TAB_OPEN[cur]}" onclick="wOpen(event, '${TAB_OPEN[cur]}')" role="group" aria-label="${def.title}">
+                    <div class="w-head"><span class="w-title">${def.title}</span></div>
+                    <div class="w-tabs" role="tablist" aria-label="${def.title}">${tabs}</div>
+                    <div class="w-tabbody">${homeTabBody(cur, ctx)}</div>
+                    <button type="button" class="w-more" data-stop onclick="switchTab('${TAB_OPEN[cur]}')">Открыть «${curLabel}» <span aria-hidden="true">›</span></button>
+                </section>`;
+            }).join('');
+            const coin = $('coinCounter');
+            grid.innerHTML = html;
+            grid.prepend(coin);
+            renderHomeTimer();
+            try { renderTimerLive(); } catch (e) {}
+        }
+        function wTimerMain() { if (tm.mode === 'pomo') pomoMain(); else timerMain(); renderHomeTimer(); }
+
+        function renderHomeTimer() {
+            const box = $('wTimer');
+            if (!box) return;
+            let label, rem, total, sub, color;
+            const t = tm.timer, p = tm.pomo;
+            if (p.status !== 'idle' || (t.status === 'idle' && tm.mode === 'pomo')) {
+                rem = remainingOf(p); total = p.total || pomoDur(p.phase); color = PM_COLORS[p.phase];
+                label = { focus: '🍅 Фокус', short: '☕ Перерыв', long: '🛋 Перерыв' }[p.phase];
+                sub = p.status === 'running' ? label : p.status === 'paused' ? 'пауза' : label;
+            } else {
+                rem = remainingOf(t); total = t.total; color = 'var(--accent-color)';
+                sub = t.status === 'running' ? (t.label || 'идёт') : t.status === 'paused' ? 'пауза' : (t.label || 'готов');
+            }
+            const running = t.status !== 'idle' || p.status !== 'idle';
+            const frac = running ? rem / Math.max(1, total) : 1;
+            box.innerHTML = `<div class="w-tring"><svg viewBox="0 0 60 60" aria-hidden="true"><circle cx="30" cy="30" r="25" fill="none" stroke="var(--ring-track)" stroke-width="5" opacity=".45"/>
+                <circle cx="30" cy="30" r="25" fill="none" stroke="${color}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${157.08 * frac} 158" transform="rotate(-90 30 30)"/></svg>
+                <span>${fmtClock(rem)}</span></div><div class="w-mini" style="text-align:center">${esc(sub)}</div>`;
+            const btn = $('wTimerBtn');
+            if (btn) {
+                const st = tm.mode === 'pomo' ? p.status : t.status;
+                btn.textContent = st === 'running' ? '⏸ Пауза' : st === 'paused' ? '▶ Дальше' : '▶ Старт';
+            }
+        }
+
         // ================= ВКЛАДКИ =================
-        function switchTab(moduleName, element) {
+        function switchTab(moduleName) {
+            const prev = currentTab;
+            currentTab = moduleName;
             document.querySelectorAll('#mainAppContainer .dashboard').forEach(el => el.classList.remove('active'));
             document.getElementById(`module-${moduleName}`).classList.add('active');
-            document.querySelectorAll('.dock-icon').forEach(el => el.classList.remove('active'));
-            if (element) element.classList.add('active');
-            $('accountPill').classList.toggle('active', moduleName === 'account' || moduleName === 'settings');
+            $('navHome').classList.toggle('active', !['settings', 'account', 'social', 'games', 'person'].includes(moduleName));
+            $('navSettings').classList.toggle('active', moduleName === 'settings');
+            $('navProfile').classList.toggle('active', ['account', 'social', 'games', 'person'].includes(moduleName));
+            closePops();
+            updateHomeBadge();
+            if (prev !== moduleName) window.scrollTo(0, 0);
+            if (moduleName === 'home') renderHome();
 
             if (moduleName !== 'cards') { stopCardScanner(); closeCodeView(); }
             if (moduleName === 'reminders') { renderReminders(); renderNotifStatus(); }
@@ -8787,7 +9427,7 @@
                         ${sub}
                     </div>
                 </div>
-                <button class="delete-btn" onclick="deleteEvent(${e.id})">X</button>
+                <button class="delete-btn" onclick="deleteEvent(${e.id})">✕</button>
             </div>`;
         }
 
@@ -8906,7 +9546,8 @@
             // Значок на иконке: сколько напоминаний осталось на сегодня
             const t = todayStr();
             const todayLeft = upcoming.filter(e => e.date === t).length;
-            document.getElementById('remDockBadge').textContent = todayLeft || '';
+            const rb = document.getElementById('remDockBadge');
+            if (rb) rb.textContent = todayLeft || '';
         }
 
         // --- Системные уведомления ---
@@ -9433,6 +10074,7 @@
                 live.hidden = !show && !anyPaused;
                 live.classList.toggle('paused', !show && anyPaused);
             }
+            if (currentTab === 'home') renderHomeTimer();
             if (!$('module-timer').classList.contains('active')) return;
             // обычный таймер
             $('tmTime').textContent = fmtClock(tRem);
@@ -9726,7 +10368,7 @@
                             <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleListItem(${list.id}, ${item.id})">
                             <span class="item-text" style="${item.done ? 'text-decoration: line-through;' : ''}">${esc(item.text)}</span>
                         </div>
-                        <button class="delete-btn" onclick="deleteListItem(${list.id}, ${item.id})">X</button>
+                        <button class="delete-btn" onclick="deleteListItem(${list.id}, ${item.id})">✕</button>
                     </div>`).join('');
                 return `<div class="glass-card full-width">
                     <div class="card-header">${esc(list.title)}<button class="delete-btn" onclick="deleteList(${list.id})">Удалить</button></div>
@@ -10135,7 +10777,7 @@
 
         // ================= ГЛОБАЛЬНЫЙ РЕНДЕР =================
         function renderAll() {
-            document.getElementById('coinValue').innerText = data.coins;
+            setCoins(data.coins);
             renderCalendar();
             renderReminders();
             renderDiary();
@@ -10145,8 +10787,10 @@
             renderAccount();
             if (!gm.g) renderGameTiles(); else $('gameBest').textContent = bestOf(gm.id);
             if (cwView() === 'cw-menu') renderCwMenu();
+            renderHome();
         }
 
+        homeReady = true;
         renderAll();
         renderNotifStatus();
         applySWFired().finally(checkReminders);
