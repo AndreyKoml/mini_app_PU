@@ -120,6 +120,15 @@ export default {
                     : await putData(env, user, url, request, cors);
             }
 
+            // данные спорт-версии (привычки и тренировки) — отдельная запись того же аккаунта
+            if (url.pathname === '/sport' && (request.method === 'GET' || request.method === 'PUT')) {
+                const user = await authUser(request, env);
+                if (!user) return json({ error: 'Сессия истекла — войдите снова' }, 401, cors);
+                return request.method === 'GET'
+                    ? await getSportData(env, user, url, cors)
+                    : await putSportData(env, user, url, request, cors);
+            }
+
             if (url.pathname === '/avatar' && ['GET', 'PUT', 'DELETE'].includes(request.method)) {
                 const user = await authUser(request, env);
                 if (!user) return json({ error: 'Сессия истекла — войдите снова' }, 401, cors);
@@ -217,7 +226,9 @@ async function ensureSchema(env) {
         env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_posts_user ON posts (user_id, id)'),
         env.DB.prepare(`CREATE TABLE IF NOT EXISTS post_likes (
             post_id INTEGER NOT NULL, user_id INTEGER NOT NULL, created INTEGER NOT NULL, PRIMARY KEY (post_id, user_id))`),
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_post_likes_user ON post_likes (user_id)')
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_post_likes_user ON post_likes (user_id)'),
+        env.DB.prepare(`CREATE TABLE IF NOT EXISTS sportdata (
+            user_id INTEGER PRIMARY KEY, version INTEGER NOT NULL, data TEXT, updated INTEGER NOT NULL)`)
     ]);
     schemaReady = true;
 }
@@ -361,6 +372,7 @@ async function handleAuth(action, request, env, cors) {
         await env.DB.batch([
             env.DB.prepare('DELETE FROM sessions WHERE user_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM userdata WHERE user_id = ?1').bind(me.id),
+            env.DB.prepare('DELETE FROM sportdata WHERE user_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM avatars WHERE user_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM friends WHERE a = ?1 OR b = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM msg_images WHERE msg_id IN (SELECT id FROM messages WHERE a = ?1 OR b = ?1)').bind(me.id),
@@ -429,6 +441,33 @@ async function putData(env, user, url, request, cors) {
     if (res.meta && res.meta.changes === 1) return json({ version: base + 1 }, 200, cors);
 
     const row = await env.DB.prepare('SELECT version FROM userdata WHERE user_id = ?1').bind(user.id).first();
+    return json({ error: 'conflict', version: row ? row.version : 0 }, 409, cors);
+}
+
+// ===================== Спорт-версия =====================
+// Так же, как основные данные: сервер хранит строку как есть, объединяет изменения приложение.
+async function getSportData(env, user, url, cors) {
+    await ensureSchema(env);
+    const row = await env.DB.prepare('SELECT version, data FROM sportdata WHERE user_id = ?1').bind(user.id).first();
+    const version = row ? row.version : 0;
+    if (url.searchParams.get('since') === String(version)) return json({ version, unchanged: true }, 200, cors);
+    return json({ version, data: row ? row.data : null }, 200, cors);
+}
+
+async function putSportData(env, user, url, request, cors) {
+    await ensureSchema(env);
+    const base = Number(url.searchParams.get('base'));
+    if (!Number.isSafeInteger(base) || base < 0) throw new BadRequest('bad base');
+    const raw = await request.text();
+    if (enc(raw).length > MAX_DATA_BYTES) {
+        return json({ error: 'Слишком много данных спорт-версии (больше 1,8 МБ)' }, 413, cors);
+    }
+    if (!raw.startsWith('{') || !raw.endsWith('}')) throw new BadRequest('bad data');
+    const res = await env.DB.prepare(`INSERT INTO sportdata (user_id, version, data, updated) VALUES (?1, 1, ?2, ?3)
+        ON CONFLICT(user_id) DO UPDATE SET data = excluded.data, version = sportdata.version + 1, updated = excluded.updated
+        WHERE sportdata.version = ?4`).bind(user.id, raw, Date.now(), base).run();
+    if (res.meta && res.meta.changes === 1) return json({ version: base + 1 }, 200, cors);
+    const row = await env.DB.prepare('SELECT version FROM sportdata WHERE user_id = ?1').bind(user.id).first();
     return json({ error: 'conflict', version: row ? row.version : 0 }, 409, cors);
 }
 

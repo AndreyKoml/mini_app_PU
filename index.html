@@ -1360,6 +1360,21 @@
             filter: drop-shadow(0 4px 10px rgba(112, 224, 0, .35)); }
         .logo-btn svg { width: 100%; height: 100%; display: block; }
         .logo-btn.bounce { animation: logoBounce .6s cubic-bezier(.3, 1.6, .5, 1); }
+        /* переход в ProdU Sport: при наведении на логотип сверху всплывает логотип спорт-версии */
+        .logo-wrap { position: relative; width: 52px; height: 52px; flex: none; }
+        .logo-wrap::before { content: ''; position: absolute; left: -6px; right: -6px; bottom: 100%; height: 0; }
+        .logo-wrap:hover::before, .logo-wrap.open::before { height: 74px; }
+        .logo-alt { position: absolute; left: 50%; bottom: calc(100% + 12px); width: 52px; height: 52px; padding: 0; border: none; background: none; border-radius: 15px; cursor: pointer;
+            transform: translate(-50%, 14px) scale(.6); opacity: 0; pointer-events: none; transition: transform .28s cubic-bezier(.3, 1.5, .5, 1), opacity .2s; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .18)); }
+        .logo-alt svg { width: 100%; height: 100%; display: block; border-radius: 15px; }
+        .logo-alt .lbl { position: absolute; right: calc(100% + 10px); top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: 10px;
+            background: var(--pill); box-shadow: var(--pill-shadow); color: var(--text-color); }
+        .logo-wrap:hover .logo-alt, .logo-wrap.open .logo-alt, .logo-alt:focus-visible { transform: translate(-50%, 0) scale(1); opacity: 1; pointer-events: auto; }
+        .logo-alt:hover { transform: translate(-50%, -2px) scale(1.06) !important; }
+        .app-wipe { position: fixed; inset: 0; z-index: 10001; pointer-events: none; display: grid; place-items: center; clip-path: circle(0 at var(--x) var(--y));
+            transition: clip-path .5s cubic-bezier(.6, 0, .3, 1); }
+        .app-wipe.go { clip-path: circle(150vmax at var(--x) var(--y)); }
+        .app-wipe svg { width: 96px; height: 96px; border-radius: 26px; }
         @keyframes logoBounce { 0% { transform: scale(1); } 30% { transform: scale(.82) rotate(-8deg); } 65% { transform: scale(1.12) rotate(4deg); } 100% { transform: scale(1); } }
         @media (max-width: 600px) {
             .bottom-bar { bottom: 10px; gap: 14px; }
@@ -1374,6 +1389,7 @@
             .theme-switch .knob { width: 20px; height: 20px; }
             .theme-switch[aria-checked="true"] .knob { transform: translateX(24px); }
             .logo-btn { width: 46px; height: 46px; border-radius: 13px; }
+            .logo-wrap, .logo-alt { width: 46px; height: 46px; }
         }
         @media (max-width: 350px) { .bottom-bar { gap: 8px; } .nav3-btn { width: 56px; } }
 
@@ -2350,7 +2366,10 @@
                 <button type="button" class="nav3-btn active" id="navHome" onclick="goHome()" aria-label="Главная" title="Главная"><svg viewBox="0 0 30 30" aria-hidden="true"><g fill="currentColor"><rect width="14" height="14" rx="5"/><rect x="16" width="14" height="14" rx="5"/><rect y="16" width="14" height="14" rx="5"/></g><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 18h10M18 23h10M18 28h10"/></g></svg></button>
                 <button type="button" class="nav3-btn" id="navProfile" onclick="togglePop('profile')" aria-label="Профиль" title="Профиль"><svg viewBox="0 0 30 30" aria-hidden="true"><g fill="currentColor"><circle cx="15" cy="8.5" r="6.5"/><path d="M3 26.5C3 20.2 8.4 16.8 15 16.8s12 3.4 12 9.7c0 1.4-1.1 2.5-2.5 2.5h-19C4.1 29 3 27.9 3 26.5Z"/></g></svg><span class="sync-dot" id="syncDot" data-s="none"></span><span class="nav-badge" id="homeBadge"></span></button>
             </nav>
-            <button type="button" class="logo-btn" id="logoBtn" onclick="logoTap()" aria-label="ProdU"><svg viewBox="0 0 50 50" aria-hidden="true"><defs><linearGradient id="logoGrad" x1="25" y1="0" x2="25" y2="50" gradientUnits="userSpaceOnUse"><stop stop-color="#9EF01A"/><stop offset="1" stop-color="#70E000"/></linearGradient></defs><rect width="50" height="50" rx="15" fill="url(#logoGrad)"/><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><path d="M26.06 30.28a8.45 8.45 0 0 1-16.9 0"/><path d="M26.06 22.54a8.45 8.45 0 0 1 16.9 0"/><path d="M32 21.53l1.87 2.24 3.52-2.76" stroke-width="2"/></g><rect x="7.04" y="11.97" width="4.23" height="12.68" rx="1" fill="#fff"/></svg></button>
+            <div class="logo-wrap" id="logoWrap">
+                <button type="button" class="logo-alt" id="altLogo" onclick="goToApp('sport.html', event)" aria-label="Перейти в ProdU Sport" title="Перейти в ProdU Sport"><svg viewBox="0 0 75 75" aria-hidden="true"><rect width="75" height="75" rx="20" fill="#FDFFFC"/><g fill="#9EF01A"><path d="M17 17h8l-7 21h-8z"/><rect x="61.26" y="45.29" width="8" height="2" transform="rotate(108.872 61.26 45.29)"/><rect x="53.62" y="52.19" width="8" height="2" transform="rotate(18.8715 53.62 52.19)"/><rect x="52.65" y="55.03" width="8" height="2" transform="rotate(18.8715 52.65 55.03)"/><rect x="58.65" y="38" width="8" height="2" transform="rotate(18.8715 58.65 38)"/><rect x="57.5" y="40.84" width="8" height="2" transform="rotate(18.8715 57.5 40.84)"/><path d="M54 60h3l-3-1zM64 38h-3l3 1z"/></g><g fill="none" stroke="#9EF01A" stroke-width="8" stroke-linecap="square"><path d="M39.5 34c0-8.5 2.66-13 11.5-13S63 21.5 63 30"/><path d="M39.5 48c0 7.5-5.5 7-11 7-7.2 0-14.5 1-14.5-7"/></g></svg><span class="lbl">ProdU Sport</span></button>
+                <button type="button" class="logo-btn" id="logoBtn" onclick="logoTap()" aria-label="ProdU — показать переход в ProdU Sport" aria-expanded="false"><svg viewBox="0 0 50 50" aria-hidden="true"><defs><linearGradient id="logoGrad" x1="25" y1="0" x2="25" y2="50" gradientUnits="userSpaceOnUse"><stop stop-color="#9EF01A"/><stop offset="1" stop-color="#70E000"/></linearGradient></defs><rect width="50" height="50" rx="15" fill="url(#logoGrad)"/><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><path d="M26.06 30.28a8.45 8.45 0 0 1-16.9 0"/><path d="M26.06 22.54a8.45 8.45 0 0 1 16.9 0"/><path d="M32 21.53l1.87 2.24 3.52-2.76" stroke-width="2"/></g><rect x="7.04" y="11.97" width="4.23" height="12.68" rx="1" fill="#fff"/></svg></button>
+            </div>
         </div>
 
         <!-- Быстрые настройки -->
@@ -3861,6 +3880,8 @@
         const SERVER_URL = 'https://red-grass-1361.aerogool-frost-12.workers.dev/';
 
         const SERVER_BASE = SERVER_URL.trim().replace(/\/+$/, '');
+        // спорт-версия (sport.html) берёт адрес сервера отсюда, чтобы не вписывать его дважды
+        try { if (SERVER_BASE) localStorage.setItem('produ_server', SERVER_BASE); else localStorage.removeItem('produ_server'); } catch (e) {}
         const PUSH_BASE = SERVER_BASE;
         let pushState = 'off';          // off | on | error | unsupported
         let pushSubscription = null;
@@ -9051,7 +9072,27 @@
         function logoTap() {
             const b = $('logoBtn');
             b.classList.remove('bounce'); void b.offsetWidth; b.classList.add('bounce');
+            setLogoOpen(!$('logoWrap').classList.contains('open'));   // на телефоне наведения нет — показываем по нажатию
         }
+        function setLogoOpen(on) { $('logoWrap').classList.toggle('open', on); $('logoBtn').setAttribute('aria-expanded', String(on)); }
+        document.addEventListener('pointerdown', e => { if (!e.target.closest('#logoWrap')) setLogoOpen(false); });
+        // переход между ProdU и ProdU Sport: круг расходится от логотипа, аккаунт и оформление общие
+        function goToApp(url, ev) {
+            const src = (ev && ev.currentTarget) || $('logoBtn');
+            const r = src.getBoundingClientRect();
+            const w = document.createElement('div');
+            w.className = 'app-wipe';
+            w.style.setProperty('--x', Math.round(r.left + r.width / 2) + 'px');
+            w.style.setProperty('--y', Math.round(r.top + r.height / 2) + 'px');
+            w.style.background = document.body.hasAttribute('data-theme') ? '#252323' : '#f5f1ed';
+            w.innerHTML = $('altLogo').querySelector('svg').outerHTML;
+            document.body.appendChild(w);
+            try { if (data._meta.dirty) syncNow(); } catch (e) {}
+            requestAnimationFrame(() => requestAnimationFrame(() => w.classList.add('go')));
+            try { sessionStorage.setItem('produ_wipe', '1'); } catch (e) {}
+            setTimeout(() => { location.href = url; }, 480);
+        }
+        window.addEventListener('pageshow', e => { if (e.persisted) document.querySelectorAll('.app-wipe').forEach(w => w.remove()); });
 
         // монеты пиксельными цифрами, в стиле пиксельной монетки
         const PIX = { 0: '111101101101111', 1: '010110010010111', 2: '111001111100111', 3: '111001111001111', 4: '101101111001001',
@@ -9107,7 +9148,7 @@
             if (e.target.closest('.pop') || e.target.closest('#navSettings') || e.target.closest('#navProfile')) return;
             closePops();
         }, true);
-        document.addEventListener('keydown', e => { if (e.key === 'Escape') closePops(); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePops(); setLogoOpen(false); } });
         window.addEventListener('resize', () => { if (openPop) placePop($(openPop === 'settings' ? 'popSettings' : 'popProfile'), openPop); });
 
         function renderPopProfile() {
@@ -11284,6 +11325,12 @@
         document.addEventListener('visibilitychange', () => { if (!document.hidden) fxRefresh(); });
         setInterval(fxRefresh, 3600e3);                                         // сезон мог смениться, пока приложение открыто
         fxRefresh();
+
+        // из спорт-версии можно попасть сразу в профиль (вход в аккаунт)
+        function openFromHash() { if (location.hash === '#account') { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} openAccount(); } }
+        openFromHash();
+        window.addEventListener('hashchange', openFromHash);
+        try { sessionStorage.removeItem('produ_wipe'); } catch (e) {}
 
         // ---- экран загрузки: показываем хотя бы один цикл «глаз → точка», ждём первую синхронизацию (не дольше 3 с) ----
         (function hideSplashWhenReady() {
