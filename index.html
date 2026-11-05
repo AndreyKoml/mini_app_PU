@@ -1501,7 +1501,7 @@
 
         /* ---------- три виджета с вкладками ---------- */
         .w-grid { grid-template-columns: 1.15fr 1fr; }
-        .w-card.w-plan { grid-row: span 2; }
+        .w-grid > section.w-card:first-of-type { grid-row: span 2; }       /* первый виджет — высокий слева */
         .w-head .w-title { flex: 0 0 auto; min-width: 46%; }
         .w-tabs { display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: rgba(128, 128, 128, .14); }
         .w-tab { position: relative; flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 6px;
@@ -1516,8 +1516,8 @@
         .w-tab .dock-live { top: 2px; right: 4px; }
         .w-tabbody { flex: 1; display: flex; flex-direction: column; }
         .w-tabbody > .w-row, .w-tabbody > .w-tile { flex: 1; }
-        .w-plan .w-tile { min-height: 150px; }
-        .w-plan .w-scroll { max-height: none; }
+        .w-grid > section.w-card:first-of-type .w-tile { min-height: 150px; }
+        .w-grid > section.w-card:first-of-type .w-scroll { max-height: none; }
         .w-more { align-self: flex-end; border: none; background: none; color: inherit; font: inherit; font-size: 13px; opacity: .6; cursor: pointer; padding: 0 4px; }
         .w-more:hover { opacity: 1; }
         .w-rem2 { display: flex; flex-direction: column; gap: 1px; padding: 6px 0; border-bottom: 1px solid rgba(128, 128, 128, .15); min-width: 0; }
@@ -1543,12 +1543,27 @@
         .nav3-btn .sync-dot { top: auto; bottom: 10px; }
         @media (max-width: 600px) {
             .w-grid { grid-template-columns: 1fr; }
-            .w-card.w-plan { grid-row: auto; }
+            .w-grid > section.w-card:first-of-type { grid-row: auto; }
             .w-tab { padding: 7px 4px; font-size: 12px; }
             .w-tab:not(.on) .w-tab-lbl { display: none; }
-            .w-plan .w-tile { min-height: 120px; }
+            .w-grid > section.w-card:first-of-type .w-tile { min-height: 120px; }
             .nav3-btn .sync-dot { bottom: 8px; }
         }
+
+        /* ---------- полоска для перемещения виджетов ---------- */
+        .w-foot { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin: -4px -2px -6px; }
+        .w-foot .w-more { grid-column: 3; justify-self: end; white-space: nowrap; }
+        .w-handle { grid-column: 2; width: 96px; height: 20px; padding: 0; border: none; background: none; cursor: grab; touch-action: none;
+            display: grid; place-items: center; border-radius: 10px; -webkit-tap-highlight-color: transparent; }
+        .w-handle::before { content: ''; width: 80px; height: 5px; border-radius: 3px; background: rgba(128, 128, 128, .38); transition: background .2s, width .2s; }
+        .w-handle:hover::before, .w-handle:focus-visible::before { background: rgba(128, 128, 128, .6); width: 88px; }
+        .w-handle:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 1px; }
+        .w-card.dragging { z-index: 20; cursor: grabbing; transition: none; box-shadow: 0 24px 60px rgba(0, 0, 0, .22); opacity: .97; }
+        .w-card.dragging .w-handle { cursor: grabbing; }
+        .w-card.dragging .w-handle::before { background: var(--accent-color); width: 88px; }
+        body.w-dragging, body.w-dragging * { user-select: none; -webkit-user-select: none; cursor: grabbing; }
+        body.w-dragging .w-card:not(.dragging):hover { transform: none; }
+        @media (max-width: 600px) { .w-handle { width: 110px; height: 24px; } }
     </style>
 </head>
 <body>
@@ -9146,6 +9161,11 @@
         };
         const TAB_OPEN = { tasks: 'calendar', reminders: 'reminders', goal: 'finance', lists: 'tasks', calendar: 'calendar', timer: 'timer', diary: 'diary', finance: 'finance', cards: 'cards' };
         let homeTabs = { plan: 'tasks', day: 'calendar', wallet: 'finance' };
+        let homeOrder = ['plan', 'day', 'wallet'];
+        try {
+            const o = JSON.parse(localStorage.getItem('produ_home_order'));
+            if (Array.isArray(o)) homeOrder = [...new Set(o.filter(k => k in HOME_W).concat(homeOrder))];
+        } catch (e) {}
         try { Object.assign(homeTabs, JSON.parse(localStorage.getItem('produ_home_tabs')) || {}); } catch (e) {}
         function wTab(w, tab) {
             homeTabs[w] = tab;
@@ -9241,7 +9261,8 @@
             const tasksLeft = eventsOn(today).filter(e => (e.type || 'task') === 'task' && !e.done).length;
             const remToday = rems.filter(e => e.date === today).length;
             const dot = { tasks: tasksLeft, reminders: remToday };
-            const html = Object.entries(HOME_W).map(([w, def]) => {
+            if (wDrag) { wDrag.pending = true; return; }      // не перерисовываем, пока виджет тянут
+            const html = homeOrder.map(w => [w, HOME_W[w]]).map(([w, def]) => {
                 const cur = def.tabs.some(t => t[0] === homeTabs[w]) ? homeTabs[w] : def.tabs[0][0];
                 const tabs = def.tabs.map(([id, ic, label]) => `<button type="button" class="w-tab${id === cur ? ' on' : ''}" data-tab="${id}" data-stop role="tab" aria-selected="${id === cur}"
                     onclick="wTab('${w}', '${id}')" title="${label}"><span class="w-tab-ic" aria-hidden="true">${ic}</span><span class="w-tab-lbl">${label}</span>${
@@ -9252,7 +9273,11 @@
                     <div class="w-head"><span class="w-title">${def.title}</span></div>
                     <div class="w-tabs" role="tablist" aria-label="${def.title}">${tabs}</div>
                     <div class="w-tabbody">${homeTabBody(cur, ctx)}</div>
-                    <button type="button" class="w-more" data-stop onclick="switchTab('${TAB_OPEN[cur]}')">Открыть «${curLabel}» <span aria-hidden="true">›</span></button>
+                    <div class="w-foot">
+                        <button type="button" class="w-handle" data-stop aria-label="Переместить виджет «${def.title}»: потяните или нажимайте стрелки" title="Потяните, чтобы переместить"
+                            onpointerdown="wDragStart(event, '${w}')" onkeydown="wHandleKey(event, '${w}')" onclick="event.stopPropagation()"></button>
+                        <button type="button" class="w-more" data-stop onclick="switchTab('${TAB_OPEN[cur]}')" aria-label="Открыть раздел «${curLabel}»">Открыть <span aria-hidden="true">›</span></button>
+                    </div>
                 </section>`;
             }).join('');
             const coin = $('coinCounter');
@@ -9261,6 +9286,112 @@
             renderHomeTimer();
             try { renderTimerLive(); } catch (e) {}
         }
+        // ---- перемещение виджетов за полоску внизу ----
+        let wDrag = null;
+        function saveHomeOrder() {
+            homeOrder = [...$('wGrid').querySelectorAll('.w-card')].map(c => c.dataset.w);
+            try { localStorage.setItem('produ_home_order', JSON.stringify(homeOrder)); } catch (e) {}
+        }
+        // переставить карточку и плавно сдвинуть остальные (FLIP)
+        function wMoveCard(card, ref, after) {
+            const grid = $('wGrid');
+            const cards = [...grid.querySelectorAll('.w-card')];
+            const before = new Map(cards.map(c => [c, c.getBoundingClientRect()]));
+            if (after) grid.insertBefore(card, ref.nextSibling); else grid.insertBefore(card, ref);
+            const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            cards.forEach(c => {
+                if (c === card && wDrag) return;
+                const a = before.get(c), b = c.getBoundingClientRect();
+                const dx = a.left - b.left, dy = a.top - b.top;
+                if ((dx || dy) && !calm && c.animate) c.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 260, easing: 'cubic-bezier(.2,.8,.2,1)' });
+            });
+        }
+        function wDragStart(e, w) {
+            if (e.button !== undefined && e.button !== 0) return;
+            e.preventDefault();
+            const handle = e.currentTarget, card = handle.closest('.w-card');
+            card.style.transform = 'none';
+            const base = card.getBoundingClientRect();
+            wDrag = { w, card, handle, base, grabX: e.clientX - base.left, grabY: e.clientY - base.top, x: e.clientX, y: e.clientY,
+                      moved: false, pending: false, lastSwap: 0, lastTarget: null, scrollRaf: 0, pid: e.pointerId };
+            // слушаем окно, а не полоску: при перестановке карточка переезжает в документе, и браузер снимает «захват» указателя
+            window.addEventListener('pointermove', wDragMove);
+            window.addEventListener('pointerup', wDragEnd);
+            window.addEventListener('pointercancel', wDragEnd);
+            document.body.classList.add('w-dragging');
+        }
+        function wPlace() {
+            const d = wDrag;
+            d.card.style.transform = `translate(${d.x - d.grabX - d.base.left}px, ${d.y - d.grabY - d.base.top}px) scale(1.02)`;
+        }
+        function wDragMove(e) {
+            const d = wDrag;
+            if (!d || e.pointerId !== d.pid) return;
+            e.preventDefault();
+            d.x = e.clientX; d.y = e.clientY;
+            if (!d.moved && Math.hypot(d.x - d.grabX - d.base.left, d.y - d.grabY - d.base.top) < 4) return;
+            if (!d.moved) { d.moved = true; d.card.classList.add('dragging'); }
+            wPlace();
+            // под пальцем другой виджет — меняемся местами
+            const now = performance.now();
+            const others = [...$('wGrid').querySelectorAll('.w-card')].filter(c => c !== d.card);
+            const hit = others.find(c => { const r = c.getBoundingClientRect(); return d.x > r.left && d.x < r.right && d.y > r.top && d.y < r.bottom; });
+            if (hit && (hit !== d.lastTarget || now - d.lastSwap > 400) && now - d.lastSwap > 180) {
+                const cards = [...$('wGrid').querySelectorAll('.w-card')];
+                const after = cards.indexOf(d.card) < cards.indexOf(hit);
+                d.card.style.transform = 'none';
+                wMoveCard(d.card, hit, after);
+                d.base = d.card.getBoundingClientRect();
+                wPlace();
+                d.lastSwap = now; d.lastTarget = hit;
+                if (navigator.vibrate) try { navigator.vibrate(8); } catch (err) {}
+            }
+            // у края экрана страница прокручивается сама
+            cancelAnimationFrame(d.scrollRaf);
+            const edge = d.y < 70 ? -1 : d.y > window.innerHeight - 140 ? 1 : 0;
+            if (edge) {
+                const step = () => {
+                    if (!wDrag) return;
+                    window.scrollBy(0, edge * 9);
+                    wDrag.card.style.transform = 'none';
+                    wDrag.base = wDrag.card.getBoundingClientRect();
+                    wPlace();
+                    wDrag.scrollRaf = requestAnimationFrame(step);
+                };
+                d.scrollRaf = requestAnimationFrame(step);
+            }
+        }
+        function wDragEnd(e) {
+            const d = wDrag;
+            if (!d || (e && e.pointerId !== undefined && e.pointerId !== d.pid)) return;
+            cancelAnimationFrame(d.scrollRaf);
+            window.removeEventListener('pointermove', wDragMove);
+            window.removeEventListener('pointerup', wDragEnd);
+            window.removeEventListener('pointercancel', wDragEnd);
+            document.body.classList.remove('w-dragging');
+            const card = d.card, from = card.style.transform;
+            card.style.transform = '';
+            card.classList.remove('dragging');
+            if (d.moved && from && from !== 'none' && card.animate && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                card.animate([{ transform: from }, { transform: 'none' }], { duration: 220, easing: 'cubic-bezier(.2,.8,.2,1)' });
+            }
+            wDrag = null;
+            if (d.moved) saveHomeOrder();
+            if (d.pending) renderHome();
+        }
+        function wHandleKey(e, w) {
+            const dir = { ArrowUp: -1, ArrowLeft: -1, ArrowDown: 1, ArrowRight: 1 }[e.key];
+            if (!dir) return;
+            e.preventDefault(); e.stopPropagation();
+            const i = homeOrder.indexOf(w), j = i + dir;
+            if (j < 0 || j >= homeOrder.length) return;
+            const cards = [...$('wGrid').querySelectorAll('.w-card')];
+            wMoveCard(cards[i], cards[j], dir > 0);
+            saveHomeOrder();
+            const h = document.querySelector(`.w-card[data-w="${w}"] .w-handle`);
+            if (h) h.focus({ preventScroll: true });
+        }
+
         function wTimerMain() { if (tm.mode === 'pomo') pomoMain(); else timerMain(); renderHomeTimer(); }
 
         function renderHomeTimer() {
