@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ProdU - Glass OS</title>
+    <title>ProdU</title>
     <link rel="icon" type="image/png" href="autumn_logo.png">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="autumn_logo.png">
@@ -1564,6 +1564,19 @@
         body.w-dragging, body.w-dragging * { user-select: none; -webkit-user-select: none; cursor: grabbing; }
         body.w-dragging .w-card:not(.dragging):hover { transform: none; }
         @media (max-width: 600px) { .w-handle { width: 110px; height: 24px; } }
+
+        /* ---------- иконки разделов (календарь, напоминания, таймер) ---------- */
+        .sec-ic { display: inline-flex; vertical-align: middle; }
+        .sec-ic svg { display: block; height: 1.15em; width: auto; }
+        .sec-ic .ic-d { display: none; }
+        body[data-theme="dark"] .sec-ic .ic-l { display: none; }
+        body[data-theme="dark"] .sec-ic .ic-d { display: inline-flex; }
+        .sec-ic .ic-l, .sec-ic .ic-d { align-items: center; }
+        .title-pill { display: inline-flex; align-items: center; gap: 9px; }
+        .title-pill .sec-ic svg { height: 22px; }
+        .w-tab-ic .sec-ic svg { height: 16px; }
+        .w-tab { --bell-line: var(--pill); }
+        .w-tab:not(.on) { --bell-line: #e9e6e1; }
     </style>
 </head>
 <body>
@@ -9099,6 +9112,25 @@
         }
 
         // ---- заголовок с кнопкой «назад» в каждом разделе ----
+        // Иконки разделов в двух вариантах: светлая тема — залитые чёрные, тёмная — белые контурные
+        const SEC_ICONS = {
+            check: ['<svg viewBox="0 0 49 49"><path d="M10 2.5h29a7.5 7.5 0 0 1 7.5 7.5v29a7.5 7.5 0 0 1-7.5 7.5H10A7.5 7.5 0 0 1 2.5 39V10A7.5 7.5 0 0 1 10 2.5Z" fill="none" stroke="currentColor" stroke-width="5"/><path d="M38.57 15 21.23 32.33M11 22.1l12 12" fill="none" stroke="currentColor" stroke-width="5"/></svg>', '<svg viewBox="0 0 49 49"><path d="M10 2.5h29a7.5 7.5 0 0 1 7.5 7.5v29a7.5 7.5 0 0 1-7.5 7.5H10A7.5 7.5 0 0 1 2.5 39V10A7.5 7.5 0 0 1 10 2.5Z" fill="none" stroke="currentColor" stroke-width="5"/><path d="M38.57 15 21.23 32.33M11 22.1l12 12" fill="none" stroke="currentColor" stroke-width="5"/></svg>'],
+            goal: ['<svg viewBox="0 0 63 62"><path d="M51 35a24 24 0 1 1-24-24" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><path d="M31.2 33.61a2 2 0 0 1-2.56-2.55l7.24-20.51a2 2 0 0 1 3.3-.75l13.27 13.27a2 2 0 0 1-.75 3.3Z" fill="currentColor"/><path d="M35 35a8 8 0 1 1-8-8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>', '<svg viewBox="0 0 63 62"><path d="M51 35a24 24 0 1 1-24-24" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><path d="M31.2 33.61a2 2 0 0 1-2.56-2.55l7.24-20.51a2 2 0 0 1 3.3-.75l13.27 13.27a2 2 0 0 1-.75 3.3Z" fill="currentColor"/><path d="M35 35a8 8 0 1 1-8-8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>'],
+            finance: ['<svg viewBox="0 0 35 53"><g fill="currentColor"><rect x="14.93" y="23.29" width="5.94" height="29.72" rx="2"/><rect x="26.81" y="11.4" width="5.94" height="41.6" rx="2"/><rect x="3.04" y="35.17" width="5.94" height="17.83" rx="2"/></g><path d="M3.04 29.23 8.99 20.31l10.4-5.94 2.97-7.43 10.4-4.46" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>', '<svg viewBox="0 0 35 53"><g fill="currentColor"><rect x="14.93" y="23.29" width="5.94" height="29.72" rx="2"/><rect x="26.81" y="11.4" width="5.94" height="41.6" rx="2"/><rect x="3.04" y="35.17" width="5.94" height="17.83" rx="2"/></g><path d="M3.04 29.23 8.99 20.31l10.4-5.94 2.97-7.43 10.4-4.46" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>'],
+            scan: ['<svg viewBox="0 0 51 51"><path d="M2.5 14v-1.5a10 10 0 0 1 10-10H14M2.5 37v1.5a10 10 0 0 0 10 10H14M37 2.5h1.5a10 10 0 0 1 10 10V14M37 48.5h1.5a10 10 0 0 0 10-10V37" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><g fill="currentColor"><rect x="14" y="20" width="4" height="12" rx="1.5"/><rect x="23" y="14" width="4" height="23" rx="1.5"/><rect x="32" y="20" width="4" height="17" rx="1.5"/><circle cx="16" cy="14" r="2.5"/><circle cx="34" cy="14" r="2.5"/><circle cx="16" cy="38" r="2.5"/></g></svg>', '<svg viewBox="0 0 51 51"><path d="M2.5 14v-1.5a10 10 0 0 1 10-10H14M2.5 37v1.5a10 10 0 0 0 10 10H14M37 2.5h1.5a10 10 0 0 1 10 10V14M37 48.5h1.5a10 10 0 0 0 10-10V37" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><g fill="currentColor"><rect x="14" y="20" width="4" height="12" rx="1.5"/><rect x="23" y="14" width="4" height="23" rx="1.5"/><rect x="32" y="20" width="4" height="17" rx="1.5"/><circle cx="16" cy="14" r="2.5"/><circle cx="34" cy="14" r="2.5"/><circle cx="16" cy="38" r="2.5"/></g></svg>'],
+            list: ['<svg viewBox="0 0 48 48"><path d="M10 2.5h28a7.5 7.5 0 0 1 7.5 7.5v28a7.5 7.5 0 0 1-7.5 7.5H10A7.5 7.5 0 0 1 2.5 38V10A7.5 7.5 0 0 1 10 2.5Z" fill="none" stroke="currentColor" stroke-width="5"/><g fill="currentColor"><rect x="19.5" y="13.5" width="17" height="4" rx="1.5"/><rect x="19.5" y="22.5" width="17" height="4" rx="1.5"/><rect x="19.5" y="31.5" width="17" height="4" rx="1.5"/><circle cx="13.5" cy="15.5" r="2.5"/><circle cx="13.5" cy="24.5" r="2.5"/><circle cx="13.5" cy="33.5" r="2.5"/></g></svg>', '<svg viewBox="0 0 48 48"><path d="M10 2.5h28a7.5 7.5 0 0 1 7.5 7.5v28a7.5 7.5 0 0 1-7.5 7.5H10A7.5 7.5 0 0 1 2.5 38V10A7.5 7.5 0 0 1 10 2.5Z" fill="none" stroke="currentColor" stroke-width="5"/><g fill="currentColor"><rect x="19.5" y="13.5" width="17" height="4" rx="1.5"/><rect x="19.5" y="22.5" width="17" height="4" rx="1.5"/><rect x="19.5" y="31.5" width="17" height="4" rx="1.5"/><circle cx="13.5" cy="15.5" r="2.5"/><circle cx="13.5" cy="24.5" r="2.5"/><circle cx="13.5" cy="33.5" r="2.5"/></g></svg>'],
+            diary: ['<svg viewBox="0 0 48 48"><path d="M10 2.5h28a7.5 7.5 0 0 1 7.5 7.5v28a7.5 7.5 0 0 1-7.5 7.5H10A7.5 7.5 0 0 1 2.5 38V10A7.5 7.5 0 0 1 10 2.5Z" fill="none" stroke="currentColor" stroke-width="5"/><g fill="currentColor"><rect x="9.5" y="13.5" width="17" height="4" rx="1.5"/><rect x="9.5" y="22.5" width="29" height="4" rx="1.5"/><rect x="9.5" y="31.5" width="29" height="4" rx="1.5"/></g></svg>', '<svg viewBox="0 0 48 48"><path d="M10 2.5h28a7.5 7.5 0 0 1 7.5 7.5v28a7.5 7.5 0 0 1-7.5 7.5H10A7.5 7.5 0 0 1 2.5 38V10A7.5 7.5 0 0 1 10 2.5Z" fill="none" stroke="currentColor" stroke-width="5"/><g fill="currentColor"><rect x="9.5" y="13.5" width="17" height="4" rx="1.5"/><rect x="9.5" y="22.5" width="29" height="4" rx="1.5"/><rect x="9.5" y="31.5" width="29" height="4" rx="1.5"/></g></svg>'],
+            calendar: ['<svg viewBox="0 0 49 49"><path d="M10 1.5h29a8.5 8.5 0 0 1 8.5 8.5v29a8.5 8.5 0 0 1-8.5 8.5H10A8.5 8.5 0 0 1 1.5 39V10A8.5 8.5 0 0 1 10 1.5Z" fill="none" stroke="currentColor" stroke-width="3"/><path d="M3.57 3.41A2 2 0 0 1 5.48 2h38.93a2 2 0 0 1 1.95 1.55l2.08 9a2 2 0 0 1-1.95 2.45H2.71a2 2 0 0 1-1.91-2.59Z" fill="currentColor"/><g fill="currentColor"><rect x="7" y="20" width="8" height="8" rx="2"/><rect x="7" y="32" width="8" height="8" rx="2"/><rect x="20" y="20" width="8" height="8" rx="2"/><rect x="20" y="32" width="8" height="8" rx="2"/><rect x="33" y="20" width="8" height="8" rx="2"/><rect x="33" y="32" width="8" height="8" rx="2"/></g></svg>',
+                       '<svg viewBox="0 0 49 49"><path d="M10 1.5h29a8.5 8.5 0 0 1 8.5 8.5v29a8.5 8.5 0 0 1-8.5 8.5H10A8.5 8.5 0 0 1 1.5 39V10A8.5 8.5 0 0 1 10 1.5Z" fill="none" stroke="currentColor" stroke-width="3"/><path d="M5 14h40" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><g fill="currentColor"><rect x="7.5" y="20.5" width="7" height="7" rx="1.5"/><rect x="7.5" y="32.5" width="7" height="7" rx="1.5"/><rect x="20.5" y="20.5" width="7" height="7" rx="1.5"/><rect x="20.5" y="32.5" width="7" height="7" rx="1.5"/><rect x="33.5" y="20.5" width="7" height="7" rx="1.5"/><rect x="33.5" y="32.5" width="7" height="7" rx="1.5"/></g></svg>'],
+            reminders: ['<svg viewBox="0 0 43 55"><path d="M38.67 27.5c0 17.19 17.19 17.19-17.19 17.19S4.3 44.69 4.3 27.5a17.19 17.19 0 0 1 34.38 0Z" fill="currentColor"/><circle cx="21.48" cy="3.44" r="3.44" fill="currentColor"/><path d="M28.36 48.13a6.88 6.88 0 0 1-13.75 0Z" fill="currentColor"/><path d="M10 38h13.75" stroke="var(--bell-line, #fff)" stroke-width="2" stroke-linecap="round"/></svg>',
+                        '<svg viewBox="0 0 43 55"><path d="M37.67 27.5c0 7.9 3.6 11.55 4.5 13.5.6 1.4-.5 2.69-2 2.69H3.3c-1.5 0-2.6-1.3-2-2.69.9-1.95 4-5.6 4-13.5a16.19 16.19 0 0 1 32.37 0Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="21.48" cy="3.44" r="2.94" fill="currentColor"/><path d="M27.36 48.13a5.88 5.88 0 0 1-11.75 0Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 38h13.75" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'],
+            timer: ['<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="21" fill="none" stroke="currentColor" stroke-width="6"/><path d="M23.5 12v12H33" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><g fill="currentColor"><circle cx="19.5" cy="36.5" r="1.5"/><circle cx="14.5" cy="32.5" r="1.5"/><circle cx="11.5" cy="27.5" r="1.5"/></g></svg>',
+                    '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="21" fill="none" stroke="currentColor" stroke-width="4"/><path d="M23.5 12v12H33" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><g fill="currentColor"><circle cx="19.5" cy="36.5" r="1.5"/><circle cx="14.5" cy="32.5" r="1.5"/><circle cx="11.5" cy="27.5" r="1.5"/></g></svg>']
+        };
+        // какой значок у вкладки виджета и у заголовка раздела
+        const TAB_ICON = { calendar: 'calendar', reminders: 'reminders', timer: 'timer', tasks: 'check', goal: 'goal', lists: 'list', diary: 'diary', finance: 'finance', cards: 'scan' };
+        const PAGE_ICON = { calendar: 'calendar', reminders: 'reminders', timer: 'timer', tasks: 'list', diary: 'diary', finance: 'finance', cards: 'scan' };
+        const secIcon = id => SEC_ICONS[id] ? `<span class="sec-ic"><span class="ic-l">${SEC_ICONS[id][0]}</span><span class="ic-d">${SEC_ICONS[id][1]}</span></span>` : '';
         const PAGE_TITLES = { calendar: 'Календарь', reminders: 'Напоминания', timer: 'Таймер', diary: 'Дневник', social: 'Друзья',
                               games: 'Игры', tasks: 'Списки', finance: 'Финансы', cards: 'Карты', account: 'Профиль', settings: 'Настройки', person: 'Профиль' };
         Object.entries(PAGE_TITLES).forEach(([id, title]) => {
@@ -9107,7 +9139,7 @@
             const h = document.createElement('div');
             h.className = 'page-head full-width';
             const back = id === 'person' ? 'closePerson()' : (id === 'social' || id === 'games') ? 'openAccount()' : 'goHome()';
-            h.innerHTML = `<button type="button" class="back-btn" onclick="${back}" aria-label="${back === 'goHome()' ? 'На главную' : 'Назад'}">‹</button><span class="title-pill">${title}</span>`;
+            h.innerHTML = `<button type="button" class="back-btn" onclick="${back}" aria-label="${back === 'goHome()' ? 'На главную' : 'Назад'}">‹</button><span class="title-pill">${secIcon(PAGE_ICON[id])}${title}</span>`;
             m.prepend(h);
         });
 
@@ -9265,7 +9297,7 @@
             const html = homeOrder.map(w => [w, HOME_W[w]]).map(([w, def]) => {
                 const cur = def.tabs.some(t => t[0] === homeTabs[w]) ? homeTabs[w] : def.tabs[0][0];
                 const tabs = def.tabs.map(([id, ic, label]) => `<button type="button" class="w-tab${id === cur ? ' on' : ''}" data-tab="${id}" data-stop role="tab" aria-selected="${id === cur}"
-                    onclick="wTab('${w}', '${id}')" title="${label}"><span class="w-tab-ic" aria-hidden="true">${ic}</span><span class="w-tab-lbl">${label}</span>${
+                    onclick="wTab('${w}', '${id}')" title="${label}"><span class="w-tab-ic" aria-hidden="true">${TAB_ICON[id] ? secIcon(TAB_ICON[id]) : ic}</span><span class="w-tab-lbl">${label}</span>${
                     id === 'reminders' ? `<span class="w-badge" id="remDockBadge">${remToday || ''}</span>` : dot[id] ? `<span class="w-badge">${dot[id]}</span>` : ''}${
                     id === 'timer' ? '<span class="dock-live" id="tmDockLive" hidden></span>' : ''}</button>`).join('');
                 const curLabel = def.tabs.find(t => t[0] === cur)[2];
