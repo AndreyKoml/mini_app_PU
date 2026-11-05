@@ -495,6 +495,16 @@
             background: var(--glass-bg); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
             padding: 11px 16px; border-radius: 20px; border: 1px solid var(--glass-border); cursor: pointer;
         }
+        .top-left { position: fixed; top: 20px; left: 30px; z-index: 10; display: flex; align-items: center; gap: 10px; max-width: 50vw; }
+        .top-left .account-pill { position: static; min-width: 0; max-width: none; }
+        .fx-btn[hidden] { display: none; }
+        .fx-btn { flex: none; transition: transform .2s, box-shadow .2s, background .2s; }
+        .fx-btn:active { transform: scale(.92); }
+        .fx-btn.on { border-color: var(--accent-color) !important; box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-color) 55%, transparent), 0 4px 16px color-mix(in srgb, var(--accent-color) 30%, transparent) !important; }
+        .fx-btn:not(.on) { filter: grayscale(.55); opacity: .85; }
+        /* частицы рисуются поверх содержимого, но под меню и окнами; клики проходят насквозь */
+        .fx-canvas { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; z-index: 5; pointer-events: none; }
+        .fx-canvas[hidden] { display: none; }
         .account-pill.active { border-color: var(--accent-color); box-shadow: 0 0 0 1px var(--accent-color); }
         .account-pill .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .sync-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--c-task); flex-shrink: 0; }
@@ -942,6 +952,7 @@
             .coin-counter { font-size: 16px; padding: 6px 12px; }
             .theme-btn { width: 38px; height: 38px; font-size: 17px; }
             .account-pill { top: 12px; left: 12px; font-size: 14px; padding: 8px 12px; max-width: calc(100vw - 190px); }
+            .top-left { top: 12px; left: 12px; gap: 6px; max-width: calc(100vw - 190px); }
             .dashboard { width: calc(100% - 24px); }
             .glass-card { padding: 16px; }
             /* на телефоне меню во всю ширину, кнопки делят её поровну */
@@ -1258,9 +1269,13 @@
     <div class="bg-logo">U</div>
     <div class="lg-backdrop" aria-hidden="true"></div>
 
-    <button class="account-pill" id="accountPill" onclick="openAccount()" title="Аккаунт и синхронизация">
-        <span class="avatar empty" id="pillAvatar">👤</span><span class="name" id="accountPillName">Войти</span><span class="sync-dot" id="syncDot" data-s="none"></span>
-    </button>
+    <div class="top-left">
+        <button class="account-pill" id="accountPill" onclick="openAccount()" title="Аккаунт и синхронизация">
+            <span class="avatar empty" id="pillAvatar">👤</span><span class="name" id="accountPillName">Войти</span><span class="sync-dot" id="syncDot" data-s="none"></span>
+        </button>
+        <button class="theme-btn fx-btn" id="fxBtn" type="button" hidden onclick="toggleFx()" aria-pressed="false"></button>
+    </div>
+    <canvas id="fxCanvas" class="fx-canvas" aria-hidden="true" hidden></canvas>
 
     <div class="top-right">
         <div class="coin-counter" id="coinCounter" title="Монеты за выполненные дела">
@@ -3301,6 +3316,7 @@
             themeToggle.title = dark ? 'Светлая тема' : 'Тёмная тема';
             if (save) { try { localStorage.setItem('produ_theme', dark ? 'dark' : 'light'); } catch (e) {} }
             try { gameRedraw(); } catch (e) { /* игры ещё не загружены */ }
+            try { fxThemeChanged(); } catch (e) { /* сезонные эффекты ещё не загружены */ }
         }
         // ---- стиль интерфейса и шрифт ----
         function uiPrefs() {
@@ -10176,6 +10192,253 @@
         window.addEventListener('hashchange', handleChatHash);
         handleInviteHash();
         window.addEventListener('hashchange', handleInviteHash);
+
+
+        // ================= СЕЗОННЫЕ ЭФФЕКТЫ: ЛИСТОПАД И СНЕГОПАД =================
+        // Листья — с 1 октября по 30 ноября, снег — с 1 декабря по 31 января. Включается кнопкой слева сверху.
+        // Чтобы почти не тратить ресурсы: один холст, не больше 30 кадров в секунду, частицы — заранее нарисованные
+        // картинки, число частиц зависит от размера экрана и мощности устройства. Сугроб внизу не перерисовывается
+        // каждый кадр: упавшие частицы «впечатываются» в отдельную полоску, которая медленно тает.
+        // Когда эффект выключен или вкладка скрыта — ничего не работает и память освобождается.
+        const FX_KEY = 'produ_fx';
+        const FX_INFO = {
+            leaves: { icon: '🍂', on: 'Выключить листопад', off: 'Включить листопад' },
+            snow: { icon: '❄️', on: 'Выключить снегопад', off: 'Включить снегопад' }
+        };
+        const fx = { kind: null, running: false, raf: 0, last: 0, acc: 0, W: 0, H: 0, dpr: 1, ctx: null, parts: [],
+                     pile: null, pctx: null, PH: 0, heights: null, base: null, top: 0, col: 4, sprites: null, wind: 0, windT: 0, decayT: 0, resizeT: 0 };
+        let fxPrefs = {};
+        try { fxPrefs = JSON.parse(localStorage.getItem(FX_KEY)) || {}; } catch (e) {}
+
+        function fxNow() { return new Date(); }
+        function fxSeason(d) {
+            const m = d.getMonth();                    // 0 — январь
+            if (m === 9 || m === 10) return 'leaves';  // октябрь, ноябрь
+            if (m === 11 || m === 0) return 'snow';    // декабрь, январь
+            return null;
+        }
+        function fxRefresh() {
+            const kind = fxSeason(fxNow());
+            const btn = $('fxBtn');
+            btn.hidden = !kind;
+            if (kind !== fx.kind) fxStop();
+            fx.kind = kind;
+            if (!kind) return;
+            const on = !!fxPrefs[kind];
+            btn.textContent = FX_INFO[kind].icon;
+            btn.title = on ? FX_INFO[kind].on : FX_INFO[kind].off;
+            btn.setAttribute('aria-label', btn.title);
+            btn.setAttribute('aria-pressed', String(on));
+            btn.classList.toggle('on', on);
+            if (on && !fx.running) fxStart(); else if (!on && fx.running) fxStop();
+        }
+        function toggleFx() {
+            if (!fx.kind) return;
+            fxPrefs[fx.kind] = !fxPrefs[fx.kind];
+            try { localStorage.setItem(FX_KEY, JSON.stringify(fxPrefs)); } catch (e) {}
+            fxRefresh();
+        }
+
+        // ---- картинки частиц (рисуются один раз) ----
+        function fxMakeSprites() {
+            const dark = document.body.hasAttribute('data-theme');
+            const mk = (size, draw) => { const c = document.createElement('canvas'); c.width = c.height = size; draw(c.getContext('2d'), size); return c; };
+            if (fx.kind === 'snow') {
+                return [mk(32, (g, S) => {
+                    if (!dark) {   // на светлом фоне белое не видно — добавляем мягкую голубовато-серую тень
+                        const sh = g.createRadialGradient(S / 2 + 1, S / 2 + 2, 0, S / 2 + 1, S / 2 + 2, S * .46);
+                        sh.addColorStop(0, 'rgba(90, 115, 150, .55)'); sh.addColorStop(1, 'rgba(90, 115, 150, 0)');
+                        g.fillStyle = sh; g.beginPath(); g.arc(S / 2 + 1, S / 2 + 2, S * .46, 0, Math.PI * 2); g.fill();
+                    }
+                    const gr = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S * .42);
+                    gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.6, 'rgba(255,255,255,.95)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+                    g.fillStyle = gr; g.beginPath(); g.arc(S / 2, S / 2, S * .42, 0, Math.PI * 2); g.fill();
+                })];
+            }
+            const colors = [['#e8833a', '#b9551c'], ['#d4462f', '#9b2a1b'], ['#e9b530', '#b98418'], ['#b8702f', '#7e4517'], ['#c9a03c', '#8d6a1c']];
+            return colors.map(([fill, vein], i) => mk(48, (g, S) => {
+                g.translate(S / 2, S / 2);
+                g.rotate(-Math.PI / 4);
+                const L = S * .44, Wd = S * (i % 2 ? .2 : .25);
+                g.beginPath();
+                g.moveTo(0, -L);
+                g.bezierCurveTo(Wd * 1.6, -L * .45, Wd * 1.4, L * .5, 0, L * .85);
+                g.bezierCurveTo(-Wd * 1.4, L * .5, -Wd * 1.6, -L * .45, 0, -L);
+                g.fillStyle = fill; g.fill();
+                g.strokeStyle = vein; g.lineWidth = 1.6; g.lineCap = 'round';
+                g.beginPath(); g.moveTo(0, -L * .8); g.lineTo(0, L); g.stroke();       // черешок и жилка
+                g.lineWidth = 1;
+                for (const k of [-.35, 0, .35]) {
+                    g.beginPath(); g.moveTo(0, k * L); g.lineTo(Wd * .9, k * L - L * .22); g.stroke();
+                    g.beginPath(); g.moveTo(0, k * L); g.lineTo(-Wd * .9, k * L - L * .22); g.stroke();
+                }
+            }));
+        }
+        function fxThemeChanged() { if (fx.running) { fx.sprites = fxMakeSprites(); fxResetPile(); } }
+
+        // ---- размеры и количество ----
+        function fxBudget() {
+            const area = fx.W * fx.H;
+            const weak = (navigator.deviceMemory && navigator.deviceMemory <= 2) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2);
+            const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            let n = fx.kind === 'snow' ? Math.min(140, area / 5500) : Math.min(46, area / 13000);
+            if (weak) n *= .5;
+            if (calm) n *= .5;
+            return Math.max(8, Math.round(n));
+        }
+        function fxResize() {
+            const c = $('fxCanvas');
+            fx.W = window.innerWidth; fx.H = window.innerHeight;
+            fx.dpr = Math.min(window.devicePixelRatio || 1, 1.5);         // выше 1.5 разницы почти не видно, а работы вдвое больше
+            c.width = Math.round(fx.W * fx.dpr); c.height = Math.round(fx.H * fx.dpr);
+            fx.ctx = c.getContext('2d');
+            fxResetPile();
+            const n = fxBudget();
+            while (fx.parts.length < n) fx.parts.push(fxSpawn(true));
+            fx.parts.length = n;
+        }
+        function fxResetPile() {
+            fx.PH = fx.kind === 'snow' ? 24 : 22;                           // максимальная высота кучки, CSS px
+            // «земля»: над нижним меню — его верхний край, по бокам — низ экрана
+            const cols = Math.ceil(fx.W / fx.col) + 1;
+            fx.base = new Float32Array(cols).fill(fx.H);
+            const dock = $('mainDock');
+            const r = dock ? dock.getBoundingClientRect() : null;            // у fixed-элемента offsetParent всегда null
+            if (r && r.width) {
+                const rad = Math.min(r.height / 2, 30) * .55;
+                for (let i = 0; i < cols; i++) {
+                    const x = i * fx.col;
+                    if (x > r.left + rad && x < r.right - rad) fx.base[i] = r.top + 1;
+                }
+            }
+            let minBase = fx.H;
+            for (let i = 0; i < cols; i++) minBase = Math.min(minBase, fx.base[i]);
+            fx.top = Math.max(0, minBase - fx.PH);
+            if (!fx.pile) fx.pile = document.createElement('canvas');
+            fx.pile.width = Math.round(fx.W * fx.dpr); fx.pile.height = Math.round((fx.H - fx.top) * fx.dpr);
+            fx.pctx = fx.pile.getContext('2d');
+            fx.heights = new Float32Array(cols);
+        }
+        function fxSpawn(anywhere) {
+            const snow = fx.kind === 'snow';
+            const z = Math.random();                                         // «глубина»: дальние меньше и медленнее
+            return {
+                x: Math.random() * fx.W,
+                y: anywhere ? Math.random() * fx.H : -20 - Math.random() * 40,
+                s: snow ? 4 + z * 7 : 15 + z * 12,
+                vy: snow ? 18 + z * 42 : 28 + z * 34,
+                ph: Math.random() * 6.28, sw: snow ? .6 + Math.random() * 1.2 : .8 + Math.random() * .9,
+                amp: snow ? 8 + Math.random() * 18 : 26 + Math.random() * 34,
+                rot: Math.random() * 6.28, vr: (Math.random() - .5) * 2.4,
+                spr: snow ? 0 : Math.floor(Math.random() * 5), a: snow ? .55 + z * .45 : .85 + z * .15
+            };
+        }
+
+        // ---- сугроб: частица ложится на кучку, кучка чуть осыпается в стороны ----
+        function fxLand(p) {
+            const i = Math.max(0, Math.min(fx.heights.length - 1, Math.round(p.x / fx.col)));
+            const h = fx.heights[i];
+            if (h > fx.PH - 6) return;                                       // кучка уже высокая — частица просто исчезает
+            const g = fx.pctx, d = fx.dpr, yTop = fx.base[i] - fx.top - h;
+            g.setTransform(d, 0, 0, d, 0, 0);
+            g.globalAlpha = fx.kind === 'snow' ? .9 : 1;
+            if (fx.kind === 'snow') g.drawImage(fx.sprites[0], p.x - p.s * .75, yTop - p.s * .9, p.s * 1.5, p.s * 1.5);
+            else {
+                const c = Math.cos(p.rot), sn = Math.sin(p.rot), k = .8;
+                g.setTransform(d * c * k, d * sn * k * .45, -d * sn * k, d * c * k * .45 + 0, d * p.x, d * (yTop - 2));
+                g.drawImage(fx.sprites[p.spr], -p.s / 2, -p.s / 2, p.s, p.s);
+            }
+            g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1;
+            const add = fx.kind === 'snow' ? p.s * .5 : p.s * .2, R = fx.kind === 'snow' ? 3 : 4;
+            for (let k = -R; k <= R; k++) {
+                const j = i + k;
+                if (j < 0 || j >= fx.heights.length) continue;
+                fx.heights[j] = Math.min(fx.PH, fx.heights[j] + add * (1 - Math.abs(k) / (R + 1)));
+            }
+            for (let k = Math.max(1, i - R - 1); k < Math.min(fx.heights.length - 1, i + R + 2); k++) {   // осыпание
+                const diff = fx.heights[k] - fx.heights[k + 1];
+                if (Math.abs(diff) > 3) { const m = diff * .25; fx.heights[k] -= m; fx.heights[k + 1] += m; }
+            }
+        }
+        function fxDecay() {                                                   // сугроб медленно тает
+            const g = fx.pctx;
+            g.globalCompositeOperation = 'destination-out';
+            g.fillStyle = 'rgba(0,0,0,.035)';
+            g.fillRect(0, 0, fx.pile.width, fx.pile.height);
+            g.globalCompositeOperation = 'source-over';
+            for (let i = 0; i < fx.heights.length; i++) fx.heights[i] *= .975;
+        }
+
+        // ---- кадр ----
+        function fxFrame(t) {
+            if (!fx.running) return;
+            fx.raf = requestAnimationFrame(fxFrame);
+            const dtMs = t - fx.last;
+            if (dtMs < 32) return;                                             // не чаще 30 кадров в секунду
+            fx.last = t;
+            const dt = Math.min(dtMs, 100) / 1000;                             // после сворачивания — без рывка
+            fx.windT += dt;
+            fx.wind = Math.sin(fx.windT * .13) * 14 + Math.sin(fx.windT * .41) * 6;
+            fx.decayT += dt;
+            if (fx.decayT > 3) { fx.decayT = 0; fxDecay(); }
+
+            const g = fx.ctx, d = fx.dpr, snow = fx.kind === 'snow';
+            g.setTransform(1, 0, 0, 1, 0, 0);
+            g.clearRect(0, 0, fx.W * d, fx.H * d);
+            g.drawImage(fx.pile, 0, fx.top * d);
+            for (let n = 0; n < fx.parts.length; n++) {
+                const p = fx.parts[n];
+                p.ph += p.sw * dt;
+                p.y += p.vy * dt;
+                p.x += (Math.cos(p.ph) * p.amp * .9 + fx.wind * (snow ? 1 : 1.6)) * dt;
+                if (p.x < -30) p.x += fx.W + 60; else if (p.x > fx.W + 30) p.x -= fx.W + 60;
+                const ci = Math.max(0, Math.min(fx.heights.length - 1, Math.round(p.x / fx.col)));
+                const ground = fx.base[ci] - fx.heights[ci];
+                if (p.y >= ground - p.s * .3) { fxLand(p); fx.parts[n] = fxSpawn(false); continue; }
+                g.globalAlpha = p.a;
+                if (snow) {
+                    g.setTransform(d, 0, 0, d, 0, 0);
+                    g.drawImage(fx.sprites[0], p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
+                } else {
+                    p.rot += p.vr * dt;
+                    const flip = Math.cos(p.ph * 1.7);                          // лист поворачивается — «переворот» в воздухе
+                    const c = Math.cos(p.rot), sn = Math.sin(p.rot);
+                    g.setTransform(d * c * flip, d * sn * flip, -d * sn, d * c, d * p.x, d * p.y);
+                    g.drawImage(fx.sprites[p.spr], -p.s / 2, -p.s / 2, p.s, p.s);
+                }
+            }
+            g.globalAlpha = 1;
+        }
+
+        function fxStart() {
+            if (fx.running || !fx.kind) return;
+            const c = $('fxCanvas');
+            c.hidden = false;
+            fx.parts = [];
+            fx.sprites = fxMakeSprites();
+            fxResize();
+            fx.running = true;
+            fx.last = 0;
+            fx.raf = requestAnimationFrame(fxFrame);
+        }
+        function fxStop() {
+            fx.running = false;
+            cancelAnimationFrame(fx.raf);
+            const c = $('fxCanvas');
+            if (!c) return;
+            c.hidden = true;
+            c.width = c.height = 1;                                             // отдаём память
+            if (fx.pile) fx.pile.width = fx.pile.height = 1;
+            fx.parts = []; fx.sprites = null; fx.heights = null; fx.base = null;
+        }
+        window.addEventListener('resize', () => {
+            if (!fx.running) return;
+            clearTimeout(fx.resizeT);
+            fx.resizeT = setTimeout(fxResize, 200);
+        });
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) fxRefresh(); });
+        setInterval(fxRefresh, 3600e3);                                         // сезон мог смениться, пока приложение открыто
+        fxRefresh();
 
         // ---- экран загрузки: показываем хотя бы один цикл «глаз → точка», ждём первую синхронизацию (не дольше 3 с) ----
         (function hideSplashWhenReady() {
