@@ -352,6 +352,132 @@
         .loading { display: flex; justify-content: center; padding: 30px 0; }
         .loading .spinner { width: 26px; height: 26px; border: 3px solid rgba(128, 128, 128, .25); border-top-color: var(--accent-color); border-radius: 50%; animation: spin .8s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ---------- рабочее пространство: боковая панель + календарь ---------- */
+        .app { width: min(1440px, calc(100% - 32px)); padding-top: 22px; }
+        .narrow, #view-team { width: 100%; max-width: 620px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+        body { --grid-line: rgba(0, 0, 0, .075); }
+        body[data-theme="dark"] { --grid-line: rgba(255, 255, 255, .085); }
+        .tm-shell { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 18px; align-items: start; }
+        .tm-side { position: sticky; top: 16px; max-height: calc(100vh - 140px); overflow-y: auto; padding: 12px; gap: 2px; }
+        .tm-scrim { display: none; }
+        .side-sec { display: flex; flex-direction: column; gap: 2px; }
+        .side-t { font-size: 12.5px; color: var(--muted); margin: 14px 10px 4px; }
+        .side-t small { font-size: 11px; opacity: .8; }
+        .sn { display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box; padding: 9px 10px; border: none; border-radius: 12px; background: transparent; cursor: pointer;
+            font-size: 15px; color: var(--text-color); text-align: left; transition: background .15s, opacity .15s; }
+        .sn:hover { background: rgba(128, 128, 128, .1); }
+        .sn.on { background: var(--pill); box-shadow: var(--pill-shadow); font-weight: 600; }
+        .sn > svg { width: 20px; height: 20px; flex: none; }
+        .sn > span:not(.cnt):not(.dot):not(.tsq):not(.av) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .sn small { display: block; font-size: 11.5px; color: var(--muted); font-weight: 400; overflow: hidden; text-overflow: ellipsis; }
+        .sn .cnt { margin-left: auto; font-size: 13px; color: var(--muted); font-weight: 400; font-variant-numeric: tabular-nums; }
+        .sn.muted { color: var(--muted); font-size: 14px; }
+        .tsq { width: 22px; height: 22px; flex: none; border-radius: 7px; background: var(--c); color: #fff; font-size: 12px; font-weight: 600; display: grid; place-items: center; text-transform: uppercase; }
+        .sn.sm { padding: 7px 10px; font-size: 14px; }
+        .sn .dot { width: 10px; height: 10px; flex: none; border-radius: 3px; background: var(--c); transition: background .15s, box-shadow .15s; }
+        .sn.off { opacity: .45; }
+        .sn.off .dot { background: transparent; box-shadow: inset 0 0 0 2px var(--c); }
+        .tm-main { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+        .tm-head { display: flex; align-items: center; gap: 12px; }
+        .tm-h-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+        .tm-head h1 { margin: 0; font-size: clamp(17px, 2.1vw, 25px); font-weight: 600; letter-spacing: -0.01em; line-height: 1.2;
+            background: var(--pill); box-shadow: var(--pill-shadow); border-radius: 12px; padding: 7px 16px; max-width: 100%; box-sizing: border-box; }
+        .tm-h-ic { width: 42px; height: 42px; border-radius: 12px; background: var(--pill); box-shadow: var(--pill-shadow); place-items: center; display: inline-grid; flex: none; }
+        .tm-h-ic svg { width: 24px !important; height: 24px !important; }
+        .tm-tools .segmented { background: color-mix(in srgb, var(--surface) 92%, transparent); box-shadow: var(--tile-shadow); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
+        .team-chip { background: var(--pill) !important; box-shadow: var(--pill-shadow); padding: 3px 9px !important; border-radius: 8px; }
+        .team-chip { display: none; border: none; background: none; padding: 0; font-size: 13px; color: var(--muted); cursor: pointer; align-items: center; gap: 5px; }
+        .team-chip svg { width: 10px; height: 10px; }
+        .menu-btn { display: none; }
+        .add-btn { padding: 10px 16px; }
+        .btn > svg { width: 18px; height: 18px; flex: none; }
+        .add-btn svg { width: 16px; height: 16px; }
+        .tm-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        #viewSwitch { width: min(440px, 100%); }
+        .nav-group { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+        .today-btn { padding: 9px 14px; font-size: 14px; }
+        .tm-cal { padding: 0; overflow: hidden; gap: 0; }
+        .tm-cal.is-list { padding: 14px; }
+        .tm-list { display: flex; flex-direction: column; gap: 10px; }
+        .day-label { font-size: 13px; font-weight: 600; color: var(--muted); margin: 6px 4px -2px; }
+        .day-label.late { color: var(--danger); }
+
+        /* сетка часов */
+        .tg { --lw: 58px; }
+        .tg-row { display: grid; grid-template-columns: var(--lw) repeat(var(--n), minmax(0, 1fr)); }
+        .tg-head { border-bottom: 1px solid var(--grid-line); }
+        .tg-dh { border: none; background: none; cursor: pointer; padding: 12px 8px 9px; font-size: 13px; color: var(--muted); text-align: left; white-space: nowrap; overflow: hidden; min-width: 0; }
+        .tg-dh b { font-weight: 600; color: var(--text-color); }
+        .tg-dh:hover b { text-decoration: underline; }
+        .tg-dh.today, .tg-dh.today b { color: var(--green-2); }
+        .tg-allday { border-bottom: 1px solid var(--grid-line); min-height: 42px; }
+        .tg-lbl { font-size: 12px; color: var(--muted); display: flex; align-items: center; justify-content: flex-end; padding: 4px 8px 4px 0; text-align: right; line-height: 1.2; }
+        .tg-ad-cell { border-left: 1px solid var(--grid-line); padding: 4px 3px; display: flex; flex-direction: column; gap: 3px; min-width: 0; cursor: pointer; }
+        .tg-body { overflow-y: auto; height: clamp(320px, calc(100vh - 330px), 2400px); overscroll-behavior: contain; position: relative; }
+        .tg-grid { height: calc(var(--hh) * 24); }
+        .tg-hours { position: relative; }
+        .tg-hours span { position: absolute; right: 8px; font-size: 12px; color: var(--muted); transform: translateY(-50%); font-variant-numeric: tabular-nums; }
+        .tg-col { position: relative; border-left: 1px solid var(--grid-line); cursor: copy;
+            background-image: linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px); background-size: 100% var(--hh); }
+        .tg-col.today { background-color: color-mix(in srgb, var(--green-2) 5%, transparent); }
+        .tg-now { position: absolute; left: 0; right: 0; height: 2px; margin-top: -1px; background: var(--danger); z-index: 3; pointer-events: none; }
+        .tg-now::before { content: ''; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); }
+        .tb { position: absolute; z-index: 2; border: none; border-radius: 8px; padding: 4px 7px; box-sizing: border-box; overflow: hidden; text-align: left; cursor: pointer; color: #fff;
+            background: var(--c); box-shadow: 0 2px 6px rgba(0, 0, 0, .14), inset 0 0 0 1px rgba(255, 255, 255, .12); display: flex; flex-direction: column; gap: 1px; font-size: 12.5px; line-height: 1.22;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, .18); transition: transform .12s, box-shadow .12s; }
+        .tb:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(0, 0, 0, .2); z-index: 4; }
+        .tb-t { font-weight: 600; overflow: hidden; display: -webkit-box; -webkit-line-clamp: var(--lines, 3); -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+        .tb-time { font-size: 11px; opacity: .88; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .tb.short { flex-direction: row; align-items: center; gap: 6px; padding-top: 2px; padding-bottom: 2px; }
+        .tb.short .tb-t { -webkit-line-clamp: 1; flex: 1; min-width: 0; }
+        .tb.st-done, .chip-t.st-done { opacity: .5; }
+        .tb.st-done .tb-t, .chip-t.st-done { text-decoration: line-through; }
+        .chip-t { display: block; width: 100%; box-sizing: border-box; border: none; border-radius: 7px; padding: 3px 7px; font-size: 12px; font-weight: 600; color: #fff; background: var(--c);
+            cursor: pointer; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; text-shadow: 0 1px 1px rgba(0, 0, 0, .18); flex: none; }
+        .chip-t em { font-style: normal; font-weight: 400; opacity: .9; margin-right: 4px; }
+        .tg-more { border: none; background: none; font-size: 11.5px; color: var(--muted); cursor: pointer; text-align: left; padding: 0 4px; font-weight: 600; }
+        /* месяц */
+        .mg { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+        .mg-wd { padding: 10px 8px 6px; font-size: 12.5px; color: var(--muted); border-bottom: 1px solid var(--grid-line); }
+        .mc { min-height: max(84px, calc((100vh - 360px) / 6)); border-left: 1px solid var(--grid-line); border-bottom: 1px solid var(--grid-line); padding: 4px; display: flex; flex-direction: column; gap: 3px; cursor: copy; min-width: 0; }
+        .mc.c0 { border-left: none; }
+        .mc.out { opacity: .45; }
+        .mc-d { align-self: flex-start; border: none; background: none; font-size: 13px; font-weight: 600; padding: 2px 7px; border-radius: 8px; cursor: pointer; color: var(--text-color); font-variant-numeric: tabular-nums; }
+        .mc.today .mc-d { background: var(--green); color: #fff; }
+
+        @media (max-width: 900px) {
+            .tm-shell { display: block; }
+            .tm-side { position: fixed; z-index: 950; top: 0; bottom: 0; left: 0; width: min(300px, 86vw); max-height: none; border-radius: 0 24px 24px 0; padding: 18px 12px calc(18px + env(safe-area-inset-bottom));
+                background: color-mix(in srgb, var(--surface) 40%, var(--bg-color)); transform: translateX(-105%); transition: transform .28s cubic-bezier(.3, .9, .3, 1); box-shadow: 0 0 40px rgba(0, 0, 0, .25); }
+            .tm-shell.drawer .tm-side { transform: none; }
+            .tm-scrim { display: block; position: fixed; inset: 0; z-index: 940; background: rgba(0, 0, 0, .38); opacity: 0; pointer-events: none; transition: opacity .25s; }
+            .tm-shell.drawer .tm-scrim { opacity: 1; pointer-events: auto; }
+            .menu-btn { display: grid; width: 42px; height: 42px; border-radius: 12px; background: var(--pill); box-shadow: var(--pill-shadow); }
+            .menu-btn svg { width: 20px; height: 20px; }
+            .tm-h-ic { display: none; }
+            .team-chip { display: inline-flex; }
+        }
+        @media (max-width: 700px) {
+            .tm-h-pre { display: none; }
+            .add-btn span { display: none; }
+            .add-btn { padding: 11px; border-radius: 12px; }
+            .tg { --lw: 40px; }
+            .tg-hours span { right: 5px; font-size: 10.5px; }
+            .tg-dh { padding: 10px 4px 8px; font-size: 11.5px; text-align: center; }
+            .tg-dh span { display: block; }
+            .tg-lbl { font-size: 10px; padding-right: 4px; }
+            .tb { padding: 3px 5px; font-size: 11.5px; border-radius: 6px; }
+            .chip-t { font-size: 11px; padding: 2px 5px; border-radius: 5px; }
+            .tg-body { height: clamp(280px, calc(100vh - 390px), 2400px); }
+            .mc { min-height: 76px; padding: 3px 2px; }
+            .mc .chip-t em { display: none; }
+            .mg-wd { padding: 8px 4px 5px; text-align: center; }
+            .mc-d { align-self: center; }
+            .nav-group { margin-left: 0; width: 100%; justify-content: space-between; }
+            .nav-group .today-btn { flex: 1; }
+            #viewSwitch { width: 100%; }
+        }
     </style>
 </head>
 <body>
@@ -553,10 +679,6 @@
         let T = null;                 // текущая команда целиком
         let curTeam = Number(lsGetRaw('produ_team_cur')) || null;
         let currentView = 'home';
-        let calCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-        let selDate = todayStr();
-        let filter = 'all';
-        let teamMenuOpen = false;
         let loading = true;
         function saveCache() {
             if (!auth) return;
@@ -614,6 +736,7 @@
             const since = !force && T && T.team.id === curTeam ? '&since=' + T.version : '';
             const r = await api('/team?id=' + curTeam + since);
             if (r.unchanged) return false;
+            if (!T || T.team.id !== r.team.id) loadHidden();
             T = r;
             return true;
         }
@@ -654,37 +777,45 @@
             if (!$('taskSheet').hidden && editing && editing.id && soft) refreshTaskSheetMeta();
             hydrateAvatars();
         }
-        function gateHtml(title, text, btn) {
-            return `<div class="card gate">${$('logoBtn').innerHTML}<h2>${title}</h2><p>${text}</p>${btn || ''}</div>`;
+        // ================= ГЛАВНАЯ: рабочее пространство с календарём =================
+        // Слева — разделы, команды и участники (на телефоне — выдвижная панель),
+        // справа — календарь: День / 4 дня / Неделя / Месяц, «весь день» сверху и сетка часов.
+        const VIEWS = { day: ['День', 1], '4d': ['4 дня', 4], week: ['Неделя', 7], month: ['Месяц', 0] };
+        let calView = lsGetRaw('produ_team_view') || (window.innerWidth < 700 ? 'day' : 'week');
+        if (!VIEWS[calView]) calView = 'week';
+        let mode = 'calendar';            // calendar | today | mine | all
+        let cursor = todayStr();          // опорная дата периода
+        let drawerOpen = false;
+        let hiddenMembers = new Set();    // скрытые в календаре участники (0 — задачи без исполнителя)
+        let gridKey = '', gridScroll = null;
+        const MON_SHORT = ['янв.', 'февр.', 'мар.', 'апр.', 'мая', 'июн.', 'июл.', 'авг.', 'сент.', 'окт.', 'нояб.', 'дек.'];
+        const HOUR_H = () => (window.innerWidth < 700 ? 44 : 50);
+        const SVG = {
+            cal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M8 14h2M14 14h2M8 17h2" stroke-width="2.2"/></svg>',
+            today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>',
+            mine: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M8 12.3l2.8 2.8L16.5 9"/></svg>',
+            all: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 7h11M9 12h11M9 17h11"/><circle cx="4.5" cy="7" r="1.2" fill="currentColor"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor"/><circle cx="4.5" cy="17" r="1.2" fill="currentColor"/></svg>',
+            menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+            plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'
+        };
+        function loadHidden() { hiddenMembers = new Set(((lsGet('produ_team_hidden', {}) || {})[curTeam]) || []); }
+        function saveHidden() { const all = lsGet('produ_team_hidden', {}) || {}; all[curTeam] = [...hiddenMembers]; lsSet('produ_team_hidden', all); }
+        function toggleMember(id) { hiddenMembers.has(id) ? hiddenMembers.delete(id) : hiddenMembers.add(id); saveHidden(); renderHome(); hydrateAvatars(); }
+        function toggleDrawer(on = !drawerOpen) {
+            drawerOpen = on;
+            const sh = document.querySelector('.tm-shell');
+            if (sh) sh.classList.toggle('drawer', on);
         }
-        function renderHome() {
-            const el = $('view-home');
-            if (!auth) {
-                el.innerHTML = gateHtml('ProdU Team', 'Общий календарь задач для команды: длительность, исполнители, роли и комментарии. Войдите в аккаунт ProdU — он общий для всех версий.',
-                    `<button type="button" class="btn big" onclick="goToApp('index.html#account', event)">Войти через ProdU</button>`);
-                return;
-            }
-            if (!SERVER_BASE) {
-                el.innerHTML = gateHtml('Нужен сервер', 'Откройте основную ProdU хотя бы один раз — командная версия возьмёт оттуда адрес сервера.', `<button type="button" class="btn big" onclick="goToApp('index.html', event)">Открыть ProdU</button>`);
-                return;
-            }
-            if (loading && !list) { el.innerHTML = '<div class="loading"><span class="spinner"></span></div>'; return; }
-            const inv = invitesHtml();
-            if (!list || !list.teams.length || !T) {
-                el.innerHTML = inv + gateHtml('Пока нет команды', 'Создайте команду — вы станете её лидером и сможете пригласить участников. Или вступите в существующую по коду.', '') + createJoinHtml();
-                return;
-            }
-            el.innerHTML = `
-                <div class="team-bar" style="position: relative;">
-                    <button type="button" class="team-pick" id="teamPick" aria-haspopup="true" aria-expanded="${teamMenuOpen}" onclick="toggleTeamMenu()"><span>${esc(T.team.name)}</span>${ICON_CHEV}</button>
-                    <button type="button" class="icon-btn" onclick="showView('team')" aria-label="Участники и роли" title="Участники и роли">${ICON_TEAM}</button>
-                    ${teamMenuOpen ? teamMenuHtml() : ''}
-                </div>
-                ${inv}
-                <div class="card">${calendarHtml()}</div>
-                <div class="card">${dayHtml()}</div>
-                <div class="card">${myTasksHtml()}</div>`;
+        function setMode(m) { mode = m; toggleDrawer(false); renderHome(); hydrateAvatars(); window.scrollTo({ top: 0 }); }
+        function setView(v) { calView = v; mode = 'calendar'; try { localStorage.setItem('produ_team_view', v); } catch (e) {} renderHome(); hydrateAvatars(); }
+        function calShift(dir) {
+            if (calView === 'month') { const d = parseYmd(cursor); cursor = ymd(new Date(d.getFullYear(), d.getMonth() + dir, 1)); }
+            else cursor = ymd(addDays(parseYmd(cursor), dir * VIEWS[calView][1]));
+            renderHome(); hydrateAvatars();
         }
+        function calToday() { cursor = todayStr(); renderHome(); hydrateAvatars(); }
+        function openDay(ds) { cursor = ds; calView = 'day'; mode = 'calendar'; try { localStorage.setItem('produ_team_view', 'day'); } catch (e) {} renderHome(); hydrateAvatars(); }
+
         function invitesHtml() {
             if (!list || !list.invites.length) return '';
             return `<div class="card invite-card"><div class="card-header">Приглашения</div>${list.invites.map(i => `
@@ -701,68 +832,59 @@
                     <button type="button" class="btn" onclick="joinTeam()">Вступить</button></div>
                     <div class="hint">Код можно попросить у лидера команды.</div></div>`;
         }
-        function teamMenuHtml() {
-            return `<div class="team-menu" role="menu">${list.teams.map(t => `<button type="button" role="menuitem" class="${t.id === curTeam ? 'on' : ''}" onclick="pickTeam(${t.id})">${esc(t.name)}<small>${t.leader ? 'лидер' : esc(t.role || 'участник')} · ${t.members}</small></button>`).join('')}
-                <hr><button type="button" role="menuitem" onclick="openCreateJoin()">＋ Создать или вступить по коду</button></div>`;
-        }
-        function toggleTeamMenu() { teamMenuOpen = !teamMenuOpen; renderHome(); hydrateAvatars(); }
         async function pickTeam(id) {
-            teamMenuOpen = false; curTeam = id;
+            toggleDrawer(false);
+            if (id === curTeam && T) return;
+            curTeam = id;
             try { localStorage.setItem('produ_team_cur', id); } catch (e) {}
-            T = null; renderHome();
+            T = null; loadHidden(); renderHome();
             try { await loadTeam(true); saveCache(); } catch (e) { showToast('Не удалось открыть команду', e.message); }
             renderAll();
         }
         function openCreateJoin() {
-            teamMenuOpen = false;
+            toggleDrawer(false);
             showView('team');
             setTimeout(() => { const el = $('newTeamName'); if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); el.focus({ preventScroll: true }); } }, 80);
         }
-        document.addEventListener('pointerdown', e => { if (teamMenuOpen && !e.target.closest('.team-bar')) { teamMenuOpen = false; renderHome(); hydrateAvatars(); } });
 
-        // --- задачи в днях: многодневные задачи видны на каждом своём дне ---
-        const durDays = t => Math.max(1, Math.ceil(((t.time ? toMin(t.time) : 0) + (t.dur || 0)) / 1440));
+        // --- задачи по дням ---
         const toMin = s => { const [h, m] = String(s).split(':').map(Number); return h * 60 + m; };
-        function visibleTasks() {
-            if (!T) return [];
-            return filter === 'mine' ? T.tasks.filter(t => t.assignee === T.me.id) : T.tasks;
-        }
+        const durDays = t => Math.max(1, Math.ceil(((t.time ? toMin(t.time) : 0) + (t.dur || 0)) / 1440));
+        const isAllDay = t => !t.time || (t.dur || 0) >= 1440;
+        const covers = (t, ds) => t.date <= ds && ds < ymd(addDays(parseYmd(t.date), durDays(t)));
+        function visibleTasks() { return T ? T.tasks.filter(t => !hiddenMembers.has(t.assignee || 0)) : []; }
         function tasksOn(ds, src = visibleTasks()) {
-            return src.filter(t => {
-                if (t.date === ds) return true;
-                if (t.date > ds) return false;
-                return (t.dur || 0) >= 1440 || (t.time && toMin(t.time) + (t.dur || 0) > 1440)
-                    ? ds < ymd(addDays(parseYmd(t.date), durDays(t))) : false;
-            }).sort((a, b) => (a.date === ds ? 0 : -1) - (b.date === ds ? 0 : -1) || (a.time || '00:00').localeCompare(b.time || '00:00') || a.id - b.id);
+            return src.filter(t => t.date === ds || (t.date < ds && covers(t, ds)))
+                .sort((a, b) => (a.date === ds ? 0 : -1) - (b.date === ds ? 0 : -1) || (a.time || '00:00').localeCompare(b.time || '00:00') || a.id - b.id);
         }
-        function calendarHtml() {
-            const first = calCursor, start = addDays(first, -wdIndex(first));
-            const src = visibleTasks();
-            let cells = '';
-            for (let i = 0; i < 42; i++) {
-                const d = addDays(start, i), ds = ymd(d);
-                if (i >= 35 && d.getMonth() !== first.getMonth()) break;
-                const items = tasksOn(ds, src);
-                const dots = items.slice(0, 4).map(t => `<i class="${t.status === 'done' ? 'done' : ''}" style="--c: ${colorOf(t.assignee)}"></i>`).join('') + (items.length > 4 ? `<em>+${items.length - 4}</em>` : '');
-                cells += `<button type="button" class="cal-day ${d.getMonth() !== first.getMonth() ? 'out' : ''} ${ds === todayStr() ? 'today' : ''} ${ds === selDate ? 'sel' : ''}" onclick="selectDay('${ds}')"
-                    aria-label="${d.getDate()} ${MONTHS[d.getMonth()].toLowerCase()}: ${items.length} ${ruPlural(items.length, 'задача', 'задачи', 'задач')}" aria-pressed="${ds === selDate}">
-                    <span>${d.getDate()}</span><span class="cal-dots">${dots}</span></button>`;
-            }
-            return `<div class="cal-toolbar"><button type="button" class="nav-btn" onclick="calNav(-1)" aria-label="Предыдущий месяц">‹</button>
-                    <div class="cal-title">${MONTHS[first.getMonth()]} ${first.getFullYear()}</div>
-                    <button type="button" class="nav-btn" onclick="calNav(1)" aria-label="Следующий месяц">›</button></div>
-                <div class="segmented" id="filterSwitch"><button type="button" class="${filter === 'all' ? 'active' : ''}" onclick="setFilter('all')">Все задачи</button><button type="button" class="${filter === 'mine' ? 'active' : ''}" onclick="setFilter('mine')">Мои</button></div>
-                <div class="cal-week">${WD.map(w => `<span>${w}</span>`).join('')}</div>
-                <div class="cal-grid" id="calGrid">${cells}</div>`;
+        // отрезок задачи со временем внутри дня (задача может перейти через полночь)
+        function timedSeg(t, ds) {
+            if (isAllDay(t)) return null;
+            const st = toMin(t.time), end = st + Math.max(0, t.dur || 0);
+            if (t.date === ds) return { s: st, e: Math.min(1440, end) };
+            if (end > 1440 && ds === ymd(addDays(parseYmd(t.date), 1))) return { s: 0, e: end - 1440 };
+            return null;
         }
-        function calNav(dir) { calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() + dir, 1); renderHome(); hydrateAvatars(); }
-        function selectDay(ds) {
-            selDate = ds;
-            const d = parseYmd(ds);
-            if (d.getMonth() !== calCursor.getMonth() || d.getFullYear() !== calCursor.getFullYear()) calCursor = new Date(d.getFullYear(), d.getMonth(), 1);
-            renderHome(); hydrateAvatars();
+        // раскладка пересекающихся задач по колонкам
+        function layoutDay(items) {
+            items.sort((a, b) => a.s - b.s || b.e - a.e);
+            const out = []; let cluster = [], clusterEnd = -1;
+            const flush = () => {
+                const cols = [];
+                cluster.forEach(it => { let c = cols.findIndex(end => end <= it.s); if (c < 0) { c = cols.length; cols.push(0); } cols[c] = it.ve; it.col = c; });
+                cluster.forEach(it => { it.ncol = cols.length; });
+                out.push(...cluster); cluster = []; clusterEnd = -1;
+            };
+            items.forEach(it => {
+                it.ve = Math.max(it.e, it.s + 25);
+                if (cluster.length && it.s >= clusterEnd) flush();
+                cluster.push(it); clusterEnd = Math.max(clusterEnd, it.ve);
+            });
+            if (cluster.length) flush();
+            return out;
         }
-        function setFilter(f) { filter = f; renderHome(); hydrateAvatars(); }
+        const statusMark = t => (t.status === 'done' ? '✓ ' : t.status === 'doing' ? '▸ ' : '');
+        const STATUS = { todo: 'К выполнению', doing: 'В работе', done: 'Готово' };
         const fmtDur = m => {
             m = Math.round(m || 0);
             if (!m) return '';
@@ -771,7 +893,82 @@
             return [h ? h + ' ч' : '', mm ? mm + ' мин' : ''].filter(Boolean).join(' ');
         };
         const endTime = t => { const e = (toMin(t.time) + (t.dur || 0)) % 1440; return pad(Math.floor(e / 60)) + ':' + pad(e % 60); };
-        const STATUS = { todo: 'К выполнению', doing: 'В работе', done: 'Готово' };
+        function chipHtml(t, withTime = false) {
+            const m = memberById(t.assignee);
+            return `<button type="button" class="chip-t st-${t.status}" style="--c: ${colorOf(t.assignee)}" onclick="event.stopPropagation(); openTask(${t.id})"
+                title="${esc(t.title)}${m ? ' · ' + esc(m.login) : ''}">${statusMark(t)}${withTime && t.time && !isAllDay(t) ? `<em>${t.time}</em>` : ''}${esc(t.title)}</button>`;
+        }
+        function periodDays() {
+            const d = parseYmd(cursor), n = VIEWS[calView][1];
+            const s = calView === 'week' ? addDays(d, -wdIndex(d)) : d;
+            return Array.from({ length: n }, (_, i) => ymd(addDays(s, i)));
+        }
+        function periodTitle() {
+            if (calView === 'month') { const d = parseYmd(cursor); return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`; }
+            const days = periodDays(), a = parseYmd(days[0]), b = parseYmd(days[days.length - 1]);
+            if (days.length === 1) return a.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' }) + ', ' + a.toLocaleDateString('ru-RU', { weekday: 'long' });
+            if (a.getMonth() === b.getMonth()) return `${a.getDate()}–${b.getDate()} ${MON_SHORT[a.getMonth()]} ${a.getFullYear()} г.`;
+            return `${a.getDate()} ${MON_SHORT[a.getMonth()]}${a.getFullYear() !== b.getFullYear() ? ' ' + a.getFullYear() + ' г.' : ''} – ${b.getDate()} ${MON_SHORT[b.getMonth()]} ${b.getFullYear()} г.`;
+        }
+
+        // --- сетка часов (День / 4 дня / Неделя) ---
+        function timeGridHtml() {
+            const days = periodDays(), n = days.length, H = HOUR_H(), src = visibleTasks(), today = todayStr();
+            const narrow = window.innerWidth < 700;
+            const head = days.map(ds => {
+                const d = parseYmd(ds);
+                return `<button type="button" class="tg-dh ${ds === today ? 'today' : ''}" onclick="openDay('${ds}')" aria-label="Открыть день ${d.getDate()} ${MONTHS[d.getMonth()].toLowerCase()}">
+                    <span>${WD[wdIndex(d)]}</span> <b>${d.getDate()}${n > 1 && !narrow ? '.' + pad(d.getMonth() + 1) : ''}</b></button>`;
+            }).join('');
+            const max = n === 1 ? 8 : n > 4 ? 3 : 4;
+            const allday = days.map(ds => {
+                const items = src.filter(t => isAllDay(t) && covers(t, ds));
+                return `<div class="tg-ad-cell" onclick="slotClick(event, '${ds}', null)">${items.slice(0, max).map(t => chipHtml(t)).join('')}${items.length > max ? `<button type="button" class="tg-more" onclick="event.stopPropagation(); openDay('${ds}')">+ ещё ${items.length - max}</button>` : ''}</div>`;
+            }).join('');
+            let hours = '';
+            for (let h = 1; h < 24; h++) hours += `<span style="top: ${h * H}px">${h}:00</span>`;
+            const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
+            const cols = days.map(ds => {
+                const items = layoutDay(src.map(t => { const s = timedSeg(t, ds); return s ? { t, ...s } : null; }).filter(Boolean));
+                const blocks = items.map(it => {
+                    const t = it.t, top = it.s * H / 60, h = Math.max(it.ve - it.s, 25) * H / 60 - 2;
+                    const m = memberById(t.assignee);
+                    const lines = Math.max(1, Math.floor((h - (h >= 40 ? 16 : 0)) / 15));
+                    return `<button type="button" class="tb st-${t.status} ${h < 36 ? 'short' : ''}" style="top: ${top.toFixed(1)}px; height: ${h.toFixed(1)}px; left: calc(${(100 * it.col / it.ncol).toFixed(2)}% + 2px); width: calc(${(100 / it.ncol).toFixed(2)}% - 4px); --c: ${colorOf(t.assignee)}; --lines: ${lines}"
+                        onclick="event.stopPropagation(); openTask(${t.id})" title="${esc(t.title)} · ${t.time}${t.dur ? '–' + endTime(t) : ''}${m ? ' · ' + esc(m.login) : ''}">
+                        <span class="tb-t">${statusMark(t)}${esc(t.title)}</span><span class="tb-time">${t.date === ds ? t.time : '00:00'}${t.dur && h >= 36 ? '–' + endTime(t) : ''}</span></button>`;
+                }).join('');
+                return `<div class="tg-col ${ds === today ? 'today' : ''}" onclick="slotClick(event, '${ds}', this)">${blocks}${ds === today ? `<div class="tg-now" style="top: ${(nowMin * H / 60).toFixed(1)}px"></div>` : ''}</div>`;
+            }).join('');
+            return `<div class="tg" style="--n: ${n}; --hh: ${H}px">
+                <div class="tg-row tg-head"><div></div>${head}</div>
+                <div class="tg-row tg-allday"><div class="tg-lbl">Весь<br>день</div>${allday}</div>
+                <div class="tg-body" id="tgBody"><div class="tg-row tg-grid"><div class="tg-hours">${hours}</div>${cols}</div></div>
+            </div>`;
+        }
+        // --- месяц ---
+        function monthHtml() {
+            const c = parseYmd(cursor), first = new Date(c.getFullYear(), c.getMonth(), 1), start = addDays(first, -wdIndex(first));
+            const src = visibleTasks(), today = todayStr(), max = window.innerWidth < 700 ? 2 : 3;
+            let cells = '';
+            for (let i = 0; i < 42; i++) {
+                const d = addDays(start, i), ds = ymd(d);
+                if (i >= 35 && d.getMonth() !== first.getMonth()) break;
+                const items = tasksOn(ds, src);
+                cells += `<div class="mc ${i % 7 === 0 ? 'c0' : ''} ${d.getMonth() !== first.getMonth() ? 'out' : ''} ${ds === today ? 'today' : ''}" onclick="slotClick(event, '${ds}', null)">
+                    <button type="button" class="mc-d" onclick="event.stopPropagation(); openDay('${ds}')" aria-label="Открыть день ${d.getDate()}">${d.getDate()}</button>
+                    ${items.slice(0, max).map(t => chipHtml(t, true)).join('')}${items.length > max ? `<button type="button" class="tg-more" onclick="event.stopPropagation(); openDay('${ds}')">${window.innerWidth < 700 ? '' : '+ ещё '}${window.innerWidth < 700 ? '+' : ''}${items.length - max}</button>` : ''}</div>`;
+            }
+            return `<div class="mg">${WD.map(w => `<div class="mg-wd">${w}</div>`).join('')}${cells}</div>`;
+        }
+        // --- списки: Сегодня / Мои задачи / Все задачи ---
+        function relDay(ds) {
+            const t = todayStr();
+            if (ds === t) return 'Сегодня';
+            if (ds === ymd(addDays(new Date(), 1))) return 'Завтра';
+            if (ds === ymd(addDays(new Date(), -1))) return 'Вчера';
+            return parseYmd(ds).toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, c => c.toUpperCase());
+        }
         function taskRowHtml(t, ds) {
             const m = memberById(t.assignee);
             const startsToday = t.date === ds;
@@ -788,22 +985,122 @@
                 <span class="tr-side"><span class="st ${t.status}">${STATUS[t.status]}</span>${t.comments ? `<span class="cm-count">${ICON_CM}${t.comments}</span>` : ''}</span>
             </button>`;
         }
-        function dayHtml() {
-            const d = parseYmd(selDate);
-            const title = d.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, c => c.toUpperCase());
-            const items = tasksOn(selDate);
-            return `<div class="day-head"><div class="card-header">${title}</div><button type="button" class="btn" onclick="openTask(null)">+ Задача</button></div>
-                <div class="tasks">${items.length ? items.map(t => taskRowHtml(t, selDate)).join('') : `<div class="empty">${filter === 'mine' ? 'На этот день у вас нет задач' : 'На этот день задач нет'}</div>`}</div>`;
+        function listHtml() {
+            const today = todayStr();
+            let groups = [];
+            if (mode === 'today') groups = [[today, tasksOn(today)]];
+            else {
+                const src = mode === 'mine' ? T.tasks.filter(t => t.assignee === T.me.id && t.status !== 'done') : visibleTasks();
+                const overdue = src.filter(t => t.status !== 'done' && ymd(addDays(parseYmd(t.date), durDays(t) - 1)) < today);
+                const upcoming = src.filter(t => !overdue.includes(t) && ymd(addDays(parseYmd(t.date), durDays(t) - 1)) >= today);
+                if (overdue.length) groups.push(['overdue', overdue.sort((a, b) => a.date.localeCompare(b.date))]);
+                const byDay = new Map();
+                upcoming.sort((a, b) => a.date.localeCompare(b.date) || (a.time || '').localeCompare(b.time || '')).slice(0, 300)
+                    .forEach(t => { const k = t.date < today ? today : t.date; if (!byDay.has(k)) byDay.set(k, []); byDay.get(k).push(t); });
+                groups.push(...byDay.entries());
+            }
+            const html = groups.filter(([, items]) => items.length).map(([k, items]) => `<div class="day-label ${k === 'overdue' ? 'late' : ''}">${k === 'overdue' ? 'Просрочено' : relDay(k)}</div>
+                ${items.map(t => taskRowHtml(t, k === 'overdue' ? t.date : k)).join('')}`).join('');
+            const empty = { today: 'На сегодня задач нет', mine: 'Все ваши задачи выполнены', all: 'Задач пока нет — добавьте первую' }[mode];
+            return `<div class="tm-list">${html || `<div class="empty">${empty}</div>`}</div>`;
         }
-        function myTasksHtml() {
-            const mine = T.tasks.filter(t => t.assignee === T.me.id && t.status !== 'done').sort((a, b) => a.date.localeCompare(b.date) || (a.time || '').localeCompare(b.time || ''));
-            const overdue = mine.filter(t => t.date < todayStr()).length;
-            return `<div class="day-head"><div class="card-header">Мои задачи</div>${overdue ? `<span class="badge" style="background: var(--danger);">просрочено: ${overdue}</span>` : ''}</div>
-                <div class="tasks">${mine.length ? mine.slice(0, 8).map(t => {
-                    const d = parseYmd(t.date);
-                    return taskRowHtml(t, t.date).replace('<span class="tr-time">', `<span class="tr-time"><small style="margin: 0 0 2px; ${t.date < todayStr() ? 'color: var(--danger);' : ''}">${t.date === todayStr() ? 'сегодня' : d.getDate() + '.' + pad(d.getMonth() + 1)}</small>`);
-                }).join('') : '<div class="empty">Все ваши задачи выполнены</div>'}</div>`;
+
+        // --- боковая панель ---
+        function sideHtml() {
+            const today = todayStr();
+            const cToday = tasksOn(today, T.tasks).length, cMine = T.tasks.filter(t => t.assignee === T.me.id && t.status !== 'done').length;
+            const nav = [['calendar', SVG.cal, 'Календарь', ''], ['today', SVG.today, 'Сегодня', cToday], ['mine', SVG.mine, 'Мои задачи', cMine], ['all', SVG.all, 'Все задачи', '']]
+                .map(([k, ic, l, c]) => `<button type="button" class="sn ${mode === k ? 'on' : ''}" onclick="setMode('${k}')">${ic}<span>${l}</span>${c !== '' ? `<span class="cnt">${c}</span>` : ''}</button>`).join('');
+            const teams = list.teams.map(t => `<button type="button" class="sn ${t.id === curTeam ? 'on' : ''}" onclick="pickTeam(${t.id})"><span class="tsq" style="--c: ${colorOf(t.id + 3)}">${esc([...t.name][0] || '?')}</span><span>${esc(t.name)}</span><span class="cnt">${t.members}</span></button>`).join('');
+            const people = [...T.members.map(m => [m.id, m.login, m.role || (m.id === T.team.leader ? 'Лидер' : ''), m.av]), [0, 'Без исполнителя', '', 0]]
+                .map(([id, login, role, av]) => `<button type="button" class="sn sm ${hiddenMembers.has(id) ? 'off' : ''}" style="--c: ${colorOf(id)}" onclick="toggleMember(${id})" aria-pressed="${!hiddenMembers.has(id)}" title="${hiddenMembers.has(id) ? 'Показать' : 'Скрыть'} задачи в календаре">
+                    <span class="dot"></span>${id ? avHtml(id, login, av) : ''}<span>${esc(login)}${id === T.me.id ? ' (вы)' : ''}${role ? `<small>${esc(role)}</small>` : ''}</span></button>`).join('');
+            return `<div class="side-sec">${nav}</div>
+                <div class="side-t">Команды</div><div class="side-sec">${teams}<button type="button" class="sn muted" onclick="openCreateJoin()">${SVG.plus}<span>Создать или вступить</span></button></div>
+                <div class="side-t">Участники <small>— нажмите, чтобы скрыть</small></div><div class="side-sec">${people}</div>
+                <button type="button" class="btn secondary wide" style="margin-top: 8px;" onclick="toggleDrawer(false); showView('team')">${ICON_TEAM} Команда и роли</button>`;
         }
+
+        function gateHtml(title, text, btn) {
+            return `<div class="card gate">${$('logoBtn').innerHTML}<h2>${title}</h2><p>${text}</p>${btn || ''}</div>`;
+        }
+        function renderHome() {
+            const el = $('view-home');
+            const narrowWrap = html => `<div class="narrow">${html}</div>`;
+            if (!auth) {
+                el.innerHTML = narrowWrap(gateHtml('ProdU Team', 'Общий календарь задач для команды: длительность, исполнители, роли и комментарии. Войдите в аккаунт ProdU — он общий для всех версий.',
+                    `<button type="button" class="btn big" onclick="goToApp('index.html#account', event)">Войти через ProdU</button>`));
+                return;
+            }
+            if (!SERVER_BASE) {
+                el.innerHTML = narrowWrap(gateHtml('Нужен сервер', 'Откройте основную ProdU хотя бы один раз — командная версия возьмёт оттуда адрес сервера.', `<button type="button" class="btn big" onclick="goToApp('index.html', event)">Открыть ProdU</button>`));
+                return;
+            }
+            if (loading && !list) { el.innerHTML = '<div class="loading"><span class="spinner"></span></div>'; return; }
+            const inv = invitesHtml();
+            if (!list || !list.teams.length || !T) {
+                el.innerHTML = narrowWrap(inv + gateHtml('Пока нет команды', 'Создайте команду — вы станете её лидером и сможете пригласить участников. Или вступите в существующую по коду.', '') + createJoinHtml());
+                return;
+            }
+            // сохраняем прокрутку сетки часов, если период не поменялся
+            const oldBody = $('tgBody');
+            if (oldBody) gridScroll = oldBody.scrollTop;
+            const isCal = mode === 'calendar';
+            const key = isCal ? calView + '|' + (calView === 'month' ? '' : periodDays()[0]) : mode;
+            const title = isCal ? `<span class="tm-h-pre">Календарь, </span>${periodTitle()}` : { today: 'Сегодня', mine: 'Мои задачи', all: 'Все задачи' }[mode];
+            const views = Object.entries(VIEWS).map(([k, [l]]) => `<button type="button" class="${calView === k ? 'active' : ''}" onclick="setView('${k}')">${l}</button>`).join('');
+            el.innerHTML = `<div class="tm-shell ${drawerOpen ? 'drawer' : ''}">
+                <div class="tm-scrim" onclick="toggleDrawer(false)"></div>
+                <aside class="tm-side card" aria-label="Разделы, команды и участники">${sideHtml()}</aside>
+                <div class="tm-main">
+                    ${inv}
+                    <div class="tm-head">
+                        <button type="button" class="icon-btn menu-btn" onclick="toggleDrawer()" aria-label="Разделы и команды">${SVG.menu}</button>
+                        <span class="tm-h-ic" aria-hidden="true">${isCal ? SVG.cal : SVG[mode]}</span>
+                        <div class="tm-h-txt"><h1>${title}</h1><button type="button" class="team-chip" onclick="toggleDrawer(true)">${esc(T.team.name)} ${ICON_CHEV}</button></div>
+                        <button type="button" class="btn add-btn" onclick="openTask(null)" aria-label="Новая задача">${SVG.plus}<span>Задача</span></button>
+                    </div>
+                    ${isCal ? `<div class="tm-tools">
+                        <div class="segmented" id="viewSwitch" role="tablist" aria-label="Вид календаря">${views}</div>
+                        <div class="nav-group"><button type="button" class="nav-btn" onclick="calShift(-1)" aria-label="Назад">‹</button>
+                            <button type="button" class="btn secondary today-btn" onclick="calToday()">Сегодня</button>
+                            <button type="button" class="nav-btn" onclick="calShift(1)" aria-label="Вперёд">›</button></div>
+                    </div>` : ''}
+                    <div class="card tm-cal ${isCal ? '' : 'is-list'}">${isCal ? (calView === 'month' ? monthHtml() : timeGridHtml()) : listHtml()}</div>
+                </div>
+            </div>`;
+            const body = $('tgBody');
+            if (body) {
+                if (key === gridKey && gridScroll !== null) body.scrollTop = gridScroll;
+                else {
+                    // по умолчанию — к первой задаче периода, но не позже 8:00
+                    let first = 8 * 60;
+                    periodDays().forEach(ds => visibleTasks().forEach(t => { const s = t.date === ds && timedSeg(t, ds); if (s) first = Math.min(first, s.s); }));   // продолжения ночных задач не в счёт
+                    if (periodDays().includes(todayStr())) { const nm = new Date().getHours() * 60; if (nm < 22 * 60) first = Math.min(first, Math.max(0, nm - 60)); }
+                    body.scrollTop = Math.max(0, (first - 30) * HOUR_H() / 60);
+                }
+            }
+            gridKey = key;
+        }
+        // клик по пустому месту календаря — новая задача на это время
+        function slotClick(e, ds, col) {
+            if (!T) return;
+            let time = '';
+            if (col) {
+                const r = col.getBoundingClientRect();
+                const m = clamp(Math.floor(((e.clientY - r.top) / HOUR_H() * 60) / 30) * 30, 0, 1410);
+                time = pad(Math.floor(m / 60)) + ':' + pad(m % 60);
+            }
+            openTask(null, { date: ds, time });
+        }
+        // линия «сейчас» двигается без перерисовки
+        setInterval(() => {
+            const n = new Date(), top = ((n.getHours() * 60 + n.getMinutes()) * HOUR_H() / 60).toFixed(1) + 'px';
+            document.querySelectorAll('.tg-now').forEach(el => { el.style.top = top; });
+        }, 60000);
+        let resizeT = null;
+        window.addEventListener('resize', () => { clearTimeout(resizeT); resizeT = setTimeout(() => { if (currentView === 'home' && T) { renderHome(); hydrateAvatars(); } }, 200); });
+
 
         // ================= КОМАНДА =================
         function renderTeamView() {
@@ -948,7 +1245,7 @@
         function pickDur(m) { durUnit = m >= 1440 ? 'd' : m >= 60 ? 'h' : 'min'; writeDur(m); renderDurUi(); }
         function setStatusDraft(s) { statusDraft = s; document.querySelectorAll('#tStatus button').forEach(b => b.classList.toggle('active', b.dataset.s === s)); }
         function canFullEdit(t) { return !t || isLeader() || t.creator === T.me.id; }
-        function openTask(id) {
+        function openTask(id, preset = {}) {
             if (!T) return;
             const t = id ? T.tasks.find(x => x.id === id) : null;
             if (id && !t) return showToast('Задача не найдена', 'Возможно, её удалили');
@@ -956,8 +1253,8 @@
             const full = canFullEdit(t), statusOk = full || (t && t.assignee === T.me.id);
             $('tsTitle').textContent = t ? (full ? 'Задача' : t.title) : 'Новая задача';
             $('tTitle').value = t ? t.title : '';
-            $('tDate').value = t ? t.date : selDate;
-            $('tTime').value = t ? t.time : '';
+            $('tDate').value = t ? t.date : (preset.date || cursor);
+            $('tTime').value = t ? t.time : (preset.time || '');
             durUnit = 'h'; writeDur(t ? t.dur : 60);
             $('tNotes').value = t ? t.notes : '';
             $('tAssignee').innerHTML = `<option value="">Без исполнителя</option>` + T.members.map(m => `<option value="${m.id}">${esc(m.login)}${m.role ? ' — ' + esc(m.role) : ''}${m.id === T.me.id ? ' (вы)' : ''}</option>`).join('');
@@ -1003,8 +1300,7 @@
             $('tSave').disabled = false;
             if (!r) return;
             showToast(task.id ? 'Задача сохранена' : 'Задача добавлена', task.assignee && task.assignee !== T.me.id && !task.id ? 'Исполнитель получит уведомление' : '');
-            selDate = task.date || selDate;
-            const d = parseYmd(selDate); calCursor = new Date(d.getFullYear(), d.getMonth(), 1);
+            cursor = task.date || cursor;
             closeTask();
             try { await loadTeam(true); saveCache(); } catch (e) {}
             renderAll();
@@ -1084,7 +1380,8 @@
             if (e.key !== 'Escape') return;
             if (!$('taskSheet').hidden) closeTask();
             else if (!$('memberSheet').hidden) closeMember();
-            else { closePops(); setLogoOpen(false); if (teamMenuOpen) { teamMenuOpen = false; renderHome(); } }
+            else if (drawerOpen) toggleDrawer(false);
+            else { closePops(); setLogoOpen(false); }
         });
         function renderProfile() {
             const av = lsGet('produ_avatar', null);
@@ -1270,12 +1567,14 @@
                 if (pop) { const seg = target.closest('.segmented'); return seg ? { type: 'seg', el: seg } : { type: 'pop', el: pop }; }
                 const seg = target.closest('.segmented');
                 if (seg) return { type: 'seg', el: seg };
-                if (target.closest('#calGrid')) return { type: 'custom', feedback: $('calGrid'), go: dir => { calNav(dir); swSlideIn($('calGrid'), dir); } };
+                if (drawerOpen && target.closest('.tm-side')) return { type: 'custom', go: dir => { if (dir > 0) toggleDrawer(false); } };
+                if (target.closest('#tgBody, .mg, .tg-allday, .tg-head')) return { type: 'custom', feedback: document.querySelector('.tm-cal'), go: dir => { calShift(dir); swSlideIn(document.querySelector('.tm-cal'), dir); } };
                 if (currentView !== 'home') return { type: 'back' };
                 return null;
             },
-            edgeBack() { return currentView !== 'home' && !openPop && !swModalTeam(); },
-            back() { showView('home'); },
+            // от левого края: в разделе — назад, на главной телефона — открыть панель с командами
+            edgeBack() { return !openPop && !swModalTeam() && (currentView !== 'home' || (window.innerWidth <= 900 && !!T && !drawerOpen)); },
+            back() { if (currentView !== 'home') showView('home'); else toggleDrawer(true); },
             closePop() { closePops(); }
         };
 
