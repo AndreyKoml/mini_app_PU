@@ -1405,6 +1405,9 @@
         .pop-row { flex-direction: row; justify-content: space-between; align-items: center; font-size: 17px; }
         .pop-link-text { text-decoration: underline; text-underline-offset: 3px; }
         .pop-sub { font-size: 17px; }
+        .pop-tile > .pop-sub { font-size: 14px; font-weight: 600; }
+        .pop-seg button { font-weight: 400; font-size: 14px; padding: 8px 10px; }
+        .pop-seg button.active { font-weight: 600; }
         .chk { display: flex; align-items: center; gap: 12px; font-size: 14px; cursor: pointer; }
         .pop-more { border: none; background: none; color: inherit; font: inherit; font-size: 14px; opacity: .7; cursor: pointer; padding: 2px 6px; align-self: center; }
         .pop-more:hover { opacity: 1; }
@@ -1538,6 +1541,34 @@
         .w-tab.on { flex: 2.6 1 0; }
         .w-tab .w-badge { top: -6px; right: -4px; }
         .w-tab .dock-live { top: 2px; right: 4px; }
+        /* плавный «ползунок» в переключателях: подложка активного пункта переезжает, а не появляется скачком */
+        .has-ind { position: relative; }
+        .has-ind > :not(.seg-ind) { position: relative; z-index: 1; }
+        .has-ind > .active, .has-ind > .on { background: transparent !important; box-shadow: none !important; }
+        .seg-ind { position: absolute; left: 0; top: 0; z-index: 0; pointer-events: none; border-radius: 9px; background: var(--pill); box-shadow: var(--pill-shadow); opacity: 0;
+            transition: transform .34s cubic-bezier(.3, .9, .3, 1), width .34s cubic-bezier(.3, .9, .3, 1), height .34s cubic-bezier(.3, .9, .3, 1), opacity .2s; will-change: transform; }
+        html[data-ui="liquid"] .segmented > .seg-ind { border-radius: 11px; }
+        .w-tabs > .seg-ind { border-radius: 10px; }
+        @media (prefers-reduced-motion: reduce) { .seg-ind { transition: none; } }
+        /* свайпы: «назад» — круглая стрелка, выезжающая слева за пальцем */
+        .swipe-back { position: fixed; left: 0; top: 50%; z-index: 9000; width: 46px; height: 46px; margin-top: -23px; border-radius: 50%; pointer-events: none;
+            display: grid; place-items: center; background: var(--pill); box-shadow: var(--pill-shadow); color: var(--text-color); font-size: 28px; line-height: 1; padding-bottom: 3px; box-sizing: border-box;
+            transform: translateX(-56px); opacity: 0; }
+        .swipe-back.ready { background: var(--accent-color); color: #000; }
+        .swipe-back.anim { transition: transform .25s ease, opacity .25s ease, background .15s; }
+        .swipe-in-left { animation: swipeInLeft .28s cubic-bezier(.3, .9, .3, 1); }
+        .swipe-in-right { animation: swipeInRight .28s cubic-bezier(.3, .9, .3, 1); }
+        @keyframes swipeInLeft { from { transform: translateX(28px); opacity: .3; } to { transform: none; opacity: 1; } }
+        @keyframes swipeInRight { from { transform: translateX(-28px); opacity: .3; } to { transform: none; opacity: 1; } }
+        @media (prefers-reduced-motion: reduce) { .swipe-in-left, .swipe-in-right { animation: none; } }
+        /* стрелка «открыть раздел» в заголовке виджета */
+        .w-go { flex: none; width: 34px; height: 34px; margin-left: auto; padding: 0; border: none; border-radius: 10px; cursor: pointer; display: grid; place-items: center;
+            background: var(--pill); box-shadow: var(--pill-shadow); color: var(--text-color); transition: transform .15s, background .2s; -webkit-tap-highlight-color: transparent; }
+        .w-go svg { width: 16px; height: 16px; display: block; }
+        .w-go:hover { transform: translateX(2px); }
+        .w-go:active { transform: scale(.92); }
+        .w-go:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 2px; }
+        .w-head { align-items: center; gap: 10px; }
         .w-tabbody { flex: 1; display: flex; flex-direction: column; }
         .w-tabbody > .w-row, .w-tabbody > .w-tile { flex: 1; }
         .w-grid > section.w-card:first-of-type .w-tile { min-height: 150px; }
@@ -2378,13 +2409,14 @@
             <div class="pop-tile pop-row"><span>Язык</span><span class="pop-link-text">русский</span></div>
             <div class="pop-tile">
                 <div class="pop-sub">Интерфейс</div>
-                <label class="chk"><input type="radio" name="popUi" value="liquid" onchange="setUiStyle('liquid')"> Стекло</label>
-                <label class="chk"><input type="radio" name="popUi" value="flat" onchange="setUiStyle('flat')"> Классика</label>
-            </div>
-            <div class="pop-tile">
-                <div class="pop-sub">Шрифт</div>
-                <label class="chk"><input type="radio" name="popFont" value="thin" onchange="setFontStyle('thin')"> Тонкий</label>
-                <label class="chk"><input type="radio" name="popFont" value="normal" onchange="setFontStyle('normal')"> Обычный</label>
+                <div class="segmented pop-seg" id="popUiSwitch" role="radiogroup" aria-label="Стиль интерфейса">
+                    <button type="button" role="radio" data-v="liquid" onclick="setUiStyle('liquid')">Стекло</button>
+                    <button type="button" role="radio" data-v="flat" onclick="setUiStyle('flat')">Классика</button>
+                </div>
+                <div class="segmented pop-seg" id="popFontSwitch" role="radiogroup" aria-label="Шрифт">
+                    <button type="button" role="radio" data-v="thin" onclick="setFontStyle('thin')" style="font-weight: 300;">Тонкий</button>
+                    <button type="button" role="radio" data-v="normal" onclick="setFontStyle('normal')" style="font-weight: 400;">Обычный</button>
+                </div>
             </div>
             <button type="button" class="pop-more" onclick="openSettings()">Все настройки <span aria-hidden="true">›</span></button>
         </div>
@@ -3738,8 +3770,11 @@
                 b.setAttribute('aria-checked', String(on));
             });
             document.querySelectorAll('#fontSwitch button').forEach(b => b.classList.toggle('active', b.dataset.f === f));
-            document.querySelectorAll('input[name="popUi"]').forEach(r => { r.checked = r.value === ui; });
-            document.querySelectorAll('input[name="popFont"]').forEach(r => { r.checked = r.value === f; });
+            [['#popUiSwitch', ui], ['#popFontSwitch', f]].forEach(([sel, v]) => document.querySelectorAll(sel + ' button').forEach(b => {
+                const on = b.dataset.v === v;
+                b.classList.toggle('active', on);
+                b.setAttribute('aria-checked', String(on));
+            }));
         }
         function syncThemeColor() {
             const m = document.querySelector('meta[name="theme-color"]');
@@ -9279,11 +9314,34 @@
         } catch (e) {}
         try { Object.assign(homeTabs, JSON.parse(localStorage.getItem('produ_home_tabs')) || {}); } catch (e) {}
         function wTab(w, tab) {
+            const sel = `.w-card[data-w="${w}"] .w-tabs`;
+            const old = document.querySelector(sel), oldW = {};
+            if (old) old.querySelectorAll('.w-tab').forEach(b => { oldW[b.dataset.tab] = b.getBoundingClientRect().width; });
             homeTabs[w] = tab;
             try { localStorage.setItem('produ_home_tabs', JSON.stringify(homeTabs)); } catch (e) {}
             renderHome();
+            const nt = document.querySelector(sel);
+            if (nt && old && !matchMedia('(prefers-reduced-motion: reduce)').matches) wTabsFrom(nt, oldW);
             const btn = document.querySelector(`.w-card[data-w="${w}"] .w-tab[data-tab="${tab}"]`);
             if (btn) btn.focus({ preventScroll: true });
+        }
+        // вкладки виджета перерисовываются заново, поэтому ширины плавно «доводим» от прежних:
+        // подложка едет к новой вкладке, вкладка расширяется, её подпись проявляется
+        function wTabsFrom(c, oldW) {
+            c.dataset.segLock = '1';
+            segPlace(c, true);
+            const tabs = [...c.querySelectorAll('.w-tab')];
+            const lbl = c.querySelector('.w-tab.on .w-tab-lbl');
+            tabs.forEach(b => { if (oldW[b.dataset.tab] != null) { b.style.transition = 'none'; b.style.flex = `0 0 ${oldW[b.dataset.tab]}px`; } });
+            if (lbl) { lbl.style.transition = 'none'; lbl.style.opacity = '0'; }
+            void c.offsetWidth;
+            tabs.forEach(b => { b.style.transition = 'flex .34s cubic-bezier(.3, .9, .3, 1), background .2s'; b.style.flex = ''; });
+            if (lbl) { lbl.style.transition = 'opacity .25s .1s'; lbl.style.opacity = ''; }
+            setTimeout(() => {
+                tabs.forEach(b => { b.style.transition = ''; });
+                if (lbl) lbl.style.transition = '';
+                delete c.dataset.segLock;
+            }, 420);
         }
 
         function homeTabBody(tab, ctx) {
@@ -9381,13 +9439,12 @@
                     id === 'timer' ? '<span class="dock-live" id="tmDockLive" hidden></span>' : ''}</button>`).join('');
                 const curLabel = def.tabs.find(t => t[0] === cur)[2];
                 return `<section class="w-card w-${w}" data-w="${w}" data-open="${TAB_OPEN[cur]}" onclick="wOpen(event, '${TAB_OPEN[cur]}')" role="group" aria-label="${def.title}">
-                    <div class="w-head"><span class="w-title">${def.title}</span></div>
+                    <div class="w-head"><span class="w-title">${def.title}</span><button type="button" class="w-go" data-stop onclick="switchTab('${TAB_OPEN[cur]}')" aria-label="Открыть раздел «${curLabel}»" title="Открыть «${curLabel}»"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
                     <div class="w-tabs" role="tablist" aria-label="${def.title}">${tabs}</div>
                     <div class="w-tabbody">${homeTabBody(cur, ctx)}</div>
                     <div class="w-foot">
                         <button type="button" class="w-handle" data-stop aria-label="Переместить виджет «${def.title}»: потяните или нажимайте стрелки" title="Потяните, чтобы переместить"
                             onpointerdown="wDragStart(event, '${w}')" onkeydown="wHandleKey(event, '${w}')" onclick="event.stopPropagation()"></button>
-                        <button type="button" class="w-more" data-stop onclick="switchTab('${TAB_OPEN[cur]}')" aria-label="Открыть раздел «${curLabel}»">Открыть <span aria-hidden="true">›</span></button>
                     </div>
                 </section>`;
             }).join('');
@@ -11325,6 +11382,180 @@
         document.addEventListener('visibilitychange', () => { if (!document.hidden) fxRefresh(); });
         setInterval(fxRefresh, 3600e3);                                         // сезон мог смениться, пока приложение открыто
         fxRefresh();
+
+        // ================= ПЛАВНЫЕ ПЕРЕКЛЮЧАТЕЛИ =================
+        // У каждого переключателя (.segmented, вкладки виджетов) есть подложка .seg-ind, которая
+        // переезжает к выбранному пункту. Переключатели, перерисованные заново, продолжают движение
+        // с прежнего места — его помним по id переключателя или по виджету.
+        const SEG_SEL = '.segmented, .w-tabs';
+        const segPrev = new Map(), segSize = new WeakMap(), segDirty = new Set();
+        let segRaf = 0;
+        function segKey(c) {
+            if (c.id) return '#' + c.id;
+            const w = c.closest('[data-w]');
+            return w ? 'w:' + w.dataset.w : null;
+        }
+        function segSet(ind, r) { ind.style.width = r.w + 'px'; ind.style.height = r.h + 'px'; ind.style.transform = `translate(${r.x}px, ${r.y}px)`; }
+        function segPlace(c, animate) {
+            let ind = c.querySelector(':scope > .seg-ind');
+            const key = segKey(c);
+            if (!ind) {
+                ind = document.createElement('span');
+                ind.className = 'seg-ind'; ind.setAttribute('aria-hidden', 'true');
+                c.prepend(ind); c.classList.add('has-ind');
+                const prev = key && segPrev.get(key);
+                if (prev) { ind.style.transition = 'none'; segSet(ind, prev); ind.style.opacity = '1'; void ind.offsetWidth; ind.style.transition = ''; animate = true; }
+                else animate = false;
+            }
+            const a = c.querySelector(':scope > .active, :scope > .on');
+            if (!a || !a.offsetWidth) { if (!a) ind.style.opacity = '0'; return; }
+            const r = { x: a.offsetLeft, y: a.offsetTop, w: a.offsetWidth, h: a.offsetHeight };
+            if (!animate || ind.style.opacity !== '1') { ind.style.transition = 'none'; segSet(ind, r); void ind.offsetWidth; ind.style.transition = ''; }
+            else segSet(ind, r);
+            ind.style.opacity = '1';
+            if (key) segPrev.set(key, r);
+        }
+        const segRO = typeof ResizeObserver === 'function' ? new ResizeObserver(entries => entries.forEach(e => {
+            const c = e.target, s = Math.round(e.contentRect.width) + 'x' + Math.round(e.contentRect.height);
+            if (segSize.get(c) === s) return;
+            const first = !segSize.has(c);
+            segSize.set(c, s);
+            if (!first && !c.dataset.segLock) segPlace(c, false);
+        })) : null;
+        function segFlush() {
+            segRaf = 0;
+            segDirty.forEach(c => { if (c.isConnected && !c.dataset.segLock) { segPlace(c, true); if (segRO) segRO.observe(c); } });
+            segDirty.clear();
+        }
+        new MutationObserver(list => {
+            for (const m of list) {
+                if (m.type === 'attributes') {
+                    const p = m.target.parentElement;
+                    if (p && p.matches(SEG_SEL) && !m.target.classList.contains('seg-ind')) segDirty.add(p);
+                } else {
+                    if (m.target.matches && m.target.matches(SEG_SEL)) segDirty.add(m.target);
+                    m.addedNodes.forEach(n => {
+                        if (n.nodeType !== 1 || n.classList.contains('seg-ind')) return;
+                        if (n.matches(SEG_SEL)) segDirty.add(n);
+                        if (n.firstElementChild) n.querySelectorAll(SEG_SEL).forEach(x => segDirty.add(x));
+                    });
+                }
+            }
+            if (segDirty.size && !segRaf) segRaf = requestAnimationFrame(segFlush);
+        }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
+        document.querySelectorAll(SEG_SEL).forEach(c => segDirty.add(c));
+        segFlush();
+        window.addEventListener('resize', () => { document.querySelectorAll(SEG_SEL).forEach(c => segDirty.add(c)); if (!segRaf) segRaf = requestAnimationFrame(segFlush); });
+
+        // ================= СВАЙПЫ НА ТЕЛЕФОНЕ =================
+        // Влево/вправо по переключателю — соседний пункт; вправо по странице раздела — назад;
+        // вниз по всплывающему окну — закрыть. Что именно делать, решает SWIPE_APP (своё у каждой версии).
+        const SWIPE_SKIP = 'input, textarea, select, [contenteditable="true"], canvas, video, .w-handle, [data-noswipe]';
+        let sw = null, swBack = null;
+        function swScrollsX(el) {
+            for (let n = el; n && n !== document.body; n = n.parentElement) {
+                if (n.scrollWidth > n.clientWidth + 2) { const ox = getComputedStyle(n).overflowX; if (ox === 'auto' || ox === 'scroll') return true; }
+            }
+            return false;
+        }
+        const swModalOpen = () => [...document.querySelectorAll('[aria-modal="true"], [role="alertdialog"]')].some(el => el.getClientRects().length);
+        function swNeighbor(c, dir) {   // dir: +1 — следующий пункт, −1 — предыдущий
+            const items = [...c.children].filter(b => b.tagName === 'BUTTON' && !b.disabled && !b.hidden && b.offsetWidth);
+            const i = items.findIndex(b => b.classList.contains('active') || b.classList.contains('on'));
+            return items[i + dir] || null;
+        }
+        function swBackEl() {
+            if (!swBack) { swBack = document.createElement('div'); swBack.className = 'swipe-back'; swBack.setAttribute('aria-hidden', 'true'); swBack.textContent = '‹'; document.body.appendChild(swBack); }
+            return swBack;
+        }
+        function swTranslate(el, x, y = 0) { if (el) { el.style.transition = 'none'; el.style.transform = x || y ? `translate(${x}px, ${y}px)` : ''; } }
+        function swRelease(el) {
+            if (!el) return;
+            el.style.transition = 'transform .25s cubic-bezier(.3, .9, .3, 1)'; el.style.transform = '';
+            setTimeout(() => { el.style.transition = ''; }, 260);
+        }
+        document.addEventListener('touchstart', e => {
+            sw = null;
+            if (e.touches.length !== 1) return;
+            const t = e.touches[0], target = e.target;
+            if (!target.closest) return;
+            // от самого левого края экрана — всегда «назад», даже поверх полей и графиков
+            const edge = t.clientX <= 24 && SWIPE_APP.edgeBack && SWIPE_APP.edgeBack();
+            if (!edge && target.closest(SWIPE_SKIP)) return;
+            const kind = edge ? { type: 'back' } : SWIPE_APP.kind(target, t.clientX);
+            if (!kind) return;
+            sw = { ...kind, x0: t.clientX, y0: t.clientY, t0: performance.now(), dx: 0, dy: 0, axis: null, scrollX: !edge && swScrollsX(target) };
+        }, { passive: true });
+        document.addEventListener('touchmove', e => {
+            if (!sw || e.touches.length !== 1) return;
+            const t = e.touches[0];
+            sw.dx = t.clientX - sw.x0; sw.dy = t.clientY - sw.y0;
+            if (!sw.axis && Math.hypot(sw.dx, sw.dy) > 10) sw.axis = Math.abs(sw.dx) > Math.abs(sw.dy) * 1.2 ? 'x' : 'y';
+            if (sw.type === 'pop') { if (sw.axis === 'y' && sw.dy > 0) swTranslate(sw.el, 0, sw.dy * 0.6); return; }
+            if (sw.axis !== 'x' || sw.scrollX) return;
+            if (sw.type === 'back') {
+                if (sw.dx <= 0) return;
+                const b = swBackEl(), p = Math.min(1, sw.dx / 90);
+                b.classList.remove('anim'); b.classList.toggle('ready', p >= 1);
+                b.style.transform = `translateX(${-56 + p * 70}px)`; b.style.opacity = String(p);
+            } else if (sw.feedback) swTranslate(sw.feedback, sw.dx * 0.25);
+        }, { passive: true });
+        function swEnd() {
+            const s = sw; sw = null;
+            if (!s) return;
+            if (swBack) { swBack.classList.add('anim'); swBack.style.transform = ''; swBack.style.opacity = '0'; swBack.classList.remove('ready'); }
+            const fast = performance.now() - s.t0 < 900;
+            if (s.type === 'pop') {
+                if (s.axis === 'y' && s.dy > 70 && fast) { s.el.style.transform = ''; SWIPE_APP.closePop(); } else swRelease(s.el);
+                return;
+            }
+            swRelease(s.feedback);
+            if (s.axis !== 'x' || s.scrollX || !fast) return;
+            if (s.type === 'back') { if (s.dx > 90) SWIPE_APP.back(); return; }
+            if (Math.abs(s.dx) < 45) return;
+            const dir = s.dx < 0 ? 1 : -1;
+            if (s.type === 'seg') {
+                const nb = swNeighbor(s.el, dir);
+                if (nb) { nb.click(); SWIPE_APP.slid && SWIPE_APP.slid(s, dir); }
+            } else if (s.type === 'custom') s.go(dir);
+        }
+        document.addEventListener('touchend', swEnd, { passive: true });
+        document.addEventListener('touchcancel', () => { if (sw) { swRelease(sw.feedback); if (sw.type === 'pop') swRelease(sw.el); } sw = null; if (swBack) { swBack.style.opacity = '0'; swBack.style.transform = ''; } }, { passive: true });
+        function swSlideIn(el, dir) {
+            if (!el) return;
+            const c = dir > 0 ? 'swipe-in-left' : 'swipe-in-right';
+            el.classList.remove('swipe-in-left', 'swipe-in-right'); void el.offsetWidth; el.classList.add(c);
+            setTimeout(() => el.classList.remove(c), 320);
+        }
+        const SWIPE_APP = {
+            kind(target) {
+                const pop = target.closest('.pop');
+                if (pop) { const seg = target.closest('.segmented'); return seg ? { type: 'seg', el: seg } : { type: 'pop', el: pop }; }
+                if (swModalOpen() || wDrag) return null;
+                const tabs = target.closest('.w-tabs'), card = target.closest('#module-home .w-card');
+                if (tabs || card) return wSwipeKind((tabs || card).closest('.w-card'));
+                const seg = target.closest('.segmented');
+                if (seg) return { type: 'seg', el: seg };
+                const cal = target.closest('#calBody');
+                if (cal) return { type: 'custom', feedback: cal, go: dir => { calNav(dir); swSlideIn($('calBody'), dir); } };
+                if (currentTab !== 'home' && currentTab !== 'games') return { type: 'back' };
+                return null;
+            },
+            edgeBack() { return currentTab !== 'home' && !openPop && !swModalOpen(); },
+            back() { const b = document.querySelector(`#module-${currentTab} > .page-head .back-btn`); if (b) b.click(); },
+            closePop() { closePops(); }
+        };
+        // свайп по виджету на главной листает его вкладки
+        function wSwipeKind(card) {
+            if (!card) return null;
+            const w = card.dataset.w;
+            return { type: 'custom', feedback: card.querySelector('.w-tabbody'), go: dir => {
+                const nb = swNeighbor(card.querySelector('.w-tabs'), dir);
+                if (!nb) return;
+                wTab(w, nb.dataset.tab);
+                swSlideIn(document.querySelector(`.w-card[data-w="${w}"] .w-tabbody`), dir);
+            } };
+        }
 
         // из спорт-версии можно попасть сразу в профиль (вход в аккаунт)
         function openFromHash() { if (location.hash === '#account') { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} openAccount(); } }

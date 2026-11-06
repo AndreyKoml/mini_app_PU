@@ -110,6 +110,25 @@
         .segmented { display: flex; background: rgba(128, 128, 128, .16); border-radius: 12px; padding: 3px; gap: 3px; }
         .segmented button { flex: 1; border: none; background: transparent; padding: 8px 10px; border-radius: 9px; cursor: pointer; font-size: 14px; white-space: nowrap; }
         .segmented button.active { background: var(--pill); box-shadow: var(--pill-shadow); font-weight: 600; }
+        /* плавный «ползунок» в переключателях: подложка активного пункта переезжает, а не появляется скачком */
+        .has-ind { position: relative; }
+        .has-ind > :not(.seg-ind) { position: relative; z-index: 1; }
+        .has-ind > .active, .has-ind > .on { background: transparent !important; box-shadow: none !important; }
+        .seg-ind { position: absolute; left: 0; top: 0; z-index: 0; pointer-events: none; border-radius: 9px; background: var(--pill); box-shadow: var(--pill-shadow); opacity: 0;
+            transition: transform .34s cubic-bezier(.3, .9, .3, 1), width .34s cubic-bezier(.3, .9, .3, 1), height .34s cubic-bezier(.3, .9, .3, 1), opacity .2s; will-change: transform; }
+        .w-tabs > .seg-ind { border-radius: 10px; }
+        @media (prefers-reduced-motion: reduce) { .seg-ind { transition: none; } }
+        /* свайпы: «назад» — круглая стрелка, выезжающая слева за пальцем */
+        .swipe-back { position: fixed; left: 0; top: 50%; z-index: 9000; width: 46px; height: 46px; margin-top: -23px; border-radius: 50%; pointer-events: none;
+            display: grid; place-items: center; background: var(--pill); box-shadow: var(--pill-shadow); color: var(--text-color); font-size: 28px; line-height: 1; padding-bottom: 3px; box-sizing: border-box;
+            transform: translateX(-56px); opacity: 0; }
+        .swipe-back.ready { background: var(--accent-color); color: #000; }
+        .swipe-back.anim { transition: transform .25s ease, opacity .25s ease, background .15s; }
+        .swipe-in-left { animation: swipeInLeft .28s cubic-bezier(.3, .9, .3, 1); }
+        .swipe-in-right { animation: swipeInRight .28s cubic-bezier(.3, .9, .3, 1); }
+        @keyframes swipeInLeft { from { transform: translateX(28px); opacity: .3; } to { transform: none; opacity: 1; } }
+        @keyframes swipeInRight { from { transform: translateX(-28px); opacity: .3; } to { transform: none; opacity: 1; } }
+        @media (prefers-reduced-motion: reduce) { .swipe-in-left, .swipe-in-right { animation: none; } }
         .chk { display: flex; align-items: center; gap: 12px; font-size: 14px; cursor: pointer; }
         input[type="checkbox"] { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; margin: 0; flex: none; cursor: pointer; border-radius: 5px;
             background: rgba(128, 128, 128, .28); border: none; }
@@ -1703,6 +1722,167 @@
             $('ppAccount').textContent = auth ? 'Аккаунт в ProdU' : 'Войти через ProdU';
             renderSyncLine();
         }
+
+        // ================= ПЛАВНЫЕ ПЕРЕКЛЮЧАТЕЛИ =================
+        // У каждого переключателя (.segmented, вкладки виджетов) есть подложка .seg-ind, которая
+        // переезжает к выбранному пункту. Переключатели, перерисованные заново, продолжают движение
+        // с прежнего места — его помним по id переключателя или по виджету.
+        const SEG_SEL = '.segmented, .w-tabs';
+        const segPrev = new Map(), segSize = new WeakMap(), segDirty = new Set();
+        let segRaf = 0;
+        function segKey(c) {
+            if (c.id) return '#' + c.id;
+            const w = c.closest('[data-w]');
+            return w ? 'w:' + w.dataset.w : null;
+        }
+        function segSet(ind, r) { ind.style.width = r.w + 'px'; ind.style.height = r.h + 'px'; ind.style.transform = `translate(${r.x}px, ${r.y}px)`; }
+        function segPlace(c, animate) {
+            let ind = c.querySelector(':scope > .seg-ind');
+            const key = segKey(c);
+            if (!ind) {
+                ind = document.createElement('span');
+                ind.className = 'seg-ind'; ind.setAttribute('aria-hidden', 'true');
+                c.prepend(ind); c.classList.add('has-ind');
+                const prev = key && segPrev.get(key);
+                if (prev) { ind.style.transition = 'none'; segSet(ind, prev); ind.style.opacity = '1'; void ind.offsetWidth; ind.style.transition = ''; animate = true; }
+                else animate = false;
+            }
+            const a = c.querySelector(':scope > .active, :scope > .on');
+            if (!a || !a.offsetWidth) { if (!a) ind.style.opacity = '0'; return; }
+            const r = { x: a.offsetLeft, y: a.offsetTop, w: a.offsetWidth, h: a.offsetHeight };
+            if (!animate || ind.style.opacity !== '1') { ind.style.transition = 'none'; segSet(ind, r); void ind.offsetWidth; ind.style.transition = ''; }
+            else segSet(ind, r);
+            ind.style.opacity = '1';
+            if (key) segPrev.set(key, r);
+        }
+        const segRO = typeof ResizeObserver === 'function' ? new ResizeObserver(entries => entries.forEach(e => {
+            const c = e.target, s = Math.round(e.contentRect.width) + 'x' + Math.round(e.contentRect.height);
+            if (segSize.get(c) === s) return;
+            const first = !segSize.has(c);
+            segSize.set(c, s);
+            if (!first && !c.dataset.segLock) segPlace(c, false);
+        })) : null;
+        function segFlush() {
+            segRaf = 0;
+            segDirty.forEach(c => { if (c.isConnected && !c.dataset.segLock) { segPlace(c, true); if (segRO) segRO.observe(c); } });
+            segDirty.clear();
+        }
+        new MutationObserver(list => {
+            for (const m of list) {
+                if (m.type === 'attributes') {
+                    const p = m.target.parentElement;
+                    if (p && p.matches(SEG_SEL) && !m.target.classList.contains('seg-ind')) segDirty.add(p);
+                } else {
+                    if (m.target.matches && m.target.matches(SEG_SEL)) segDirty.add(m.target);
+                    m.addedNodes.forEach(n => {
+                        if (n.nodeType !== 1 || n.classList.contains('seg-ind')) return;
+                        if (n.matches(SEG_SEL)) segDirty.add(n);
+                        if (n.firstElementChild) n.querySelectorAll(SEG_SEL).forEach(x => segDirty.add(x));
+                    });
+                }
+            }
+            if (segDirty.size && !segRaf) segRaf = requestAnimationFrame(segFlush);
+        }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
+        document.querySelectorAll(SEG_SEL).forEach(c => segDirty.add(c));
+        segFlush();
+        window.addEventListener('resize', () => { document.querySelectorAll(SEG_SEL).forEach(c => segDirty.add(c)); if (!segRaf) segRaf = requestAnimationFrame(segFlush); });
+
+        // ================= СВАЙПЫ НА ТЕЛЕФОНЕ =================
+        // Влево/вправо по переключателю — соседний пункт; вправо по странице раздела — назад;
+        // вниз по всплывающему окну — закрыть. Что именно делать, решает SWIPE_APP (своё у каждой версии).
+        const SWIPE_SKIP = 'input, textarea, select, [contenteditable="true"], canvas, video, .w-handle, [data-noswipe]';
+        let sw = null, swBack = null;
+        function swScrollsX(el) {
+            for (let n = el; n && n !== document.body; n = n.parentElement) {
+                if (n.scrollWidth > n.clientWidth + 2) { const ox = getComputedStyle(n).overflowX; if (ox === 'auto' || ox === 'scroll') return true; }
+            }
+            return false;
+        }
+        const swModalOpen = () => [...document.querySelectorAll('[aria-modal="true"], [role="alertdialog"]')].some(el => el.getClientRects().length);
+        function swNeighbor(c, dir) {   // dir: +1 — следующий пункт, −1 — предыдущий
+            const items = [...c.children].filter(b => b.tagName === 'BUTTON' && !b.disabled && !b.hidden && b.offsetWidth);
+            const i = items.findIndex(b => b.classList.contains('active') || b.classList.contains('on'));
+            return items[i + dir] || null;
+        }
+        function swBackEl() {
+            if (!swBack) { swBack = document.createElement('div'); swBack.className = 'swipe-back'; swBack.setAttribute('aria-hidden', 'true'); swBack.textContent = '‹'; document.body.appendChild(swBack); }
+            return swBack;
+        }
+        function swTranslate(el, x, y = 0) { if (el) { el.style.transition = 'none'; el.style.transform = x || y ? `translate(${x}px, ${y}px)` : ''; } }
+        function swRelease(el) {
+            if (!el) return;
+            el.style.transition = 'transform .25s cubic-bezier(.3, .9, .3, 1)'; el.style.transform = '';
+            setTimeout(() => { el.style.transition = ''; }, 260);
+        }
+        document.addEventListener('touchstart', e => {
+            sw = null;
+            if (e.touches.length !== 1) return;
+            const t = e.touches[0], target = e.target;
+            if (!target.closest) return;
+            // от самого левого края экрана — всегда «назад», даже поверх полей и графиков
+            const edge = t.clientX <= 24 && SWIPE_APP.edgeBack && SWIPE_APP.edgeBack();
+            if (!edge && target.closest(SWIPE_SKIP)) return;
+            const kind = edge ? { type: 'back' } : SWIPE_APP.kind(target, t.clientX);
+            if (!kind) return;
+            sw = { ...kind, x0: t.clientX, y0: t.clientY, t0: performance.now(), dx: 0, dy: 0, axis: null, scrollX: !edge && swScrollsX(target) };
+        }, { passive: true });
+        document.addEventListener('touchmove', e => {
+            if (!sw || e.touches.length !== 1) return;
+            const t = e.touches[0];
+            sw.dx = t.clientX - sw.x0; sw.dy = t.clientY - sw.y0;
+            if (!sw.axis && Math.hypot(sw.dx, sw.dy) > 10) sw.axis = Math.abs(sw.dx) > Math.abs(sw.dy) * 1.2 ? 'x' : 'y';
+            if (sw.type === 'pop') { if (sw.axis === 'y' && sw.dy > 0) swTranslate(sw.el, 0, sw.dy * 0.6); return; }
+            if (sw.axis !== 'x' || sw.scrollX) return;
+            if (sw.type === 'back') {
+                if (sw.dx <= 0) return;
+                const b = swBackEl(), p = Math.min(1, sw.dx / 90);
+                b.classList.remove('anim'); b.classList.toggle('ready', p >= 1);
+                b.style.transform = `translateX(${-56 + p * 70}px)`; b.style.opacity = String(p);
+            } else if (sw.feedback) swTranslate(sw.feedback, sw.dx * 0.25);
+        }, { passive: true });
+        function swEnd() {
+            const s = sw; sw = null;
+            if (!s) return;
+            if (swBack) { swBack.classList.add('anim'); swBack.style.transform = ''; swBack.style.opacity = '0'; swBack.classList.remove('ready'); }
+            const fast = performance.now() - s.t0 < 900;
+            if (s.type === 'pop') {
+                if (s.axis === 'y' && s.dy > 70 && fast) { s.el.style.transform = ''; SWIPE_APP.closePop(); } else swRelease(s.el);
+                return;
+            }
+            swRelease(s.feedback);
+            if (s.axis !== 'x' || s.scrollX || !fast) return;
+            if (s.type === 'back') { if (s.dx > 90) SWIPE_APP.back(); return; }
+            if (Math.abs(s.dx) < 45) return;
+            const dir = s.dx < 0 ? 1 : -1;
+            if (s.type === 'seg') {
+                const nb = swNeighbor(s.el, dir);
+                if (nb) { nb.click(); SWIPE_APP.slid && SWIPE_APP.slid(s, dir); }
+            } else if (s.type === 'custom') s.go(dir);
+        }
+        document.addEventListener('touchend', swEnd, { passive: true });
+        document.addEventListener('touchcancel', () => { if (sw) { swRelease(sw.feedback); if (sw.type === 'pop') swRelease(sw.el); } sw = null; if (swBack) { swBack.style.opacity = '0'; swBack.style.transform = ''; } }, { passive: true });
+        function swSlideIn(el, dir) {
+            if (!el) return;
+            const c = dir > 0 ? 'swipe-in-left' : 'swipe-in-right';
+            el.classList.remove('swipe-in-left', 'swipe-in-right'); void el.offsetWidth; el.classList.add(c);
+            setTimeout(() => el.classList.remove(c), 320);
+        }
+        const swModalSport = () => !$('habitSheet').hidden;
+        const SWIPE_APP = {
+            kind(target) {
+                if (swModalSport()) return null;
+                const pop = target.closest('.pop');
+                if (pop) { const seg = target.closest('.segmented'); return seg ? { type: 'seg', el: seg } : { type: 'pop', el: pop }; }
+                const seg = target.closest('.segmented');
+                if (seg) return { type: 'seg', el: seg };
+                if (target.closest('.stage, .hb-row')) return null;
+                if (currentView !== 'home') return { type: 'back' };
+                return null;
+            },
+            edgeBack() { return currentView !== 'home' && !openPop && !swModalSport(); },
+            back() { if (currentView === 'workout') leaveWorkout(); else showView('home'); },
+            closePop() { closePops(); }
+        };
 
         // ================= ЗАПУСК =================
         function renderAll() {
