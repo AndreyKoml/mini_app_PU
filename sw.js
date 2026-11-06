@@ -11,8 +11,8 @@
  *     при закрытой странице нужен сервер, который пришлёт push в нужное время).
  */
 
-const CACHE = 'produ-v4';
-const PRECACHE = ['./', './index.html', './sport.html', './manifest.json', './icon_newyear.png', './icon-192.png', './icon-512.png'];
+const CACHE = 'produ-v5';
+const PRECACHE = ['./', './index.html', './sport.html', './team.html', './manifest.json', './icon_newyear.png', './icon-192.png', './icon-512.png'];
 
 // ---------- IndexedDB (страница кладёт сюда список напоминаний) ----------
 function openDB() {
@@ -196,6 +196,12 @@ self.addEventListener('notificationclick', event => {
     const target = data.url || './index.html';
     event.waitUntil(
         self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+            // уведомление ProdU Team открывает командную версию (или переключает на неё открытую вкладку)
+            if (/team\.html/.test(target)) {
+                const own = list.find(c => /team\.html/.test(c.url));
+                if (own && 'focus' in own) return own.focus();
+                return self.clients.openWindow(target);
+            }
             for (const client of list) {
                 if ('focus' in client) {
                     if (data.chat) client.postMessage({ type: 'openChat', id: data.chat });

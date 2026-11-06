@@ -40,6 +40,18 @@
           "sizes": "192x192"
         }
       ]
+    },
+    {
+      "name": "ProdU Team",
+      "short_name": "Team",
+      "description": "Команды, общий календарь задач и комментарии",
+      "url": "./team.html",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }

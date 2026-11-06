@@ -129,6 +129,14 @@ export default {
                     : await putSportData(env, user, url, request, cors);
             }
 
+            // ProdU Team: команды, общий календарь, комментарии
+            if ((request.method === 'GET' && ['/team', '/team/list', '/team/comments'].includes(url.pathname)) ||
+                (request.method === 'POST' && url.pathname.startsWith('/team/'))) {
+                const user = await authUser(request, env);
+                if (!user) return json({ error: 'Сессия истекла — войдите снова' }, 401, cors);
+                return await handleTeam(url.pathname, request, url, env, user, cors, ctx);
+            }
+
             if (url.pathname === '/avatar' && ['GET', 'PUT', 'DELETE'].includes(request.method)) {
                 const user = await authUser(request, env);
                 if (!user) return json({ error: 'Сессия истекла — войдите снова' }, 401, cors);
@@ -228,7 +236,27 @@ async function ensureSchema(env) {
             post_id INTEGER NOT NULL, user_id INTEGER NOT NULL, created INTEGER NOT NULL, PRIMARY KEY (post_id, user_id))`),
         env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_post_likes_user ON post_likes (user_id)'),
         env.DB.prepare(`CREATE TABLE IF NOT EXISTS sportdata (
-            user_id INTEGER PRIMARY KEY, version INTEGER NOT NULL, data TEXT, updated INTEGER NOT NULL)`)
+            user_id INTEGER PRIMARY KEY, version INTEGER NOT NULL, data TEXT, updated INTEGER NOT NULL)`),
+        // ProdU Team
+        env.DB.prepare(`CREATE TABLE IF NOT EXISTS teams (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, leader_id INTEGER NOT NULL, code TEXT NOT NULL UNIQUE,
+            created INTEGER NOT NULL, version INTEGER NOT NULL DEFAULT 1)`),
+        env.DB.prepare(`CREATE TABLE IF NOT EXISTS team_members (
+            team_id INTEGER NOT NULL, user_id INTEGER NOT NULL, role TEXT NOT NULL DEFAULT '', joined INTEGER NOT NULL, PRIMARY KEY (team_id, user_id))`),
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_team_members_user ON team_members (user_id)'),
+        env.DB.prepare(`CREATE TABLE IF NOT EXISTS team_invites (
+            team_id INTEGER NOT NULL, user_id INTEGER NOT NULL, inviter_id INTEGER NOT NULL, created INTEGER NOT NULL, PRIMARY KEY (team_id, user_id))`),
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_team_invites_user ON team_invites (user_id)'),
+        env.DB.prepare(`CREATE TABLE IF NOT EXISTS team_tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, team_id INTEGER NOT NULL, title TEXT NOT NULL, notes TEXT NOT NULL DEFAULT '',
+            date TEXT NOT NULL, time TEXT NOT NULL DEFAULT '', dur INTEGER NOT NULL DEFAULT 0, assignee INTEGER,
+            status TEXT NOT NULL DEFAULT 'todo', creator INTEGER NOT NULL, created INTEGER NOT NULL, updated INTEGER NOT NULL)`),
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_team_tasks_team ON team_tasks (team_id, date)'),
+        env.DB.prepare(`CREATE TABLE IF NOT EXISTS team_comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, task_id INTEGER NOT NULL, team_id INTEGER NOT NULL, user_id INTEGER NOT NULL,
+            text TEXT NOT NULL, created INTEGER NOT NULL)`),
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_team_comments_task ON team_comments (task_id, id)'),
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_team_comments_team ON team_comments (team_id)')
     ]);
     schemaReady = true;
 }
@@ -369,6 +397,7 @@ async function handleAuth(action, request, env, cors) {
         const { key } = await readJson(request);
         const user = await verifyPassword(env, me.display, key, cors);
         if (user instanceof Response) return user;
+        await leaveAllTeams(env, me.id);
         await env.DB.batch([
             env.DB.prepare('DELETE FROM sessions WHERE user_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM userdata WHERE user_id = ?1').bind(me.id),
@@ -442,6 +471,336 @@ async function putData(env, user, url, request, cors) {
 
     const row = await env.DB.prepare('SELECT version FROM userdata WHERE user_id = ?1').bind(user.id).first();
     return json({ error: 'conflict', version: row ? row.version : 0 }, 409, cors);
+}
+
+// ===================== ProdU Team: команды, общий календарь задач, комментарии =====================
+const TEAM_MAX_MEMBERS = 50;
+const TEAM_MAX_PER_USER = 20;
+const TEAM_MAX_TASKS = 5000;
+const TEAM_NAME_MAX = 60;
+const TEAM_ROLE_MAX = 40;
+const TASK_TITLE_MAX = 120;
+const TASK_NOTES_MAX = 2000;
+const COMMENT_MAX = 1000;
+const TASK_STATUSES = ['todo', 'doing', 'done'];
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+function teamCode() {
+    const b = crypto.getRandomValues(new Uint8Array(8));
+    return [...b].map(x => CODE_ALPHABET[x % CODE_ALPHABET.length]).join('');
+}
+const cleanText = (s, max) => [...String(s ?? '').replace(/\r\n?/g, '\n').trim()].slice(0, max).join('');
+const oneLine = (s, max) => cleanText(String(s ?? '').replace(/\s+/g, ' '), max);
+
+async function teamRow(env, teamId) {
+    if (!Number.isSafeInteger(teamId)) throw new BadRequest('bad team');
+    return env.DB.prepare('SELECT * FROM teams WHERE id = ?1').bind(teamId).first();
+}
+async function membership(env, teamId, userId) {
+    return env.DB.prepare('SELECT role FROM team_members WHERE team_id = ?1 AND user_id = ?2').bind(teamId, userId).first();
+}
+const bump = (env, teamId) => env.DB.prepare('UPDATE teams SET version = version + 1 WHERE id = ?1').bind(teamId);
+
+// Проверка доступа: команда существует и пользователь в ней. Возвращает { team, isLeader } или Response.
+async function teamAccess(env, teamId, me, cors, needLeader = false) {
+    const team = await teamRow(env, teamId);
+    if (!team) return json({ error: 'Команда не найдена или удалена' }, 404, cors);
+    const m = await membership(env, teamId, me.id);
+    if (!m) return json({ error: 'Вы не состоите в этой команде' }, 403, cors);
+    const isLeader = team.leader_id === me.id;
+    if (needLeader && !isLeader) return json({ error: 'Это может сделать только лидер команды' }, 403, cors);
+    return { team, isLeader };
+}
+
+async function handleTeam(path, request, url, env, me, cors, ctx) {
+    const later = p => { if (ctx && ctx.waitUntil) ctx.waitUntil(p); };
+
+    // --- мои команды и приглашения ---
+    if (path === '/team/list') {
+        const { results: teams } = await env.DB.prepare(`
+            SELECT t.id, t.name, t.leader_id, t.version, m.role,
+                (SELECT COUNT(*) FROM team_members x WHERE x.team_id = t.id) AS members
+            FROM team_members m JOIN teams t ON t.id = m.team_id
+            WHERE m.user_id = ?1 ORDER BY t.name COLLATE NOCASE`).bind(me.id).all();
+        const { results: invites } = await env.DB.prepare(`
+            SELECT i.team_id, t.name, u.display AS inviter, i.created
+            FROM team_invites i JOIN teams t ON t.id = i.team_id LEFT JOIN users u ON u.id = i.inviter_id
+            WHERE i.user_id = ?1 ORDER BY i.created DESC`).bind(me.id).all();
+        return json({
+            me: { id: me.id, login: me.display },
+            teams: teams.map(t => ({ id: t.id, name: t.name, role: t.role, leader: t.leader_id === me.id, members: t.members, version: t.version })),
+            invites
+        }, 200, cors);
+    }
+
+    // --- одна команда целиком: участники, приглашённые, задачи ---
+    if (path === '/team') {
+        const teamId = Number(url.searchParams.get('id'));
+        const acc = await teamAccess(env, teamId, me, cors);
+        if (acc instanceof Response) return acc;
+        const { team, isLeader } = acc;
+        if (url.searchParams.get('since') === String(team.version)) return json({ unchanged: true, version: team.version }, 200, cors);
+        const [members, invites, tasks] = await Promise.all([
+            env.DB.prepare(`SELECT u.id, u.display AS login, m.role, m.joined, COALESCE(av.version, 0) AS av
+                FROM team_members m JOIN users u ON u.id = m.user_id LEFT JOIN avatars av ON av.user_id = u.id
+                WHERE m.team_id = ?1 ORDER BY m.joined`).bind(teamId).all(),
+            env.DB.prepare(`SELECT u.id, u.display AS login, i.created FROM team_invites i JOIN users u ON u.id = i.user_id
+                WHERE i.team_id = ?1 ORDER BY i.created`).bind(teamId).all(),
+            env.DB.prepare(`SELECT t.id, t.title, t.notes, t.date, t.time, t.dur, t.assignee, t.status, t.creator, t.created, t.updated,
+                (SELECT COUNT(*) FROM team_comments c WHERE c.task_id = t.id) AS comments
+                FROM team_tasks t WHERE t.team_id = ?1 ORDER BY t.date, t.time`).bind(teamId).all()
+        ]);
+        return json({
+            version: team.version,
+            team: { id: team.id, name: team.name, leader: team.leader_id, code: isLeader ? team.code : null, created: team.created },
+            me: { id: me.id, login: me.display },
+            members: members.results, invites: invites.results, tasks: tasks.results
+        }, 200, cors);
+    }
+
+    if (path === '/team/comments') {
+        const teamId = Number(url.searchParams.get('team')), taskId = Number(url.searchParams.get('task'));
+        const acc = await teamAccess(env, teamId, me, cors);
+        if (acc instanceof Response) return acc;
+        if (!Number.isSafeInteger(taskId)) throw new BadRequest('bad task');
+        const { results } = await env.DB.prepare(`SELECT c.id, c.user_id AS user, COALESCE(u.display, 'удалённый аккаунт') AS login,
+                COALESCE(av.version, 0) AS av, c.text, c.created
+            FROM team_comments c LEFT JOIN users u ON u.id = c.user_id LEFT JOIN avatars av ON av.user_id = c.user_id
+            WHERE c.team_id = ?1 AND c.task_id = ?2 ORDER BY c.id LIMIT 500`).bind(teamId, taskId).all();
+        return json({ comments: results }, 200, cors);
+    }
+
+    // ---------- изменения (POST) ----------
+    const body = await readJson(request, 20_000);
+    const teamId = Number(body.team);
+
+    if (path === '/team/create') {
+        const name = oneLine(body.name, TEAM_NAME_MAX);
+        if (!name) return json({ error: 'Введите название команды' }, 400, cors);
+        const n = await env.DB.prepare('SELECT COUNT(*) AS n FROM team_members WHERE user_id = ?1').bind(me.id).first();
+        if (n.n >= TEAM_MAX_PER_USER) return json({ error: `Можно состоять не более чем в ${TEAM_MAX_PER_USER} командах` }, 400, cors);
+        const now = Date.now();
+        const row = await env.DB.prepare('INSERT INTO teams (name, leader_id, code, created, version) VALUES (?1, ?2, ?3, ?4, 1) RETURNING id')
+            .bind(name, me.id, teamCode(), now).first();
+        await env.DB.prepare("INSERT INTO team_members (team_id, user_id, role, joined) VALUES (?1, ?2, 'Лидер', ?3)").bind(row.id, me.id, now).run();
+        return json({ id: row.id }, 200, cors);
+    }
+
+    if (path === '/team/join') {
+        const code = String(body.code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (code.length !== 8) return json({ error: 'Код состоит из 8 символов' }, 400, cors);
+        const team = await env.DB.prepare('SELECT id, name FROM teams WHERE code = ?1').bind(code).first();
+        if (!team) return json({ error: 'Команда с таким кодом не найдена' }, 404, cors);
+        return await addMember(env, team, me, cors);
+    }
+
+    if (path === '/team/invite/respond') {
+        const inv = await env.DB.prepare('SELECT 1 FROM team_invites WHERE team_id = ?1 AND user_id = ?2').bind(teamId, me.id).first();
+        if (!inv) return json({ error: 'Приглашение не найдено — возможно, его отменили' }, 404, cors);
+        await env.DB.prepare('DELETE FROM team_invites WHERE team_id = ?1 AND user_id = ?2').bind(teamId, me.id).run();
+        const team = await teamRow(env, teamId);
+        if (!body.accept || !team) { if (team) await bump(env, teamId).run(); return json({ ok: true }, 200, cors); }
+        return await addMember(env, team, me, cors);
+    }
+
+    // всё остальное — только для участников команды
+    const leaderOnly = ['/team/update', '/team/delete', '/team/invite', '/team/invite/cancel', '/team/code', '/team/member', '/team/member/remove', '/team/leader'].includes(path);
+    const acc = await teamAccess(env, teamId, me, cors, leaderOnly);
+    if (acc instanceof Response) return acc;
+    const { team, isLeader } = acc;
+    const now = Date.now();
+
+    if (path === '/team/update') {
+        const name = oneLine(body.name, TEAM_NAME_MAX);
+        if (!name) return json({ error: 'Введите название команды' }, 400, cors);
+        await env.DB.batch([env.DB.prepare('UPDATE teams SET name = ?1 WHERE id = ?2').bind(name, teamId), bump(env, teamId)]);
+        return json({ ok: true }, 200, cors);
+    }
+    if (path === '/team/delete') {
+        await deleteTeamStatements(env, teamId);
+        return json({ ok: true }, 200, cors);
+    }
+    if (path === '/team/code') {
+        const code = teamCode();
+        await env.DB.batch([env.DB.prepare('UPDATE teams SET code = ?1 WHERE id = ?2').bind(code, teamId), bump(env, teamId)]);
+        return json({ code }, 200, cors);
+    }
+    if (path === '/team/invite') {
+        const login = normLogin(body.login).toLowerCase();
+        const user = await env.DB.prepare('SELECT id, display FROM users WHERE login = ?1').bind(login).first();
+        if (!user) return json({ error: 'Пользователь с таким никнеймом не найден' }, 404, cors);
+        if (await membership(env, teamId, user.id)) return json({ error: `${user.display} уже в команде` }, 400, cors);
+        const cnt = await env.DB.prepare('SELECT (SELECT COUNT(*) FROM team_members WHERE team_id = ?1) + (SELECT COUNT(*) FROM team_invites WHERE team_id = ?1) AS n').bind(teamId).first();
+        if (cnt.n >= TEAM_MAX_MEMBERS) return json({ error: `В команде может быть не больше ${TEAM_MAX_MEMBERS} человек` }, 400, cors);
+        await env.DB.batch([
+            env.DB.prepare('INSERT OR IGNORE INTO team_invites (team_id, user_id, inviter_id, created) VALUES (?1, ?2, ?3, ?4)').bind(teamId, user.id, me.id, now),
+            bump(env, teamId)
+        ]);
+        later(pushToUser(env, user.id, { kind: 'team', title: 'Приглашение в команду', body: `${me.display} зовёт вас в «${team.name}»`, tag: 'team-inv-' + teamId, url: './team.html' }));
+        return json({ ok: true, user: { id: user.id, login: user.display } }, 200, cors);
+    }
+    if (path === '/team/invite/cancel') {
+        await env.DB.batch([env.DB.prepare('DELETE FROM team_invites WHERE team_id = ?1 AND user_id = ?2').bind(teamId, Number(body.user)), bump(env, teamId)]);
+        return json({ ok: true }, 200, cors);
+    }
+    if (path === '/team/member') {
+        const uid = Number(body.user);
+        if (!(await membership(env, teamId, uid))) return json({ error: 'Участник не найден' }, 404, cors);
+        const role = oneLine(body.role, TEAM_ROLE_MAX);
+        await env.DB.batch([env.DB.prepare('UPDATE team_members SET role = ?1 WHERE team_id = ?2 AND user_id = ?3').bind(role, teamId, uid), bump(env, teamId)]);
+        return json({ ok: true }, 200, cors);
+    }
+    if (path === '/team/member/remove' || path === '/team/leave') {
+        const uid = path === '/team/leave' ? me.id : Number(body.user);
+        if (uid === team.leader_id) {
+            const others = await env.DB.prepare('SELECT COUNT(*) AS n FROM team_members WHERE team_id = ?1 AND user_id != ?2').bind(teamId, uid).first();
+            if (others.n) return json({ error: 'Сначала передайте лидерство другому участнику' }, 400, cors);
+            await deleteTeamStatements(env, teamId);          // лидер был последним — команда удаляется
+            return json({ ok: true, deleted: true }, 200, cors);
+        }
+        await env.DB.batch([
+            env.DB.prepare('DELETE FROM team_members WHERE team_id = ?1 AND user_id = ?2').bind(teamId, uid),
+            env.DB.prepare('UPDATE team_tasks SET assignee = NULL, updated = ?3 WHERE team_id = ?1 AND assignee = ?2').bind(teamId, uid, now),
+            bump(env, teamId)
+        ]);
+        return json({ ok: true }, 200, cors);
+    }
+    if (path === '/team/leader') {
+        const uid = Number(body.user);
+        if (!(await membership(env, teamId, uid))) return json({ error: 'Участник не найден' }, 404, cors);
+        await env.DB.batch([env.DB.prepare('UPDATE teams SET leader_id = ?1 WHERE id = ?2').bind(uid, teamId), bump(env, teamId)]);
+        return json({ ok: true }, 200, cors);
+    }
+
+    // --- задачи ---
+    if (path === '/team/task/save') {
+        const t = body.task || {};
+        const id = t.id == null ? null : Number(t.id);
+        const old = id ? await env.DB.prepare('SELECT * FROM team_tasks WHERE id = ?1 AND team_id = ?2').bind(id, teamId).first() : null;
+        if (id && !old) return json({ error: 'Задача не найдена — возможно, её удалили' }, 404, cors);
+        const status = TASK_STATUSES.includes(t.status) ? t.status : 'todo';
+        const fullEdit = !old || isLeader || old.creator === me.id;
+        if (old && !fullEdit) {
+            // исполнитель может менять только статус
+            if (old.assignee !== me.id) return json({ error: 'Изменять задачу могут автор, исполнитель (статус) и лидер' }, 403, cors);
+            await env.DB.batch([env.DB.prepare('UPDATE team_tasks SET status = ?1, updated = ?2 WHERE id = ?3').bind(status, now, id), bump(env, teamId)]);
+            return json({ id }, 200, cors);
+        }
+        const title = oneLine(t.title, TASK_TITLE_MAX);
+        if (!title) return json({ error: 'Введите название задачи' }, 400, cors);
+        if (!DATE_RE.test(String(t.date))) throw new BadRequest('bad date');
+        const time = t.time ? String(t.time) : '';
+        if (time && !TIME_RE.test(time)) throw new BadRequest('bad time');
+        const dur = Math.round(Number(t.dur) || 0);
+        if (dur < 0 || dur > 60 * 24 * 60) return json({ error: 'Длительность — от 0 минут до 60 дней' }, 400, cors);
+        let assignee = t.assignee == null || t.assignee === '' ? null : Number(t.assignee);
+        if (assignee !== null && !(await membership(env, teamId, assignee))) return json({ error: 'Исполнитель должен быть участником команды' }, 400, cors);
+        const notes = cleanText(t.notes, TASK_NOTES_MAX);
+        let newId = id;
+        if (old) {
+            await env.DB.batch([
+                env.DB.prepare('UPDATE team_tasks SET title = ?1, notes = ?2, date = ?3, time = ?4, dur = ?5, assignee = ?6, status = ?7, updated = ?8 WHERE id = ?9')
+                    .bind(title, notes, t.date, time, dur, assignee, status, now, id),
+                bump(env, teamId)
+            ]);
+        } else {
+            const cnt = await env.DB.prepare('SELECT COUNT(*) AS n FROM team_tasks WHERE team_id = ?1').bind(teamId).first();
+            if (cnt.n >= TEAM_MAX_TASKS) return json({ error: 'В команде слишком много задач — удалите старые' }, 400, cors);
+            const row = await env.DB.prepare(`INSERT INTO team_tasks (team_id, title, notes, date, time, dur, assignee, status, creator, created, updated)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?10) RETURNING id`).bind(teamId, title, notes, t.date, time, dur, assignee, status, me.id, now).first();
+            newId = row.id;
+            await bump(env, teamId).run();
+        }
+        if (assignee && assignee !== me.id && (!old || old.assignee !== assignee)) {
+            later(pushToUser(env, assignee, { kind: 'team', title: `Новая задача · ${team.name}`, body: `${me.display}: ${title}`, tag: 'team-task-' + newId, url: './team.html' }));
+        }
+        return json({ id: newId }, 200, cors);
+    }
+    if (path === '/team/task/delete') {
+        const id = Number(body.id);
+        const old = await env.DB.prepare('SELECT creator FROM team_tasks WHERE id = ?1 AND team_id = ?2').bind(id, teamId).first();
+        if (!old) return json({ ok: true }, 200, cors);
+        if (!isLeader && old.creator !== me.id) return json({ error: 'Удалить задачу могут её автор и лидер' }, 403, cors);
+        await env.DB.batch([
+            env.DB.prepare('DELETE FROM team_comments WHERE task_id = ?1').bind(id),
+            env.DB.prepare('DELETE FROM team_tasks WHERE id = ?1').bind(id),
+            bump(env, teamId)
+        ]);
+        return json({ ok: true }, 200, cors);
+    }
+
+    // --- комментарии ---
+    if (path === '/team/comment') {
+        const taskId = Number(body.task);
+        const task = await env.DB.prepare('SELECT id, title, assignee, creator FROM team_tasks WHERE id = ?1 AND team_id = ?2').bind(taskId, teamId).first();
+        if (!task) return json({ error: 'Задача не найдена — возможно, её удалили' }, 404, cors);
+        const textBody = cleanText(body.text, COMMENT_MAX);
+        if (!textBody) return json({ error: 'Пустой комментарий' }, 400, cors);
+        const recent = await env.DB.prepare('SELECT COUNT(*) AS n FROM team_comments WHERE user_id = ?1 AND created > ?2').bind(me.id, now - 60_000).first();
+        if (recent.n >= 30) return json({ error: 'Слишком часто — подождите минуту' }, 429, cors);
+        const row = await env.DB.prepare('INSERT INTO team_comments (task_id, team_id, user_id, text, created) VALUES (?1, ?2, ?3, ?4, ?5) RETURNING id')
+            .bind(taskId, teamId, me.id, textBody, now).first();
+        await bump(env, teamId).run();
+        const notify = new Set([task.assignee, task.creator].filter(u => u && u !== me.id));
+        const preview = [...textBody].slice(0, 120).join('') + ([...textBody].length > 120 ? '…' : '');
+        notify.forEach(u => later(pushToUser(env, u, { kind: 'team', title: `${me.display} · ${task.title}`, body: preview, tag: 'team-cm-' + taskId, url: './team.html' })));
+        return json({ comment: { id: row.id, user: me.id, login: me.display, text: textBody, created: now } }, 200, cors);
+    }
+    if (path === '/team/comment/delete') {
+        const id = Number(body.id);
+        const c = await env.DB.prepare('SELECT user_id FROM team_comments WHERE id = ?1 AND team_id = ?2').bind(id, teamId).first();
+        if (!c) return json({ ok: true }, 200, cors);
+        if (!isLeader && c.user_id !== me.id) return json({ error: 'Удалить комментарий могут его автор и лидер' }, 403, cors);
+        await env.DB.batch([env.DB.prepare('DELETE FROM team_comments WHERE id = ?1').bind(id), bump(env, teamId)]);
+        return json({ ok: true }, 200, cors);
+    }
+
+    return json({ error: 'not found' }, 404, cors);
+}
+
+async function addMember(env, team, me, cors) {
+    if (await membership(env, team.id, me.id)) return json({ id: team.id, already: true }, 200, cors);
+    const [n, mine] = await Promise.all([
+        env.DB.prepare('SELECT COUNT(*) AS n FROM team_members WHERE team_id = ?1').bind(team.id).first(),
+        env.DB.prepare('SELECT COUNT(*) AS n FROM team_members WHERE user_id = ?1').bind(me.id).first()
+    ]);
+    if (n.n >= TEAM_MAX_MEMBERS) return json({ error: `В команде уже ${TEAM_MAX_MEMBERS} человек — это максимум` }, 400, cors);
+    if (mine.n >= TEAM_MAX_PER_USER) return json({ error: `Можно состоять не более чем в ${TEAM_MAX_PER_USER} командах` }, 400, cors);
+    await env.DB.batch([
+        env.DB.prepare("INSERT INTO team_members (team_id, user_id, role, joined) VALUES (?1, ?2, '', ?3)").bind(team.id, me.id, Date.now()),
+        env.DB.prepare('DELETE FROM team_invites WHERE team_id = ?1 AND user_id = ?2').bind(team.id, me.id),
+        bump(env, team.id)
+    ]);
+    return json({ id: team.id }, 200, cors);
+}
+
+async function deleteTeamStatements(env, teamId) {
+    await env.DB.batch([
+        env.DB.prepare('DELETE FROM team_comments WHERE team_id = ?1').bind(teamId),
+        env.DB.prepare('DELETE FROM team_tasks WHERE team_id = ?1').bind(teamId),
+        env.DB.prepare('DELETE FROM team_invites WHERE team_id = ?1').bind(teamId),
+        env.DB.prepare('DELETE FROM team_members WHERE team_id = ?1').bind(teamId),
+        env.DB.prepare('DELETE FROM teams WHERE id = ?1').bind(teamId)
+    ]);
+}
+
+// при удалении аккаунта: команды, где он лидер, переходят старейшему участнику (или удаляются, если он был один)
+async function leaveAllTeams(env, userId) {
+    const { results } = await env.DB.prepare('SELECT id FROM teams WHERE leader_id = ?1').bind(userId).all();
+    for (const t of results) {
+        const next = await env.DB.prepare('SELECT user_id FROM team_members WHERE team_id = ?1 AND user_id != ?2 ORDER BY joined LIMIT 1').bind(t.id, userId).first();
+        if (next) await env.DB.prepare('UPDATE teams SET leader_id = ?1, version = version + 1 WHERE id = ?2').bind(next.user_id, t.id).run();
+        else await deleteTeamStatements(env, t.id);
+    }
+    await env.DB.batch([
+        env.DB.prepare('UPDATE teams SET version = version + 1 WHERE id IN (SELECT team_id FROM team_members WHERE user_id = ?1)').bind(userId),
+        env.DB.prepare('UPDATE team_tasks SET assignee = NULL WHERE assignee = ?1').bind(userId),
+        env.DB.prepare('DELETE FROM team_comments WHERE user_id = ?1').bind(userId),
+        env.DB.prepare('DELETE FROM team_invites WHERE user_id = ?1 OR inviter_id = ?1').bind(userId),
+        env.DB.prepare('DELETE FROM team_members WHERE user_id = ?1').bind(userId)
+    ]);
 }
 
 // ===================== Спорт-версия =====================

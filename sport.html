@@ -309,17 +309,20 @@
         .theme-switch[aria-checked="true"] .knob { transform: translateX(28px); background: #8fe11a; }
         /* логотип справа и всплывающий логотип другой версии */
         .logo-wrap { position: relative; width: 52px; height: 52px; flex: none; }
-        .logo-wrap::before { content: ''; position: absolute; left: -6px; right: -6px; bottom: 100%; height: 0; }
-        .logo-wrap:hover::before, .logo-wrap.open::before { height: 74px; }
         .logo-btn { width: 52px; height: 52px; padding: 0; border: none; background: none; border-radius: 15px; cursor: pointer; display: block; filter: drop-shadow(0 4px 10px rgba(112, 224, 0, .35)); -webkit-tap-highlight-color: transparent; }
         .logo-btn svg { width: 100%; height: 100%; display: block; border-radius: 15px; }
-        .logo-alt { position: absolute; left: 50%; bottom: calc(100% + 12px); width: 52px; height: 52px; padding: 0; border: none; background: none; border-radius: 15px; cursor: pointer;
-            transform: translate(-50%, 14px) scale(.6); opacity: 0; pointer-events: none; transition: transform .28s cubic-bezier(.3, 1.5, .5, 1), opacity .2s; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .18)); }
+        .logo-wrap::before { content: ''; position: absolute; left: -6px; right: -6px; bottom: 100%; height: 0; }
+        .logo-wrap:hover::before, .logo-wrap.open::before { height: 140px; }
+        /* над логотипом всплывают логотипы двух других версий */
+        .logo-alts { position: absolute; left: 50%; bottom: calc(100% + 12px); transform: translateX(-50%); display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .logo-alt { position: relative; width: 52px; height: 52px; padding: 0; border: none; background: none; border-radius: 15px; cursor: pointer;
+            transform: translateY(14px) scale(.6); opacity: 0; pointer-events: none; transition: transform .28s cubic-bezier(.3, 1.5, .5, 1), opacity .2s; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .18)); }
+        .logo-wrap:hover .logo-alt:first-child, .logo-wrap.open .logo-alt:first-child { transition-delay: .06s; }
         .logo-alt svg { width: 100%; height: 100%; display: block; border-radius: 15px; }
         .logo-alt .lbl { position: absolute; right: calc(100% + 10px); top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: 10px;
             background: var(--pill); box-shadow: var(--pill-shadow); color: var(--text-color); }
-        .logo-wrap:hover .logo-alt, .logo-wrap.open .logo-alt, .logo-alt:focus-visible { transform: translate(-50%, 0) scale(1); opacity: 1; pointer-events: auto; }
-        .logo-alt:hover { transform: translate(-50%, -2px) scale(1.06) !important; }
+        .logo-wrap:hover .logo-alt, .logo-wrap.open .logo-alt, .logo-alt:focus-visible { transform: none; opacity: 1; pointer-events: auto; }
+        .logo-alt:hover { transform: translateY(-2px) scale(1.06) !important; transition-delay: 0s !important; }
         @media (max-width: 600px) {
             .bottom-bar { bottom: 10px; gap: 14px; }
             .nav3 { gap: 4px; padding: 5px; border-radius: 16px; }
@@ -527,8 +530,11 @@
                 <button type="button" class="nav3-btn" id="navProfile" onclick="togglePop('profile')" aria-label="Профиль" title="Профиль"><svg viewBox="0 0 30 30" aria-hidden="true"><g fill="currentColor"><circle cx="15" cy="8.5" r="6.5"/><path d="M3 26.5C3 20.2 8.4 16.8 15 16.8s12 3.4 12 9.7c0 1.4-1.1 2.5-2.5 2.5h-19C4.1 29 3 27.9 3 26.5Z"/></g></svg><span class="sync-dot" id="syncDot" data-s="none"></span></button>
             </nav>
         <div class="logo-wrap" id="logoWrap">
-            <button type="button" class="logo-alt" id="altLogo" onclick="goToApp('index.html', event)" aria-label="Перейти в ProdU" title="Перейти в ProdU"><svg viewBox="0 0 50 50" aria-hidden="true"><defs><linearGradient id="logoGrad" x1="25" y1="0" x2="25" y2="50" gradientUnits="userSpaceOnUse"><stop stop-color="#9EF01A"/><stop offset="1" stop-color="#70E000"/></linearGradient></defs><rect width="50" height="50" rx="15" fill="url(#logoGrad)"/><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><path d="M26.06 30.28a8.45 8.45 0 0 1-16.9 0"/><path d="M26.06 22.54a8.45 8.45 0 0 1 16.9 0"/><path d="M32 21.53l1.87 2.24 3.52-2.76" stroke-width="2"/></g><rect x="7.04" y="11.97" width="4.23" height="12.68" rx="1" fill="#fff"/></svg><span class="lbl">ProdU</span></button>
-            <button type="button" class="logo-btn" id="logoBtn" onclick="logoTap()" aria-label="ProdU Sport — показать переход в ProdU" aria-expanded="false"><svg viewBox="0 0 75 75" aria-hidden="true"><rect width="75" height="75" rx="20" fill="#FDFFFC"/><g fill="#9EF01A"><path d="M17 17h8l-7 21h-8z"/><rect x="61.26" y="45.29" width="8" height="2" transform="rotate(108.872 61.26 45.29)"/><rect x="53.62" y="52.19" width="8" height="2" transform="rotate(18.8715 53.62 52.19)"/><rect x="52.65" y="55.03" width="8" height="2" transform="rotate(18.8715 52.65 55.03)"/><rect x="58.65" y="38" width="8" height="2" transform="rotate(18.8715 58.65 38)"/><rect x="57.5" y="40.84" width="8" height="2" transform="rotate(18.8715 57.5 40.84)"/><path d="M54 60h3l-3-1zM64 38h-3l3 1z"/></g><g fill="none" stroke="#9EF01A" stroke-width="8" stroke-linecap="square"><path d="M39.5 34c0-8.5 2.66-13 11.5-13S63 21.5 63 30"/><path d="M39.5 48c0 7.5-5.5 7-11 7-7.2 0-14.5 1-14.5-7"/></g></svg></button>
+            <div class="logo-alts">
+                <button type="button" class="logo-alt" id="altTeam" onclick="goToApp('team.html', event)" aria-label="Перейти в ProdU Team" title="Перейти в ProdU Team"><svg viewBox="0 0 94 94" aria-hidden="true"><defs><linearGradient id="teamGrad" x1="47" y1="0" x2="47" y2="94" gradientUnits="userSpaceOnUse"><stop stop-color="#9EF01A"/><stop offset="1" stop-color="#70E000"/></linearGradient></defs><rect width="94" height="94" rx="25" fill="url(#teamGrad)"/><g fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"><path d="M58 48c0-5.52 4.92-10 11-10s11 4.48 11 10M58 62c0 5.52-4.92 10-11 10s-11-4.48-11-10M14 48c0-5.52 4.92-10 11-10s11 4.48 11 10"/></g><g fill="#fff"><circle cx="69" cy="26" r="6"/><circle cx="25" cy="26" r="6"/></g></svg><span class="lbl">ProdU Team</span></button>
+                <button type="button" class="logo-alt" id="altLogo" onclick="goToApp('index.html', event)" aria-label="Перейти в ProdU" title="Перейти в ProdU"><svg viewBox="0 0 50 50" aria-hidden="true"><defs><linearGradient id="logoGrad" x1="25" y1="0" x2="25" y2="50" gradientUnits="userSpaceOnUse"><stop stop-color="#9EF01A"/><stop offset="1" stop-color="#70E000"/></linearGradient></defs><rect width="50" height="50" rx="15" fill="url(#logoGrad)"/><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><path d="M26.06 30.28a8.45 8.45 0 0 1-16.9 0"/><path d="M26.06 22.54a8.45 8.45 0 0 1 16.9 0"/><path d="M32 21.53l1.87 2.24 3.52-2.76" stroke-width="2"/></g><rect x="7.04" y="11.97" width="4.23" height="12.68" rx="1" fill="#fff"/></svg><span class="lbl">ProdU</span></button>
+            </div>
+            <button type="button" class="logo-btn" id="logoBtn" onclick="logoTap()" aria-label="ProdU Sport — показать переход в ProdU и ProdU Team" aria-expanded="false"><svg viewBox="0 0 75 75" aria-hidden="true"><rect width="75" height="75" rx="20" fill="#FDFFFC"/><g fill="#9EF01A"><path d="M17 17h8l-7 21h-8z"/><rect x="61.26" y="45.29" width="8" height="2" transform="rotate(108.872 61.26 45.29)"/><rect x="53.62" y="52.19" width="8" height="2" transform="rotate(18.8715 53.62 52.19)"/><rect x="52.65" y="55.03" width="8" height="2" transform="rotate(18.8715 52.65 55.03)"/><rect x="58.65" y="38" width="8" height="2" transform="rotate(18.8715 58.65 38)"/><rect x="57.5" y="40.84" width="8" height="2" transform="rotate(18.8715 57.5 40.84)"/><path d="M54 60h3l-3-1zM64 38h-3l3 1z"/></g><g fill="none" stroke="#9EF01A" stroke-width="8" stroke-linecap="square"><path d="M39.5 34c0-8.5 2.66-13 11.5-13S63 21.5 63 30"/><path d="M39.5 48c0 7.5-5.5 7-11 7-7.2 0-14.5 1-14.5-7"/></g></svg></button>
         </div>
     </div>
 
@@ -852,7 +858,7 @@
             w.style.setProperty('--x', Math.round(r.left + r.width / 2) + 'px');
             w.style.setProperty('--y', Math.round(r.top + r.height / 2) + 'px');
             w.style.background = document.body.hasAttribute('data-theme') ? '#252323' : '#f5f1ed';
-            w.innerHTML = $('altLogo').querySelector('svg').outerHTML;
+            w.innerHTML = (src.querySelector('svg') || $('altLogo').querySelector('svg')).outerHTML;
             document.body.appendChild(w);
             requestAnimationFrame(() => requestAnimationFrame(() => w.classList.add('go')));
             try { sessionStorage.setItem('produ_wipe', '1'); } catch (e) {}
