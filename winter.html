@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+    <title>Снежная тропа · ProdU</title>
+    <meta name="theme-color" content="#cfe0ee">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 50'%3E%3Crect width='50' height='50' rx='15' fill='%2386e212'/%3E%3Cg fill='none' stroke='%23fff' stroke-width='4' stroke-linecap='round'%3E%3Cpath d='M26.06 30.28a8.45 8.45 0 0 1-16.9 0'/%3E%3Cpath d='M26.06 22.54a8.45 8.45 0 0 1 16.9 0'/%3E%3Cpath d='M32 21.53l1.87 2.24 3.52-2.76' stroke-width='2'/%3E%3C/g%3E%3Crect x='7.04' y='11.97' width='4.23' height='12.68' rx='1' fill='%23fff'/%3E%3C/svg%3E">
+    <style>
+        :root {
+            --ink: #1d2b3a; --muted: #5b6f82; --panel: rgba(255, 255, 255, .72); --panel-edge: rgba(255, 255, 255, .9); --accent: #7ed321; --accent-dark: #5aa416;
+            --gold: #f2b705; --red: #e0453a; --ice: #8fd3f4; --shadow: 0 10px 30px rgba(30, 60, 90, .18);
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; height: 100%; overflow: hidden; background: #cfe0ee; color: var(--ink); font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+            -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: none; }
+        button { font: inherit; color: inherit; }
+        [hidden] { display: none !important; }
+        #gl, #fx { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+        #fx { pointer-events: none; }
+        .glass { background: var(--panel); border: 1px solid var(--panel-edge); box-shadow: var(--shadow); -webkit-backdrop-filter: blur(14px) saturate(150%); backdrop-filter: blur(14px) saturate(150%); }
+
+        /* верхняя панель */
+        .top { position: fixed; top: calc(12px + env(safe-area-inset-top)); left: 12px; right: 12px; display: flex; align-items: center; gap: 10px; pointer-events: none; z-index: 5; }
+        .top > * { pointer-events: auto; }
+        .ib { width: 46px; height: 46px; border-radius: 15px; border: none; display: grid; place-items: center; cursor: pointer; font-size: 22px; flex: none; }
+        .ib:active { transform: scale(.94); }
+        .title { padding: 8px 16px; border-radius: 15px; font-weight: 700; font-size: 17px; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .title small { display: block; font-size: 12px; font-weight: 500; color: var(--muted); }
+        .spacer { flex: 1; }
+        .mus .slash { opacity: 0; transition: opacity .2s; }
+        .mus.off { color: var(--muted); }
+        .mus.off .slash { opacity: 1; }
+        .mus:not(.off) svg { animation: musBeat 1.74s ease-in-out infinite; }
+        @keyframes musBeat { 50% { transform: rotate(-8deg) scale(1.06); } }
+        .pill { height: 46px; padding: 0 14px 0 8px; border-radius: 15px; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 18px; font-variant-numeric: tabular-nums; }
+        .coin-ic { width: 30px; height: 30px; border-radius: 50%; flex: none; background: radial-gradient(circle at 35% 30%, #fff3b0 0 18%, #ffd23f 20% 55%, #e0a400 57%);
+            box-shadow: inset 0 0 0 2px #c98d00, 0 2px 4px rgba(0, 0, 0, .15); display: grid; place-items: center; font-size: 13px; color: #a36c00; font-weight: 800; }
+        .pill.bump { animation: bump .45s cubic-bezier(.3, 1.6, .5, 1); }
+        @keyframes bump { 40% { transform: scale(1.12); } }
+        .lap { font-size: 14px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+
+        /* низ: кубик и кнопки */
+        .bottom { position: fixed; left: 12px; right: 12px; bottom: calc(14px + env(safe-area-inset-bottom)); display: flex; align-items: flex-end; justify-content: center; gap: 14px; z-index: 5; pointer-events: none; }
+        .bottom > * { pointer-events: auto; }
+        .side { display: flex; flex-direction: column; gap: 10px; }
+        .roll-box { display: flex; align-items: center; gap: 16px; padding: 12px 14px 12px 18px; border-radius: 24px; }
+        .roll-btn { border: none; border-radius: 16px; padding: 16px 22px; font-size: 17px; font-weight: 700; cursor: pointer; color: #fff; text-shadow: 0 1px 1px rgba(40, 80, 0, .4);
+            background: linear-gradient(180deg, #9ef01a, #6cc40c); box-shadow: 0 4px 12px rgba(108, 196, 12, .4), inset 0 1px 0 rgba(255, 255, 255, .5); min-width: 168px; transition: transform .1s, opacity .2s; }
+        .roll-btn:active { transform: translateY(2px); }
+        .roll-btn:disabled { opacity: .5; cursor: default; transform: none; }
+        .roll-btn small { display: block; font-size: 11.5px; font-weight: 500; opacity: .9; }
+        /* кубик (CSS 3D) */
+        .dice-scene { width: 62px; height: 62px; perspective: 360px; flex: none; }
+        .dice { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transform: rotateX(-24deg) rotateY(32deg); }
+        .dice.rolling { transition: transform 1.05s cubic-bezier(.2, .7, .2, 1); }
+        .face { position: absolute; inset: 0; border-radius: 13px; background: linear-gradient(145deg, #ffffff, #e6eef6); box-shadow: inset 0 0 0 2px #cfdbe7, inset 0 -3px 6px rgba(80, 110, 140, .18);
+            display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); padding: 9px; backface-visibility: hidden; }
+        .face i { width: 11px; height: 11px; border-radius: 50%; background: #c62f2f; place-self: center; box-shadow: inset 0 1px 2px rgba(0, 0, 0, .35); }
+        .face.f1 i { background: #c62f2f; width: 15px; height: 15px; }
+        .f1 { transform: translateZ(31px); } .f2 { transform: rotateY(90deg) translateZ(31px); } .f3 { transform: rotateY(180deg) translateZ(31px); }
+        .f4 { transform: rotateY(-90deg) translateZ(31px); } .f5 { transform: rotateX(90deg) translateZ(31px); } .f6 { transform: rotateX(-90deg) translateZ(31px); }
+        .p1 { grid-area: 1 / 1; } .p2 { grid-area: 1 / 3; } .p3 { grid-area: 2 / 1; } .p4 { grid-area: 2 / 2; } .p5 { grid-area: 2 / 3; } .p6 { grid-area: 3 / 1; } .p7 { grid-area: 3 / 3; }
+
+        /* уведомление о клетке */
+        .toast { position: fixed; left: 50%; top: calc(78px + env(safe-area-inset-top)); transform: translateX(-50%); z-index: 6; padding: 12px 18px; border-radius: 18px; text-align: center;
+            min-width: 220px; max-width: calc(100% - 24px); animation: toastIn .35s cubic-bezier(.3, 1.4, .5, 1); pointer-events: none; }
+        .toast b { display: block; font-size: 17px; }
+        .toast span { font-size: 14px; color: var(--muted); }
+        .toast.hide { animation: toastOut .3s ease forwards; }
+        @keyframes toastIn { from { opacity: 0; transform: translate(-50%, -10px) scale(.94); } }
+        @keyframes toastOut { to { opacity: 0; transform: translate(-50%, -8px); } }
+
+        /* панели */
+        .scrim { position: fixed; inset: 0; z-index: 20; background: rgba(20, 40, 60, .35); display: flex; align-items: center; justify-content: center; padding: 16px; }
+        .panel { width: min(620px, 100%); max-height: calc(100% - 20px); overflow-y: auto; border-radius: 26px; padding: 18px; display: flex; flex-direction: column; gap: 14px;
+            background: rgba(246, 250, 253, .92); animation: toastIn .3s ease; touch-action: pan-y; }
+        .panel-head { display: flex; align-items: center; gap: 10px; }
+        .panel-head h2 { margin: 0; font-size: 20px; flex: 1; }
+        .x { width: 38px; height: 38px; border-radius: 50%; border: none; background: rgba(30, 60, 90, .08); cursor: pointer; font-size: 17px; }
+        .skins { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px; }
+        .skin { border-radius: 18px; padding: 10px 10px 12px; background: #fff; box-shadow: 0 2px 10px rgba(30, 60, 90, .1); display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+        .skin.on { box-shadow: 0 0 0 3px var(--accent), 0 2px 10px rgba(30, 60, 90, .1); }
+        .skin img { width: 104px; height: 104px; display: block; }
+        .skin b { font-size: 14px; }
+        .skin small { font-size: 11.5px; color: var(--muted); min-height: 2.4em; line-height: 1.2; }
+        .sbtn { border: none; border-radius: 12px; padding: 9px 10px; width: 100%; cursor: pointer; font-weight: 700; font-size: 13.5px; background: var(--accent); color: #12300a; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .sbtn.sec { background: rgba(30, 60, 90, .08); color: var(--ink); }
+        .sbtn:disabled { opacity: .45; cursor: default; }
+        .sbtn .coin-ic { width: 18px; height: 18px; font-size: 9px; }
+        .help p { margin: 0; line-height: 1.5; font-size: 15px; }
+        .legend { display: grid; grid-template-columns: auto 1fr; gap: 10px 12px; align-items: center; font-size: 14.5px; }
+        .lg { width: 30px; height: 30px; border-radius: 8px; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, .08); display: grid; place-items: center; font-size: 15px; }
+        .hint { position: fixed; left: 50%; bottom: calc(118px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 4; font-size: 13px; color: var(--muted); padding: 6px 12px; border-radius: 12px;
+            white-space: nowrap; pointer-events: none; transition: opacity .5s; }
+        .loading { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: #cfe0ee; font-weight: 600; color: var(--muted); transition: opacity .5s; }
+        .loading.done { opacity: 0; pointer-events: none; }
+        .err { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 24px; text-align: center; background: #cfe0ee; }
+        @media (max-width: 560px) {
+            .title { font-size: 15px; padding: 7px 12px; }
+            .title { display: none; }
+            .pill { height: 44px; font-size: 16px; }
+            .lap { font-size: 13px; padding: 0 12px; }
+            .roll-box { padding: 10px 10px 10px 14px; gap: 12px; }
+            .roll-btn { min-width: 0; padding: 14px 16px; font-size: 16px; }
+            .dice-scene { width: 52px; height: 52px; }
+            .face { padding: 7px; border-radius: 11px; }
+            .face i { width: 9px; height: 9px; }
+            .face.f1 i { width: 13px; height: 13px; }
+            .f1 { transform: translateZ(26px); } .f2 { transform: rotateY(90deg) translateZ(26px); } .f3 { transform: rotateY(180deg) translateZ(26px); }
+            .f4 { transform: rotateY(-90deg) translateZ(26px); } .f5 { transform: rotateX(90deg) translateZ(26px); } .f6 { transform: rotateX(-90deg) translateZ(26px); }
+            .side .ib { width: 44px; height: 44px; }
+            .hint { bottom: calc(100px + env(safe-area-inset-bottom)); white-space: normal; text-align: center; width: calc(100% - 32px); }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gl" aria-label="Снежное поле с тропой из клеток"></canvas>
+    <canvas id="fx" aria-hidden="true"></canvas>
+    <div class="loading" id="loading">Готовим снежное поле…</div>
+
+    <div class="top">
+        <button type="button" class="ib glass" onclick="leave()" aria-label="Вернуться в ProdU" title="Вернуться в ProdU">‹</button>
+        <div class="title glass">Снежная тропа<small>Новогодняя прогулка Продушика</small></div>
+        <div class="spacer"></div>
+        <button type="button" class="ib glass mus" id="musBtn" onclick="toggleMusic()" aria-pressed="true"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 18V5l11-2v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.6" fill="currentColor"/><circle cx="17.5" cy="16" r="2.6" fill="currentColor"/><path class="slash" d="M3 3l18 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+        <div class="pill glass" id="coinPill" title="Монетки"><span class="coin-ic">₽</span><span id="coins">0</span></div>
+        <div class="pill glass lap" title="Пройдено кругов"><span aria-hidden="true">⛳</span><span id="lap">Круг 1</span></div>
+    </div>
+
+    <div class="bottom">
+        <div class="side">
+            <button type="button" class="ib glass" onclick="openWardrobe()" aria-label="Гардероб: скины" title="Гардероб">🎁</button>
+        </div>
+        <div class="roll-box glass">
+            <div class="dice-scene" aria-hidden="true">
+                <div class="dice" id="dice">
+                    <div class="face f1"><i class="p4"></i></div>
+                    <div class="face f2"><i class="p1"></i><i class="p7"></i></div>
+                    <div class="face f3"><i class="p1"></i><i class="p4"></i><i class="p7"></i></div>
+                    <div class="face f4"><i class="p1"></i><i class="p2"></i><i class="p6"></i><i class="p7"></i></div>
+                    <div class="face f5"><i class="p1"></i><i class="p2"></i><i class="p4"></i><i class="p6"></i><i class="p7"></i></div>
+                    <div class="face f6"><i class="p1"></i><i class="p2"></i><i class="p3"></i><i class="p5"></i><i class="p6"></i><i class="p7"></i></div>
+                </div>
+            </div>
+            <button type="button" class="roll-btn" id="rollBtn" onclick="roll()">Бросить кубик<small>или пробел</small></button>
+        </div>
+        <div class="side">
+            <button type="button" class="ib glass" onclick="openHelp()" aria-label="Как играть" title="Как играть">?</button>
+        </div>
+    </div>
+    <div class="hint glass" id="hint">Потяните, чтобы повернуть камеру · колесо или щипок — приблизить</div>
+    <div class="toast glass" id="toast" hidden role="status" aria-live="polite"></div>
+
+    <div class="scrim" id="wardrobe" hidden onclick="if (event.target === this) closePanels()">
+        <div class="panel glass" role="dialog" aria-modal="true" aria-labelledby="wTitle">
+            <div class="panel-head"><h2 id="wTitle">Гардероб</h2><div class="pill" style="height: 38px; box-shadow: none; background: rgba(30, 60, 90, .06);"><span class="coin-ic" style="width: 24px; height: 24px; font-size: 11px;">₽</span><span id="wCoins">0</span></div><button type="button" class="x" onclick="closePanels()" aria-label="Закрыть">✕</button></div>
+            <div class="skins" id="skins"></div>
+            <p style="margin: 0; font-size: 13px; color: var(--muted);">Скины можно купить за монетки или найти в подарках 🎁 на тропе.</p>
+        </div>
+    </div>
+    <div class="scrim" id="help" hidden onclick="if (event.target === this) closePanels()">
+        <div class="panel glass help" role="dialog" aria-modal="true" aria-labelledby="hTitle">
+            <div class="panel-head"><h2 id="hTitle">Как играть</h2><button type="button" class="x" onclick="closePanels()" aria-label="Закрыть">✕</button></div>
+            <p>Бросьте кубик — Продушик пройдёт по тропе столько клеток, сколько выпало. Что даст клетка, на которой он остановится:</p>
+            <div class="legend">
+                <span class="lg" style="background: #fff0b8;">🪙</span><span>Монетки: от 3 до 6</span>
+                <span class="lg" style="background: #ffe07a;">💰</span><span>Мешочек: 12 монеток</span>
+                <span class="lg" style="background: #ffd6e4;">🎁</span><span>Подарок: новый скин (или 25 монеток, если все собраны)</span>
+                <span class="lg" style="background: #bfeaff;">❄️</span><span>Лёд: скользите ещё на 2 клетки вперёд</span>
+                <span class="lg" style="background: #ffffff;">☃️</span><span>Сугроб: отступаете на 2 клетки назад</span>
+                <span class="lg" style="background: #ffd0cc;">🎄</span><span>Старт: за каждый пройденный круг +15 монеток, монетки и подарки на тропе появляются снова</span>
+            </div>
+            <p>Музыку можно выключить кнопкой с нотой сверху.</p>
+            <p>Камеру можно поворачивать, потянув по экрану, и приближать колёсиком или щипком двумя пальцами.</p>
+        </div>
+    </div>
+
+    <script>
+    'use strict';
+    // =====================================================================
+    // «Снежная тропа» — настольная мини-игра ProdU в 3D.
+    // Своя маленькая WebGL-графика без внешних библиотек: всё поле собрано из
+    // кубов, конусов и шаров (low-poly), поэтому игра работает и без интернета.
+    // =====================================================================
+    const $ = id => document.getElementById(id);
+    const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+    // ---------- математика 4×4 (по столбцам, как в WebGL) ----------
+    const m4 = {
+        id() { const m = new Float32Array(16); m[0] = m[5] = m[10] = m[15] = 1; return m; },
+        mul(a, b) { const o = new Float32Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) { let s = 0; for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = s; } return o; },
+        persp(fov, asp, n, f) { const t = 1 / Math.tan(fov / 2), o = new Float32Array(16); o[0] = t / asp; o[5] = t; o[10] = (f + n) / (n - f); o[11] = -1; o[14] = 2 * f * n / (n - f); return o; },
+        lookAt(e, c, u) {
+            let z = norm(sub(e, c)), x = norm(cross(u, z)), y = cross(z, x);
+            const o = new Float32Array([x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0, -dot(x, e), -dot(y, e), -dot(z, e), 1]);
+            return o;
+        },
+        t(x, y, z) { const m = m4.id(); m[12] = x; m[13] = y; m[14] = z; return m; },
+        s(x, y, z) { const m = m4.id(); m[0] = x; m[5] = y; m[10] = z; return m; },
+        ry(a) { const m = m4.id(), c = Math.cos(a), s = Math.sin(a); m[0] = c; m[2] = -s; m[8] = s; m[10] = c; return m; },
+        rx(a) { const m = m4.id(), c = Math.cos(a), s = Math.sin(a); m[5] = c; m[6] = s; m[9] = -s; m[10] = c; return m; },
+        rz(a) { const m = m4.id(), c = Math.cos(a), s = Math.sin(a); m[0] = c; m[1] = s; m[4] = -s; m[5] = c; return m; },
+        chain(...ms) { return ms.reduce((a, b) => m4.mul(a, b)); },
+        ap(m, p) { return [m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12], m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13], m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14]]; }
+    };
+    const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+    const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+    const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    const norm = a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+    const hex = (h, v = 0) => { const n = parseInt(h.slice(1), 16); return [((n >> 16) & 255) / 255 * (1 + v), ((n >> 8) & 255) / 255 * (1 + v), (n & 255) / 255 * (1 + v)].map(x => clamp(x, 0, 1)); };
+    // детерминированный генератор случайных чисел — поле всегда одинаковое
+    function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+    // ---------- сборщик геометрии: плоское освещение граней (low-poly) ----------
+    class Geo {
+        constructor() { this.d = []; this.m = null; }
+        with(m, fn) { const p = this.m; this.m = p ? m4.mul(p, m) : m; fn(); this.m = p; return this; }
+        tri(a, b, c, col, ctr) {
+            if (this.m) { a = m4.ap(this.m, a); b = m4.ap(this.m, b); c = m4.ap(this.m, c); if (ctr) ctr = m4.ap(this.m, ctr); }
+            let n = norm(cross(sub(b, a), sub(c, a)));
+            if (ctr) { const mid = [(a[0] + b[0] + c[0]) / 3, (a[1] + b[1] + c[1]) / 3, (a[2] + b[2] + c[2]) / 3]; if (dot(n, sub(mid, ctr)) < 0) n = [-n[0], -n[1], -n[2]]; }
+            const pv = Array.isArray(col[0]);
+            [a, b, c].forEach((p, k) => { const q = pv ? col[k] : col; this.d.push(p[0], p[1], p[2], n[0], n[1], n[2], q[0], q[1], q[2]); });
+        }
+        quad(a, b, c, d, col, ctr) {
+            if (Array.isArray(col[0])) { this.tri(a, b, c, [col[0], col[1], col[2]], ctr); this.tri(a, c, d, [col[0], col[2], col[3]], ctr); }
+            else { this.tri(a, b, c, col, ctr); this.tri(a, c, d, col, ctr); }
+        }
+        // брусок с вертикальным градиентом: colAt(y) возвращает цвет на высоте y
+        gbox(x, y, z, sx, sy, sz, colAt) {
+            const hx = sx / 2, hy = sy / 2, hz = sz / 2, c = [x, y, z];
+            const P = (i, j, k) => [x + i * hx, y + j * hy, z + k * hz];
+            const Q = (...pts) => this.quad(...pts, pts.map(p => colAt(p[1])), c);
+            Q(P(-1, 1, -1), P(1, 1, -1), P(1, 1, 1), P(-1, 1, 1));
+            Q(P(-1, -1, -1), P(1, -1, -1), P(1, -1, 1), P(-1, -1, 1));
+            Q(P(-1, -1, 1), P(1, -1, 1), P(1, 1, 1), P(-1, 1, 1));
+            Q(P(-1, -1, -1), P(1, -1, -1), P(1, 1, -1), P(-1, 1, -1));
+            Q(P(1, -1, -1), P(1, -1, 1), P(1, 1, 1), P(1, 1, -1));
+            Q(P(-1, -1, -1), P(-1, -1, 1), P(-1, 1, 1), P(-1, 1, -1));
+            return this;
+        }
+        box(x, y, z, sx, sy, sz, col, colTop) {
+            const hx = sx / 2, hy = sy / 2, hz = sz / 2, c = [x, y, z];
+            const P = (i, j, k) => [x + i * hx, y + j * hy, z + k * hz];
+            const top = colTop || col;
+            this.quad(P(-1, 1, -1), P(1, 1, -1), P(1, 1, 1), P(-1, 1, 1), top, c);
+            this.quad(P(-1, -1, -1), P(1, -1, -1), P(1, -1, 1), P(-1, -1, 1), col, c);
+            this.quad(P(-1, -1, 1), P(1, -1, 1), P(1, 1, 1), P(-1, 1, 1), col, c);
+            this.quad(P(-1, -1, -1), P(1, -1, -1), P(1, 1, -1), P(-1, 1, -1), col, c);
+            this.quad(P(1, -1, -1), P(1, -1, 1), P(1, 1, 1), P(1, 1, -1), col, c);
+            this.quad(P(-1, -1, -1), P(-1, -1, 1), P(-1, 1, 1), P(-1, 1, -1), col, c);
+            return this;
+        }
+        // цилиндр/конус: основание на y, высота h
+        cyl(x, y, z, r, h, seg, col, rTop = r, colTop, caps = true) {
+            const c = [x, y + h / 2, z], top = colTop || col;
+            for (let i = 0; i < seg; i++) {
+                const a0 = i / seg * Math.PI * 2, a1 = (i + 1) / seg * Math.PI * 2;
+                const b0 = [x + Math.cos(a0) * r, y, z + Math.sin(a0) * r], b1 = [x + Math.cos(a1) * r, y, z + Math.sin(a1) * r];
+                const t0 = [x + Math.cos(a0) * rTop, y + h, z + Math.sin(a0) * rTop], t1 = [x + Math.cos(a1) * rTop, y + h, z + Math.sin(a1) * rTop];
+                if (rTop > 0) this.quad(b0, b1, t1, t0, col, c); else this.tri(b0, b1, t0, col, c);
+                if (caps) {
+                    this.tri([x, y, z], b0, b1, col, c);
+                    if (rTop > 0) this.tri([x, y + h, z], t0, t1, top, c);
+                }
+            }
+            return this;
+        }
+        sphere(x, y, z, r, col, lat = 5, lon = 8, sy = 1, colTop) {
+            const c = [x, y, z];
+            const P = (i, j) => { const th = i / lat * Math.PI, ph = j / lon * Math.PI * 2; return [x + Math.sin(th) * Math.cos(ph) * r, y + Math.cos(th) * r * sy, z + Math.sin(th) * Math.sin(ph) * r]; };
+            for (let i = 0; i < lat; i++) for (let j = 0; j < lon; j++) {
+                const col2 = colTop && i < lat / 2 - 0.5 ? colTop : col;
+                const a = P(i, j), b = P(i + 1, j), cc = P(i + 1, j + 1), d = P(i, j + 1);
+                if (i === 0) this.tri(a, b, cc, col2, c); else if (i === lat - 1) this.tri(a, b, d, col2, c); else this.quad(a, b, cc, d, col2, c);
+            }
+            return this;
+        }
+    }
+
+    // ---------- WebGL ----------
+    const VS = `attribute vec3 aP; attribute vec3 aN; attribute vec3 aC;
+        uniform mat4 uVP; uniform mat4 uM; uniform vec3 uTint; uniform float uTintA;
+        varying vec3 vN; varying vec3 vC; varying vec3 vW;
+        void main() { vec4 w = uM * vec4(aP, 1.0); vW = w.xyz; vN = mat3(uM) * aN; vC = mix(aC, uTint, uTintA); gl_Position = uVP * w; }`;
+    const FS = `precision mediump float;
+        varying vec3 vN; varying vec3 vC; varying vec3 vW;
+        uniform vec3 uSun; uniform vec3 uSky; uniform vec3 uGround; uniform vec3 uFog; uniform vec3 uCam;
+        uniform float uFogN; uniform float uFogF; uniform float uA; uniform float uEmit;
+        void main() {
+            vec3 n = normalize(vN);
+            float d = max(dot(n, uSun), 0.0);
+            vec3 hemi = mix(uGround, uSky, n.y * 0.5 + 0.5);
+            vec3 c = vC * (hemi * 0.62 + d * vec3(1.0, 0.95, 0.88) * 0.62) + vC * uEmit;
+            float f = smoothstep(uFogN, uFogF, length(vW - uCam));
+            gl_FragColor = vec4(mix(c, uFog, f), uA);
+        }`;
+    class Gfx {
+        constructor(canvas, opts = {}) {
+            const gl = this.gl = canvas.getContext('webgl', { antialias: true, alpha: !!opts.alpha, preserveDrawingBuffer: !!opts.keep, premultipliedAlpha: false });
+            if (!gl) throw new Error('WebGL недоступен');
+            const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(o)); return o; };
+            const p = this.p = gl.createProgram();
+            gl.attachShader(p, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(p);
+            gl.useProgram(p);
+            this.a = { P: gl.getAttribLocation(p, 'aP'), N: gl.getAttribLocation(p, 'aN'), C: gl.getAttribLocation(p, 'aC') };
+            this.u = {};
+            ['uVP', 'uM', 'uTint', 'uTintA', 'uSun', 'uSky', 'uGround', 'uFog', 'uCam', 'uFogN', 'uFogF', 'uA', 'uEmit'].forEach(k => { this.u[k] = gl.getUniformLocation(p, k); });
+            gl.enable(gl.DEPTH_TEST);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+            this.vbos = new WeakMap();
+        }
+        mesh(geo) {
+            let m = this.vbos.get(geo);
+            if (!m) {
+                const gl = this.gl, b = gl.createBuffer();
+                gl.bindBuffer(gl.ARRAY_BUFFER, b);
+                const arr = geo.arr || (geo.arr = new Float32Array(geo.d));
+                gl.bufferData(gl.ARRAY_BUFFER, arr, gl.STATIC_DRAW);
+                m = { b, n: arr.length / 9 };
+                this.vbos.set(geo, m);
+            }
+            return m;
+        }
+        frame(w, h, vp, cam, env) {
+            const gl = this.gl;
+            gl.viewport(0, 0, w, h);
+            gl.clearColor(env.fog[0], env.fog[1], env.fog[2], env.clearA ?? 1);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            gl.uniformMatrix4fv(this.u.uVP, false, vp);
+            gl.uniform3fv(this.u.uSun, env.sun); gl.uniform3fv(this.u.uSky, env.sky); gl.uniform3fv(this.u.uGround, env.ground); gl.uniform3fv(this.u.uFog, env.fog);
+            gl.uniform3fv(this.u.uCam, cam); gl.uniform1f(this.u.uFogN, env.fogN); gl.uniform1f(this.u.uFogF, env.fogF);
+        }
+        draw(geo, M = IDENT, { alpha = 1, emit = 0, tint = null, tintA = 0 } = {}) {
+            const gl = this.gl, m = this.mesh(geo);
+            if (!m.n) return;
+            gl.bindBuffer(gl.ARRAY_BUFFER, m.b);
+            gl.enableVertexAttribArray(this.a.P); gl.vertexAttribPointer(this.a.P, 3, gl.FLOAT, false, 36, 0);
+            gl.enableVertexAttribArray(this.a.N); gl.vertexAttribPointer(this.a.N, 3, gl.FLOAT, false, 36, 12);
+            gl.enableVertexAttribArray(this.a.C); gl.vertexAttribPointer(this.a.C, 3, gl.FLOAT, false, 36, 24);
+            gl.uniformMatrix4fv(this.u.uM, false, M);
+            gl.uniform1f(this.u.uA, alpha); gl.uniform1f(this.u.uEmit, emit);
+            gl.uniform3fv(this.u.uTint, tint || [0, 0, 0]); gl.uniform1f(this.u.uTintA, tintA);
+            if (alpha < 1) { gl.enable(gl.BLEND); gl.depthMask(false); } else { gl.disable(gl.BLEND); gl.depthMask(true); }
+            gl.drawArrays(gl.TRIANGLES, 0, m.n);
+        }
+    }
+    const IDENT = m4.id();
+
+    // =====================================================================
+    // ПОЛЕ
+    // =====================================================================
+    const S = 1.12;                         // шаг клетки
+    // тропа — замкнутый маршрут (дорожка из 46 клеток)
+    const ROUTE = [['E', 5], ['N', 3], ['E', 4], ['N', 4], ['W', 3], ['N', 3], ['W', 6], ['S', 2], ['W', 4], ['S', 5], ['E', 4], ['S', 3]];
+    const PATH = (() => {
+        const p = [[0, 0]]; let x = 0, y = 0;
+        const D = { E: [1, 0], W: [-1, 0], N: [0, 1], S: [0, -1] };
+        ROUTE.forEach(([d, n]) => { for (let i = 0; i < n; i++) { x += D[d][0]; y += D[d][1]; p.push([x, y]); } });
+        p.pop();   // последняя клетка совпадает со стартом
+        return p;
+    })();
+    const N = PATH.length;
+    const world = (i) => [PATH[i][0] * S, 0, -PATH[i][1] * S];
+    // типы клеток
+    const TYPES = PATH.map((_, i) => {
+        if (i === 0) return 'start';
+        if ([8, 19, 31, 41].includes(i)) return 'gift';
+        if ([13, 27, 38].includes(i)) return 'ice';
+        if ([16, 24, 35, 44].includes(i)) return 'drift';
+        if ([5, 22, 29].includes(i)) return 'bag';
+        if (i % 3 === 1 || i % 7 === 3) return 'coin';
+        return 'plain';
+    });
+    const TREE_CENTER = [3, 6];
+
+    const COL = {
+        snow: hex('#f3f8fc'), snow2: hex('#e6eff7'), snowShade: hex('#dbe7f1'), tileA: hex('#ffffff'), tileB: hex('#e9f2fa'), tileEdge: hex('#b9cbdc'),
+        fir: hex('#2f7d4f'), fir2: hex('#3b9460'), trunk: hex('#7a4d2c'), red: hex('#d9363e'), white: hex('#ffffff'), gold: hex('#f5c242'), ice: hex('#a6defa'), ice2: hex('#c9ecff'),
+        coal: hex('#26282e'), carrot: hex('#f07a1a'), wood: hex('#8b5a35'), wood2: hex('#a8703f'), roof: hex('#b23a3a'), window: hex('#ffd36b'), rock: hex('#8e9bab'), blue: hex('#3b82d6'),
+        green2: hex('#2fa86b'), purple: hex('#9b5de5'), pink: hex('#f15bb5')
+    };
+    const ORN = [COL.red, COL.gold, COL.blue, COL.purple, COL.pink, hex('#ffffff')];
+
+    function buildWorld() {
+        const g = new Geo(), glow = new Geo(), shadow = new Geo();
+        const R = rng(20261231);
+        const onPath = new Set(PATH.map(([x, y]) => x + ',' + y));
+        const near = (x, y, d = 1) => { for (let i = -d; i <= d; i++) for (let j = -d; j <= d; j++) if (onPath.has((x + i) + ',' + (y + j))) return true; return false; };
+        const used = new Set();
+        const W = (x, y) => [x * S, 0, -y * S];
+        const blob = (x, z, r, a = 1) => shadow.cyl(x, 0.012, z, r, 0.001, 12, [0.25 * a, 0.35 * a, 0.5 * a], r, null, true);
+
+        // снежная земля: клетки с лёгкой неровностью цвета
+        for (let gx = -16; gx <= 21; gx++) for (let gy = -12; gy <= 22; gy++) {
+            const c = R() < 0.5 ? COL.snow : COL.snow2;
+            const x0 = (gx - .5) * S, x1 = (gx + .5) * S, z0 = -(gy - .5) * S, z1 = -(gy + .5) * S;
+            g.quad([x0, 0, z0], [x1, 0, z0], [x1, 0, z1], [x0, 0, z1], c, [(x0 + x1) / 2, -1, (z0 + z1) / 2]);
+        }
+        // замёрзший пруд
+        const pond = [12, 12];
+        g.cyl(pond[0] * S, 0.003, -pond[1] * S, 2.4, 0.02, 20, COL.ice, 2.4, COL.ice);
+        g.cyl(pond[0] * S - 0.5, 0.024, -pond[1] * S + 0.4, 0.9, 0.004, 14, COL.ice2, 0.9, COL.ice2);
+        for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) if (Math.hypot(i, j) < 3.2) used.add((pond[0] + i) + ',' + (pond[1] + j));
+
+        // клетки тропы
+        PATH.forEach(([x, y], i) => {
+            const [wx, , wz] = W(x, y), t = TYPES[i];
+            g.box(wx, 0.07, wz, 0.98, 0.14, 0.98, COL.tileEdge, null);
+            const top = t === 'ice' ? COL.ice : t === 'start' ? hex('#ffe3df') : (i % 2 ? COL.tileA : COL.tileB);
+            g.box(wx, 0.15, wz, 0.9, 0.03, 0.9, top);
+            const mark = { coin: hex('#ffe58a'), bag: hex('#ffd34d'), gift: hex('#ffc2d9'), drift: hex('#ffffff'), start: COL.red }[t];
+            if (mark && t !== 'drift') g.box(wx, 0.168, wz, 0.42, 0.01, 0.42, mark);
+            if (t === 'ice') { g.box(wx - 0.15, 0.17, wz + 0.1, 0.3, 0.008, 0.06, COL.white); g.box(wx + 0.1, 0.17, wz - 0.15, 0.22, 0.008, 0.05, COL.white); }
+            if (t === 'drift') g.sphere(wx, 0.16, wz, 0.38, COL.white, 4, 8, 0.45);
+            if (t === 'start') {
+                // арка из леденцов
+                for (const s of [-1, 1]) {
+                    for (let k = 0; k < 7; k++) g.cyl(wx + s * 0.46, 0.15 + k * 0.17, wz, 0.055, 0.17, 8, k % 2 ? COL.white : COL.red);
+                }
+                g.box(wx, 1.36, wz, 1.08, 0.12, 0.12, COL.red);
+                g.box(wx, 1.36, wz, 0.5, 0.13, 0.13, COL.white);
+                glow.sphere(wx, 1.5, wz, 0.1, COL.gold, 3, 6);
+            }
+            // номер клетки не рисуем: следим за ней по стрелке направления
+            const nx = PATH[(i + 1) % N];
+            if (t === 'plain' && i % 4 === 2) {
+                const dx = nx[0] - x, dy = nx[1] - y, ang = Math.atan2(dx, dy);
+                g.with(m4.chain(m4.t(wx, 0.17, wz), m4.ry(ang)), () => {
+                    g.tri([-0.12, 0, 0.05], [0.12, 0, 0.05], [0, 0, -0.14], COL.tileEdge, [0, -1, 0]);
+                });
+            }
+        });
+
+        // ---- декорации ----
+        const fir = (x, z, s, ornaments) => {
+            g.cyl(x, 0, z, 0.12 * s, 0.35 * s, 6, COL.trunk);
+            const layers = [[0.3, 0.75, 0.8], [0.75, 0.6, 0.72], [1.15, 0.45, 0.62]];
+            layers.forEach(([y, r, h], k) => {
+                g.cyl(x, y * s, z, r * s, h * s, 8, k % 2 ? COL.fir2 : COL.fir, 0);
+                g.cyl(x, (y + h * 0.55) * s, z, r * s * 0.5, h * s * 0.45, 8, COL.white, 0);
+            });
+            if (ornaments) for (let k = 0; k < 7; k++) {
+                const a = R() * Math.PI * 2, hgt = 0.45 + R() * 0.9, rr = (0.78 - hgt * 0.42) * s;
+                glow.sphere(x + Math.cos(a) * rr, hgt * s, z + Math.sin(a) * rr, 0.06 * s, ORN[(R() * ORN.length) | 0], 3, 6);
+            }
+            blob(x, z, 0.7 * s, 0.9);
+        };
+        const snowman = (x, z, rot) => {
+            g.sphere(x, 0.32, z, 0.34, COL.white, 5, 9);
+            g.sphere(x, 0.78, z, 0.25, COL.white, 5, 9);
+            g.sphere(x, 1.12, z, 0.18, COL.white, 5, 9);
+            g.with(m4.chain(m4.t(x, 0, z), m4.ry(rot)), () => {
+                g.box(-0.07, 1.17, 0.16, 0.04, 0.04, 0.03, COL.coal); g.box(0.07, 1.17, 0.16, 0.04, 0.04, 0.03, COL.coal);
+                g.with(m4.chain(m4.t(0, 1.11, 0.15), m4.rx(Math.PI / 2)), () => g.cyl(0, 0, 0, 0.035, 0.2, 6, COL.carrot, 0));
+                [0.86, 0.74, 0.62].forEach(y => g.box(0, y, 0.24, 0.05, 0.05, 0.03, COL.coal));
+                g.cyl(0, 1.26, 0, 0.17, 0.03, 10, COL.coal); g.cyl(0, 1.28, 0, 0.11, 0.2, 10, COL.coal);
+                g.box(0, 0.98, 0.03, 0.42, 0.07, 0.32, COL.red);
+                g.box(0.14, 0.86, 0.17, 0.08, 0.22, 0.04, COL.red);
+                g.with(m4.rz(0.6), () => g.box(0.45, 0.62, 0, 0.42, 0.03, 0.03, COL.wood));
+                g.with(m4.rz(-0.6), () => g.box(-0.45, 0.62, 0, 0.42, 0.03, 0.03, COL.wood));
+            });
+            blob(x, z, 0.45);
+        };
+        const present = (x, z, s, col, rot) => {
+            g.with(m4.chain(m4.t(x, 0, z), m4.ry(rot), m4.s(s, s, s)), () => {
+                g.box(0, 0.2, 0, 0.4, 0.4, 0.4, col);
+                g.box(0, 0.2, 0, 0.42, 0.41, 0.08, COL.gold); g.box(0, 0.2, 0, 0.08, 0.41, 0.42, COL.gold);
+                g.with(m4.rz(0.6), () => g.box(0.1, 0.48, 0, 0.16, 0.05, 0.06, COL.gold));
+                g.with(m4.rz(-0.6), () => g.box(-0.1, 0.48, 0, 0.16, 0.05, 0.06, COL.gold));
+            });
+            blob(x, z, 0.32 * s);
+        };
+        const cane = (x, z, rot) => {
+            g.with(m4.chain(m4.t(x, 0, z), m4.ry(rot)), () => {
+                for (let k = 0; k < 7; k++) g.cyl(0, k * 0.15, 0, 0.06, 0.15, 8, k % 2 ? COL.white : COL.red);
+                for (let k = 0; k < 5; k++) {
+                    const a = k / 4 * Math.PI;
+                    g.sphere(0.16 - Math.cos(a) * 0.16, 1.05 + Math.sin(a) * 0.16, 0, 0.065, k % 2 ? COL.white : COL.red, 3, 6);
+                }
+            });
+            blob(x, z, 0.18);
+        };
+        const lamp = (x, z) => {
+            g.cyl(x, 0, z, 0.06, 1.2, 8, COL.coal);
+            g.box(x, 1.28, z, 0.24, 0.05, 0.24, COL.coal);
+            glow.box(x, 1.4, z, 0.18, 0.2, 0.18, COL.window);
+            g.cyl(x, 1.5, z, 0.16, 0.12, 4, COL.coal, 0);
+            g.cyl(x, 1.6, z, 0.12, 0.04, 6, COL.white, 0.05);
+            blob(x, z, 0.25);
+        };
+        const house = (x, z, rot, wall) => {
+            g.with(m4.chain(m4.t(x, 0, z), m4.ry(rot)), () => {
+                g.box(0, 0.6, 0, 1.6, 1.2, 1.3, wall);
+                // крыша — две наклонные плиты со снегом
+                g.with(m4.chain(m4.t(0, 1.48, -0.38), m4.rx(0.62)), () => { g.box(0, 0, 0, 1.8, 0.1, 0.95, COL.roof); g.box(0, 0.08, 0, 1.82, 0.08, 0.97, COL.white); });
+                g.with(m4.chain(m4.t(0, 1.48, 0.38), m4.rx(-0.62)), () => { g.box(0, 0, 0, 1.8, 0.1, 0.95, COL.roof); g.box(0, 0.08, 0, 1.82, 0.08, 0.97, COL.white); });
+                g.tri([-0.8, 1.2, -0.65], [-0.8, 1.2, 0.65], [-0.8, 1.75, 0], wall, [0, 1.3, 0]);
+                g.tri([0.8, 1.2, -0.65], [0.8, 1.2, 0.65], [0.8, 1.75, 0], wall, [0, 1.3, 0]);
+                g.box(0.45, 1.8, 0.25, 0.2, 0.5, 0.2, COL.rock); g.box(0.45, 2.06, 0.25, 0.24, 0.06, 0.24, COL.white);
+                g.box(0, 0.45, 0.66, 0.36, 0.7, 0.04, COL.wood);
+                glow.box(-0.5, 0.75, 0.66, 0.3, 0.3, 0.03, COL.window); glow.box(0.5, 0.75, 0.66, 0.3, 0.3, 0.03, COL.window);
+                glow.box(0.81, 0.75, 0, 0.03, 0.3, 0.3, COL.window);
+                // гирлянда по краю крыши
+                for (let k = 0; k < 9; k++) glow.sphere(-0.8 + k * 0.2, 1.17, 0.7, 0.04, ORN[k % ORN.length], 2, 5);
+            });
+            blob(x, z, 1.2);
+        };
+        const rock = (x, z, s) => { g.sphere(x, 0.08 * s, z, 0.3 * s, COL.rock, 3, 6, 0.7, COL.white); blob(x, z, 0.3 * s); };
+        const mound = (x, z, s) => g.sphere(x, 0, z, 0.5 * s, COL.snowShade, 3, 8, 0.35, COL.white);
+
+        // большая ёлка в центре петли
+        {
+            const [tx, , tz] = W(...TREE_CENTER);
+            g.cyl(tx, 0, tz, 0.28, 0.6, 8, COL.trunk);
+            const L = [[0.5, 1.6, 1.3], [1.3, 1.35, 1.2], [2.1, 1.05, 1.1], [2.85, 0.75, 1.0], [3.5, 0.45, 0.9]];
+            L.forEach(([y, r, h], k) => { g.cyl(tx, y, tz, r, h, 10, k % 2 ? COL.fir2 : COL.fir, 0); g.cyl(tx, y + h * 0.55, tz, r * 0.48, h * 0.45, 10, COL.white, 0); });
+            for (let k = 0; k < 46; k++) {
+                const hgt = 0.7 + R() * 3.0, a = R() * Math.PI * 2, rr = 1.55 - hgt * 0.36;
+                glow.sphere(tx + Math.cos(a) * rr, hgt, tz + Math.sin(a) * rr, 0.08, ORN[k % ORN.length], 3, 6);
+            }
+            // звезда
+            glow.with(m4.t(tx, 4.55, tz), () => {
+                for (let k = 0; k < 5; k++) glow.with(m4.rz(k / 5 * Math.PI * 2), () => glow.cyl(0, 0, 0, 0.12, 0.38, 4, COL.gold, 0));
+                glow.sphere(0, 0, 0, 0.16, COL.gold, 3, 6);
+            });
+            blob(tx, tz, 1.8);
+            for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) used.add((TREE_CENTER[0] + i) + ',' + (TREE_CENTER[1] + j));
+            [[-1.3, 0.9], [1.1, 1.2], [1.4, -0.7], [-0.6, -1.4], [-1.5, -0.4]].forEach(([dx, dz], k) => present(tx + dx, tz + dz, 0.8 + R() * 0.5, ORN[k % 5], R() * 3));
+        }
+        // остальные декорации по сетке
+        for (let x = -14; x <= 19; x++) for (let y = -10; y <= 20; y++) {
+            const key = x + ',' + y;
+            if (onPath.has(key) || used.has(key)) continue;
+            if (near(x, y, 1)) { if (R() < 0.12) { const [wx, , wz] = W(x, y); (R() < 0.5 ? lamp : (a, b) => cane(a, b, R() * 6))(wx + (R() - .5) * .3, wz + (R() - .5) * .3); used.add(key); } continue; }
+            const r = R(), [wx, , wz] = W(x, y), jx = (R() - .5) * 0.6, jz = (R() - .5) * 0.6;
+            const far = Math.abs(x - 3) > 9 || y < -4 || y > 15;
+            if (r < (far ? 0.42 : 0.2)) fir(wx + jx, wz + jz, 0.8 + R() * 0.7, R() < 0.25);
+            else if (r < (far ? 0.44 : 0.235)) snowman(wx + jx, wz + jz, R() * 6);
+            else if (r < (far ? 0.47 : 0.27)) present(wx + jx, wz + jz, 0.8 + R() * 0.6, ORN[(R() * 5) | 0], R() * 3);
+            else if (r < (far ? 0.5 : 0.3)) rock(wx + jx, wz + jz, 0.8 + R() * 0.8);
+            else if (r < (far ? 0.53 : 0.33)) mound(wx + jx, wz + jz, 1 + R());
+            else continue;
+            used.add(key);
+        }
+        // домики по краям поля
+        [[13, 3, 0.4, hex('#e9d7b9')], [-9, 12, -0.3, hex('#cfe2c6')], [9, 15, 2.6, hex('#e8c9c9')], [-8, -1, 1.9, hex('#d6dcef')], [16, 7, -1.2, hex('#f1e2c2')]].forEach(([x, y, r, c]) => {
+            const [wx, , wz] = W(x, y); house(wx, wz, r, c);
+        });
+        return { g, glow, shadow };
+    }
+
+    // ---------- предметы на клетках ----------
+    function coinGeo(big) {
+        const g = new Geo();
+        g.with(m4.rx(Math.PI / 2), () => {
+            g.cyl(0, -0.04, 0, big ? 0.3 : 0.22, 0.08, 14, hex('#e6a700'), big ? 0.3 : 0.22, hex('#ffd23f'));
+            g.cyl(0, 0.04, 0, big ? 0.18 : 0.12, 0.012, 10, hex('#fff1a8'));
+            g.cyl(0, -0.052, 0, big ? 0.18 : 0.12, 0.012, 10, hex('#fff1a8'));
+        });
+        return g;
+    }
+    function giftGeo() {
+        const g = new Geo();
+        g.box(0, 0.22, 0, 0.42, 0.42, 0.42, hex('#e8436f'));
+        g.box(0, 0.22, 0, 0.44, 0.43, 0.09, hex('#ffd23f')); g.box(0, 0.22, 0, 0.09, 0.43, 0.44, hex('#ffd23f'));
+        g.with(m4.rz(0.6), () => g.box(0.12, 0.5, 0, 0.18, 0.06, 0.07, hex('#ffd23f')));
+        g.with(m4.rz(-0.6), () => g.box(-0.12, 0.5, 0, 0.18, 0.06, 0.07, hex('#ffd23f')));
+        return g;
+    }
+
+    // ---------- Продушик и скины ----------
+    // top/bottom — градиент тела сверху вниз (у классического — как на логотипе), face — цвет черт лица
+    const SKINS = [
+        { id: 'classic', name: 'Классика', price: 0, top: '#9ef01a', bottom: '#70e000', face: '#ffffff', note: 'Как на логотипе ProdU' },
+        { id: 'snow', name: 'Снежок', price: 40, top: '#ffffff', bottom: '#dbe6f5', face: '#3a6fb8', extra: 'scarf', note: 'Тёплый шарф и шапочка' },
+        { id: 'ginger', name: 'Пряник', price: 70, top: '#c98447', bottom: '#9a5a2a', face: '#fff4e0', extra: 'icing', note: 'С глазурью' },
+        { id: 'ice', name: 'Ледышка', price: 90, top: '#c4f0ff', bottom: '#7fd0f2', face: '#1d5f8a', extra: 'crystal', note: 'Колючие кристаллы' },
+        { id: 'elf', name: 'Эльф', price: 120, top: '#4fc95e', bottom: '#2e9a3f', face: '#ffffff', extra: 'elfhat', note: 'Колпак с помпоном' },
+        { id: 'deer', name: 'Олень', price: 150, top: '#b07a4e', bottom: '#83552f', face: '#ffffff', extra: 'antlers', note: 'Ветвистые рога' },
+        { id: 'santa', name: 'Дед Мороз', price: 190, top: '#ee4a44', bottom: '#c22d2d', face: '#ffffff', extra: 'santa', note: 'Шапка и борода' },
+        { id: 'gold', name: 'Золотой', price: 300, top: '#ffd94a', bottom: '#e0a800', face: '#8a5a00', extra: 'crown', note: 'Корона и сияние' }
+    ];
+    const skinGeoCache = {};
+    // Лицо — те же элементы, что на логотипе ProdU (координаты логотипа 50×50 переносятся на переднюю грань):
+    // вертикальная черта, «улыбка»-полукруг снизу, купол сверху справа и галочка внутри купола.
+    function logoFace(g, col) {
+        const K = 0.0112, X = u => (u - 25) * K, Y = v => 0.335 + (25.3 - v) * K * 0.97, Z = 0.334;
+        const disc = (u, v, w) => g.with(m4.chain(m4.t(X(u), Y(v), Z - 0.007), m4.rx(Math.PI / 2)), () => g.cyl(0, 0, 0, w * K / 2, 0.014, 10, col));
+        const stroke = (pts, w) => {
+            pts.forEach(([u, v]) => disc(u, v, w));
+            for (let i = 1; i < pts.length; i++) {
+                const [u1, v1] = pts[i - 1], [u2, v2] = pts[i];
+                const x1 = X(u1), y1 = Y(v1), x2 = X(u2), y2 = Y(v2);
+                g.with(m4.chain(m4.t((x1 + x2) / 2, (y1 + y2) / 2, Z), m4.rz(Math.atan2(y2 - y1, x2 - x1))), () => g.box(0, 0, 0, Math.hypot(x2 - x1, y2 - y1), w * K, 0.014, col));
+            }
+        };
+        const arc = (cx, cy, r, t0, t1, n = 14) => Array.from({ length: n + 1 }, (_, i) => { const t = t0 + (t1 - t0) * i / n; return [cx + Math.cos(t) * r, cy + Math.sin(t) * r]; });
+        stroke(arc(17.61, 30.28, 8.45, 0, Math.PI), 4);                 // улыбка
+        stroke(arc(34.51, 22.54, 8.45, Math.PI, Math.PI * 2), 4);       // купол
+        stroke([[32, 21.53], [33.87, 23.77], [37.39, 21.01]], 2);       // галочка
+        g.box((X(7.04) + X(11.27)) / 2, (Y(11.97) + Y(24.65)) / 2, Z, 4.23 * K, 12.68 * K * 0.97, 0.014, col);   // черта
+    }
+    function playerGeo(skin) {
+        if (skinGeoCache[skin.id]) return skinGeoCache[skin.id];
+        const g = new Geo(), top = hex(skin.top), bot = hex(skin.bottom), dark = hex(skin.bottom, -0.18);
+        const at = y => { const t = clamp((y - 0.04) / 0.58, 0, 1); return [lerp(bot[0], top[0], t), lerp(bot[1], top[1], t), lerp(bot[2], top[2], t)]; };
+        // тело: кубик со скруглением за счёт «фаски» (три пересекающихся бруска)
+        g.gbox(0, 0.33, 0, 0.62, 0.58, 0.62, at);
+        g.gbox(0, 0.33, 0, 0.66, 0.5, 0.56, at);
+        g.gbox(0, 0.33, 0, 0.56, 0.5, 0.66, at);
+        g.box(0, 0.05, 0, 0.6, 0.06, 0.6, dark);
+        logoFace(g, hex(skin.face).map(v => v * 1.45 + 0.04));   // чуть «светится», чтобы лицо читалось и в тени
+        const W = hex('#ffffff'), R = hex('#d9363e');
+        switch (skin.extra) {
+            case 'scarf':
+                g.box(0, 0.1, 0, 0.7, 0.09, 0.7, R); g.box(0, 0.1, 0, 0.71, 0.025, 0.71, W);
+                g.box(0.22, 0.0, 0.36, 0.11, 0.16, 0.04, R);
+                g.cyl(0, 0.61, 0, 0.22, 0.12, 10, hex('#5b8bd6')); g.sphere(0, 0.78, 0, 0.08, W, 3, 6);
+                break;
+            case 'icing':
+                g.box(0, 0.63, 0, 0.64, 0.03, 0.64, W);
+                for (let k = 0; k < 5; k++) g.box(-0.24 + k * 0.12, 0.6, 0.32, 0.06, 0.05 + (k % 2) * 0.04, 0.02, W);
+                [hex('#d9363e'), hex('#3fb34f'), hex('#3b82d6')].forEach((c, k) => g.sphere(-0.12 + k * 0.12, 0.66, 0, 0.04, c, 3, 6));
+                break;
+            case 'crystal':
+                [[-0.15, -0.12, 0.28], [0.12, 0.08, 0.36], [0, -0.05, 0.22], [0.18, -0.16, 0.2]].forEach(([x, z, h]) => g.cyl(x, 0.62, z, 0.07, h, 4, hex('#eefaff'), 0));
+                break;
+            case 'elfhat':
+                g.cyl(0, 0.62, 0, 0.3, 0.07, 10, R); g.cyl(0, 0.69, 0, 0.27, 0.5, 10, hex('#2f8f3e'), 0);
+                g.sphere(0.02, 1.2, 0, 0.07, R, 3, 6);
+                break;
+            case 'antlers':
+                for (const s of [-1, 1]) {
+                    g.box(s * 0.2, 0.75, -0.05, 0.05, 0.28, 0.05, hex('#6b4423'));
+                    g.with(m4.chain(m4.t(s * 0.27, 0.82, -0.05), m4.rz(-s * 0.9)), () => g.box(0, 0, 0, 0.05, 0.18, 0.05, hex('#6b4423')));
+                    g.with(m4.chain(m4.t(s * 0.14, 0.9, -0.05), m4.rz(s * 0.7)), () => g.box(0, 0, 0, 0.05, 0.14, 0.05, hex('#6b4423')));
+                }
+                break;
+            case 'santa':
+                g.cyl(0, 0.62, 0, 0.32, 0.09, 12, W); g.cyl(0, 0.71, 0, 0.28, 0.45, 12, R, 0);
+                g.sphere(0.06, 1.15, 0, 0.08, W, 3, 6);
+                g.box(0, 0.1, 0.33, 0.56, 0.12, 0.05, W); g.box(0, 0.03, 0.33, 0.36, 0.08, 0.05, W);
+                break;
+            case 'crown':
+                g.cyl(0, 0.62, 0, 0.24, 0.1, 10, hex('#ffd84d'));
+                for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2; g.cyl(Math.cos(a) * 0.2, 0.72, Math.sin(a) * 0.2, 0.05, 0.12, 4, hex('#ffd84d'), 0); }
+                g.sphere(0, 0.68, 0.25, 0.04, hex('#e8436f'), 3, 6);
+                break;
+        }
+        return (skinGeoCache[skin.id] = g);
+    }
+
+    // =====================================================================
+    // СОСТОЯНИЕ ИГРЫ
+    // =====================================================================
+    const SAVE_KEY = 'produ_winter';
+    let save = (() => { try { return JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { return null; } })() || {};
+    save = Object.assign({ coins: 0, pos: 0, lap: 1, owned: { classic: 1 }, skin: 'classic', taken: {}, rolls: 0 }, save);
+    const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
+    const skinNow = () => SKINS.find(s => s.id === save.skin && save.owned[s.id]) || SKINS[0];
+
+    const P = { idx: save.pos, pos: world(save.pos), yaw: 0, hop: null, sx: 1, sy: 1, bob: 0 };
+    { const n = PATH[(save.pos + 1) % N], c = PATH[save.pos]; P.yaw = Math.atan2(n[0] - c[0], -(n[1] - c[1])); }
+    let busy = false;
+    const cam = { yaw: 0.72, pitch: 0.95, dist: 12, target: P.pos.slice(), eye: [0, 0, 0] };
+
+    // ---------- звук ----------
+    let ac = null;
+    function getAC() {
+        if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+        if (ac.state === 'suspended') ac.resume();
+        return ac;
+    }
+    function tone(f1, f2, dur, type = 'sine', vol = 0.07, delay = 0) {
+        try {
+            getAC();
+            const t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+            o.type = type; o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(30, f2), t + dur);
+            g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            o.connect(g).connect(ac.destination); o.start(t); o.stop(t + dur + 0.05);
+        } catch (e) {}
+    }
+    // ---------- новогодняя музыка (собирается прямо в браузере через WebAudio) ----------
+    // Часть A — припев «Jingle Bells» (Дж. Пирпонт, 1857, общественное достояние) с бубенцами и басом «умпа»,
+    // часть B — спокойная интерлюдия: музыкальная шкатулка, мягкий пэд и колокольчики. Цикл ~42 с.
+    const MUS_KEY = 'produ_winter_music';
+    const M = { on: (() => { try { return localStorage.getItem(MUS_KEY) !== '0'; } catch (e) { return true; } })(), playing: false, ctx: null, out: null, bus: null, noise: null, step: 0, next: 0, timer: 0 };
+    const MUS_VOL = 1.5, BPM = 138, E8 = 60 / BPM / 2, LOOP = 192;
+    const hz = n => 440 * Math.pow(2, (n - 69) / 12);
+    const MEL = {};
+    (() => {
+        const A1 = [[76, 2], [76, 2], [76, 4], [76, 2], [76, 2], [76, 4], [76, 2], [79, 2], [72, 3], [74, 1], [76, 8]];
+        const A = [...A1, [77, 2], [77, 2], [77, 3], [77, 1], [77, 2], [76, 2], [76, 2], [76, 1], [76, 1], [76, 2], [74, 2], [74, 2], [76, 2], [74, 4], [79, 4],
+                   ...A1, [77, 2], [77, 2], [77, 3], [77, 1], [77, 2], [76, 2], [76, 2], [76, 1], [76, 1], [79, 2], [79, 2], [77, 2], [74, 2], [72, 8]];
+        const B = [[84, 4], [81, 4], [83, 4], [79, 4], [79, 4], [76, 4], [81, 8], [81, 4], [84, 4], [83, 4], [86, 4], [86, 4], [83, 4], [84, 8]];
+        let t = 0; [...A, ...B].forEach(([n, d]) => { MEL[t] = [n, d]; t += d; });
+    })();
+    const CH = 'C C C C F C D G C C C C F C G C F G C Am F G G C'.split(' ');
+    const CHORD = { C: [60, 64, 67], F: [60, 65, 69], D: [62, 66, 69], G: [59, 62, 67], Am: [60, 64, 69] };
+    const BASS = { C: [48, 43], F: [53, 48], D: [50, 45], G: [43, 50], Am: [45, 52] };
+    function musInit(ctx) {
+        M.ctx = ctx;
+        M.out = ctx.createGain(); M.out.gain.value = MUS_VOL; M.out.connect(ctx.destination);
+        M.bus = ctx.createGain(); M.bus.connect(M.out);
+        // небольшая «зала»: свёртка с затухающим шумом
+        const len = Math.floor(ctx.sampleRate * 1.6), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+        for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3); }
+        const rev = ctx.createConvolver(); rev.buffer = ir;
+        const send = ctx.createGain(); send.gain.value = 0.28;
+        M.bus.connect(send).connect(rev).connect(M.out);
+        const nb = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.25), ctx.sampleRate), nd = nb.getChannelData(0);
+        for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+        M.noise = nb;
+    }
+    function env(t, peak, a, dec) {
+        const g = M.ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + dec);
+        g.connect(M.bus); return g;
+    }
+    function osc(type, f, t, end, dest) { const o = M.ctx.createOscillator(); o.type = type; o.frequency.value = f; o.connect(dest); o.start(t); o.stop(end); return o; }
+    const ins = {
+        lead(t, n, d) { const dec = Math.max(0.35, d * E8) + 0.3, g = env(t, 0.12, 0.006, dec); osc('triangle', hz(n), t, t + dec + 0.05, g);
+            const g2 = env(t, 0.035, 0.004, dec * 0.6); osc('sine', hz(n + 12), t, t + dec, g2); },
+        box(t, n, v = 0.045) { const g = env(t, v, 0.003, 0.9); osc('sine', hz(n), t, t + 1, g); const g2 = env(t, v * 0.3, 0.002, 0.25); osc('sine', hz(n) * 3, t, t + 0.3, g2); },
+        bass(t, n, len = 0.42, v = 0.16) { const f = M.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 700; f.connect(env(t, v, 0.008, len)); osc('triangle', hz(n), t, t + len + 0.05, f); },
+        stab(t, ns) { const f = M.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1800; f.connect(env(t, 0.03, 0.005, 0.22)); ns.forEach(n => osc('square', hz(n), t, t + 0.3, f)); },
+        pad(t, ns, len) {
+            const f = M.ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 850;
+            const g = M.ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.022, t + 0.4); g.gain.setValueAtTime(0.022, t + len - 0.3); g.gain.linearRampToValueAtTime(0.0001, t + len + 0.4);
+            f.connect(g).connect(M.bus);
+            ns.forEach((n, k) => { const o = osc('sawtooth', hz(n), t, t + len + 0.5, f); o.detune.value = (k - 1) * 6; });
+        },
+        bells(t, v) {
+            const s = M.ctx.createBufferSource(); s.buffer = M.noise;
+            const f = M.ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 6500;
+            s.connect(f).connect(env(t, v, 0.002, 0.09)); s.start(t); s.stop(t + 0.15);
+        },
+        chime(t, n) { const g = env(t, 0.03, 0.002, 1.4); osc('sine', hz(n), t, t + 1.5, g); osc('sine', hz(n) * 2.76, t, t + 0.4, env(t, 0.008, 0.002, 0.3)); }
+    };
+    function musStep(s, t) {
+        const bar = s >> 3, pos = s & 7, ch = CH[bar], C = CHORD[ch];
+        const m = MEL[s]; if (m) ins.lead(t, m[0], m[1]);
+        if (bar < 16) {
+            if (pos === 0) ins.bass(t, BASS[ch][0]); if (pos === 4) ins.bass(t, BASS[ch][1]);
+            if (pos === 2 || pos === 6) ins.stab(t, C);
+            ins.bells(t, pos % 2 ? 0.035 : pos === 0 || pos === 4 ? 0.09 : 0.06);
+        } else {
+            if (pos === 0) { ins.bass(t, BASS[ch][0], E8 * 7, 0.11); ins.pad(t, C, E8 * 8); }
+            const arp = [0, 1, 2, 1][pos & 3] + (pos >= 4 ? 3 : 0);
+            const notes = [...C, ...C.map(n => n + 12)];
+            ins.box(t, notes[arp % 6] + 12);
+            if (pos === 0 && bar % 2 === 0) ins.chime(t, C[2] + 24);
+            if (pos === 4) ins.bells(t, 0.03);
+        }
+    }
+    function musTick() {
+        const ctx = M.ctx;
+        while (M.next < ctx.currentTime + 0.18) { musStep(M.step, M.next); M.next += E8; M.step = (M.step + 1) % LOOP; }
+    }
+    function musStart() {
+        if (!M.on || M.playing || document.hidden) return;
+        try {
+            const ctx = getAC();
+            if (M.ctx !== ctx) musInit(ctx);
+            M.out.gain.cancelScheduledValues(ctx.currentTime);
+            M.out.gain.setValueAtTime(0.0001, ctx.currentTime); M.out.gain.linearRampToValueAtTime(MUS_VOL, ctx.currentTime + 1.2);
+            M.next = ctx.currentTime + 0.08; M.playing = true;
+            M.timer = setInterval(musTick, 25); musTick();
+        } catch (e) {}
+    }
+    function musStop() {
+        if (!M.playing) return;
+        M.playing = false; clearInterval(M.timer);
+        try { const t = M.ctx.currentTime; M.out.gain.cancelScheduledValues(t); M.out.gain.setValueAtTime(M.out.gain.value, t); M.out.gain.linearRampToValueAtTime(0.0001, t + 0.3); } catch (e) {}
+    }
+    function toggleMusic() {
+        M.on = !M.on;
+        try { localStorage.setItem(MUS_KEY, M.on ? '1' : '0'); } catch (e) {}
+        if (M.on) musStart(); else musStop();
+        renderMusicBtn();
+    }
+    function renderMusicBtn() {
+        const b = $('musBtn'); b.classList.toggle('off', !M.on);
+        b.title = M.on ? 'Выключить музыку' : 'Включить музыку'; b.setAttribute('aria-label', b.title); b.setAttribute('aria-pressed', String(M.on));
+    }
+    // браузеры разрешают звук только после первого касания или нажатия клавиши
+    ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, () => musStart(), { capture: true }));
+    document.addEventListener('visibilitychange', () => { if (document.hidden) musStop(); else musStart(); });
+    const sfx = {
+        dice: () => { for (let i = 0; i < 6; i++) tone(300 + Math.random() * 400, 200, 0.05, 'square', 0.025, i * 0.09); },
+        hop: () => tone(520, 780, 0.09, 'triangle', 0.05),
+        coin: () => { tone(1319, 1319, 0.08, 'sine', 0.07); tone(1760, 1760, 0.18, 'sine', 0.07, 0.07); },
+        gift: () => [784, 988, 1175, 1568].forEach((f, i) => tone(f, f, 0.22, 'triangle', 0.07, i * 0.1)),
+        ice: () => tone(1800, 600, 0.5, 'sine', 0.05),
+        drift: () => tone(180, 70, 0.3, 'triangle', 0.09),
+        lap: () => [659, 784, 1047, 1319, 1568].forEach((f, i) => tone(f, f, 0.25, 'triangle', 0.07, i * 0.09))
+    };
+
+    // ---------- уведомления ----------
+    let toastT = 0;
+    function toast(title, text = '') {
+        const t = $('toast');
+        t.innerHTML = `<b>${title}</b>${text ? `<span>${text}</span>` : ''}`;
+        t.hidden = false; t.classList.remove('hide'); void t.offsetWidth;
+        t.style.animation = 'none'; void t.offsetWidth; t.style.animation = '';
+        clearTimeout(toastT);
+        toastT = setTimeout(() => { t.classList.add('hide'); setTimeout(() => { t.hidden = true; }, 300); }, 2600);
+    }
+    function renderCoins(bump) {
+        $('coins').textContent = save.coins;
+        $('lap').textContent = 'Круг ' + save.lap;
+        if (bump) { const p = $('coinPill'); p.classList.remove('bump'); void p.offsetWidth; p.classList.add('bump'); }
+    }
+
+    // ---------- кубик ----------
+    const FACE_ROT = { 1: [0, 0], 2: [0, -90], 3: [0, 180], 4: [0, 90], 5: [-90, 0], 6: [90, 0] };
+    let diceSpin = 0;
+    function showDice(n, anim) {
+        const d = $('dice');
+        const [rx, ry] = FACE_ROT[n];
+        if (anim) diceSpin += 2;
+        d.classList.toggle('rolling', anim);
+        d.style.transform = `rotateX(${rx - 24 + 360 * diceSpin}deg) rotateY(${ry + 32 + 360 * (diceSpin + 1)}deg)`;
+    }
+
+    // ---------- ход ----------
+    function hopTo(idx, mode = 'hop') {
+        return new Promise(res => {
+            const from = P.pos.slice(), to = world(idx);
+            const dx = to[0] - from[0], dz = to[2] - from[2];
+            if (mode !== 'back') P.yawTarget = Math.atan2(dx, dz);
+            P.hop = { from, to, t: 0, dur: mode === 'slide' ? 0.22 : mode === 'back' ? 0.34 : 0.3, mode, res, idx };
+            if (mode === 'hop' || mode === 'back') sfx.hop();
+        });
+    }
+    async function roll() {
+        if (busy) return;
+        busy = true;
+        $('rollBtn').disabled = true;
+        hideHint();
+        const n = 1 + Math.floor(Math.random() * 6);
+        sfx.dice();
+        showDice(n, true);
+        await wait(1100);
+        toast(`Выпало ${n}`, `${['', 'одна клетка', 'две клетки', 'три клетки', 'четыре клетки', 'пять клеток', 'шесть клеток'][n]} вперёд`);
+        save.rolls++;
+        for (let k = 0; k < n; k++) {
+            const next = (P.idx + 1) % N;
+            await hopTo(next);
+            P.idx = next;
+            if (next === 0) await lapDone();
+        }
+        await landOn(P.idx, true);
+        save.pos = P.idx; persist();
+        busy = false;
+        $('rollBtn').disabled = false;
+    }
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    async function lapDone() {
+        save.lap++; save.coins += 15; save.taken = {};
+        sfx.lap(); burst(P.pos, 18, '#ffd23f', true);
+        renderCoins(true);
+        toast('Круг пройден! +15', 'Монетки и подарки на тропе появились снова');
+        persist();
+        await wait(500);
+    }
+    async function landOn(i, allowMove) {
+        const t = TYPES[i];
+        if ((t === 'coin' || t === 'bag' || t === 'gift') && save.taken[i]) { toast('Клетка пуста', 'Здесь уже всё собрано на этом круге'); return; }
+        if (t === 'coin') {
+            const n = 3 + Math.floor(Math.random() * 4);
+            save.coins += n; save.taken[i] = 1; sfx.coin(); flyCoins(n); renderCoins(true); toast(`+${n} монеток`);
+        } else if (t === 'bag') {
+            save.coins += 12; save.taken[i] = 1; sfx.coin(); flyCoins(12); renderCoins(true); toast('Мешочек монеток! +12');
+        } else if (t === 'gift') {
+            save.taken[i] = 1; sfx.gift(); burst(P.pos, 26, '#e8436f', true);
+            const locked = SKINS.filter(s => !save.owned[s.id]);
+            if (locked.length) {
+                const s = locked[Math.floor(Math.random() * locked.length)];
+                save.owned[s.id] = 1;
+                toast(`Подарок: скин «${s.name}»!`, 'Наденьте его в гардеробе 🎁');
+            } else { save.coins += 25; flyCoins(10); renderCoins(true); toast('Подарок: +25 монеток', 'Все скины уже собраны'); }
+        } else if (t === 'ice' && allowMove) {
+            sfx.ice(); toast('Лёд!', 'Скользим ещё на 2 клетки вперёд');
+            await wait(350);
+            for (let k = 0; k < 2; k++) { const next = (P.idx + 1) % N; await hopTo(next, 'slide'); P.idx = next; if (next === 0) await lapDone(); }
+            await landOn(P.idx, false);
+        } else if (t === 'drift' && allowMove) {
+            sfx.drift(); burst(P.pos, 14, '#ffffff'); toast('Сугроб!', 'Отступаем на 2 клетки назад');
+            await wait(450);
+            for (let k = 0; k < 2; k++) { const prev = (P.idx - 1 + N) % N; await hopTo(prev, 'back'); P.idx = prev; }
+        } else if (t === 'start') toast('Старт у большой ёлки', 'Каждый круг приносит +15 монеток');
+        persist();
+    }
+
+    // ---------- частицы и снег (2D поверх 3D) ----------
+    const fx = $('fx'), fxc = fx.getContext('2d');
+    const parts = [], flakes = [];
+    function project(p) {
+        const v = m4.ap(VP, p), w = VP[3] * p[0] + VP[7] * p[1] + VP[11] * p[2] + VP[15];
+        return [(v[0] / w * 0.5 + 0.5) * innerWidth, (1 - (v[1] / w * 0.5 + 0.5)) * innerHeight];
+    }
+    function burst(pos, n, color, stars) {
+        const [x, y] = project([pos[0], pos[1] + 0.6, pos[2]]);
+        for (let i = 0; i < n; i++) parts.push({ x, y, vx: (Math.random() - .5) * 320, vy: -120 - Math.random() * 260, life: 0.9 + Math.random() * 0.5, max: 1.4, c: color, s: stars ? 5 : 3 + Math.random() * 3, g: 520, star: stars });
+    }
+    function flyCoins(n) {
+        const [x, y] = project([P.pos[0], P.pos[1] + 0.8, P.pos[2]]);
+        const r = $('coinPill').getBoundingClientRect(), tx = r.left + 22, ty = r.top + r.height / 2;
+        for (let i = 0; i < Math.min(n, 12); i++) parts.push({ x, y, x0: x + (Math.random() - .5) * 90, y0: y - 40 - Math.random() * 70, tx, ty, t: -i * 0.05, coin: true, life: 1 });
+    }
+    for (let i = 0; i < 110; i++) flakes.push({ x: Math.random(), y: Math.random(), s: 1 + Math.random() * 2.6, v: 0.03 + Math.random() * 0.05, ph: Math.random() * 6 });
+    function drawFx(dt) {
+        const w = fx.width, h = fx.height, dpr = fx.dpr || 1;
+        fxc.setTransform(dpr, 0, 0, dpr, 0, 0);
+        fxc.clearRect(0, 0, innerWidth, innerHeight);
+        fxc.fillStyle = 'rgba(255,255,255,.85)';
+        flakes.forEach(f => {
+            f.y += f.v * dt; f.ph += dt; f.x += Math.sin(f.ph) * 0.0006;
+            if (f.y > 1.02) { f.y = -0.02; f.x = Math.random(); }
+            fxc.beginPath(); fxc.arc(f.x * innerWidth, f.y * innerHeight, f.s, 0, 6.283); fxc.fill();
+        });
+        for (let i = parts.length - 1; i >= 0; i--) {
+            const p = parts[i];
+            if (p.coin) {
+                p.t += dt / 0.75;
+                if (p.t >= 1) { parts.splice(i, 1); continue; }
+                if (p.t < 0) continue;
+                const t = ease(p.t), u = 1 - t;
+                const x = u * u * p.x + 2 * u * t * p.x0 + t * t * p.tx, y = u * u * p.y + 2 * u * t * p.y0 + t * t * p.ty;
+                const g = fxc.createRadialGradient(x - 3, y - 3, 1, x, y, 10);
+                g.addColorStop(0, '#fff6b8'); g.addColorStop(0.5, '#ffd23f'); g.addColorStop(1, '#d99a00');
+                fxc.fillStyle = g; fxc.beginPath(); fxc.arc(x, y, 9, 0, 6.283); fxc.fill();
+                continue;
+            }
+            p.life -= dt; if (p.life <= 0) { parts.splice(i, 1); continue; }
+            p.vy += p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+            fxc.globalAlpha = clamp(p.life / 0.6, 0, 1);
+            fxc.fillStyle = p.c;
+            if (p.star) { fxc.save(); fxc.translate(p.x, p.y); fxc.rotate(p.life * 6); fxc.fillRect(-p.s / 2, -p.s / 2, p.s, p.s); fxc.restore(); }
+            else { fxc.beginPath(); fxc.arc(p.x, p.y, p.s, 0, 6.283); fxc.fill(); }
+            fxc.globalAlpha = 1;
+        }
+    }
+
+    // ---------- камера: поворот перетаскиванием, приближение колесом и щипком ----------
+    const ptrs = new Map(); let pinch0 = 0, dist0 = 0;
+    const glc = $('gl');
+    glc.addEventListener('pointerdown', e => { glc.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); dist0 = cam.dist; } hideHint(); });
+    glc.addEventListener('pointermove', e => {
+        if (!ptrs.has(e.pointerId)) return;
+        const prev = ptrs.get(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+        if (ptrs.size === 1) { cam.yaw -= (e.clientX - prev[0]) * 0.008; cam.pitch = clamp(cam.pitch + (e.clientY - prev[1]) * 0.005, 0.5, 1.3); }
+        else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0) cam.dist = clamp(dist0 * pinch0 / d, 5, 18); }
+    });
+    const up = e => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch0 = 0; };
+    glc.addEventListener('pointerup', up); glc.addEventListener('pointercancel', up);
+    glc.addEventListener('wheel', e => { e.preventDefault(); cam.dist = clamp(cam.dist * (1 + Math.sign(e.deltaY) * 0.1), 5, 18); }, { passive: false });
+    window.addEventListener('keydown', e => {
+        if (!$('wardrobe').hidden || !$('help').hidden) { if (e.key === 'Escape') closePanels(); return; }
+        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); roll(); }
+        if (e.key === 'ArrowLeft') cam.yaw += 0.2; if (e.key === 'ArrowRight') cam.yaw -= 0.2;
+        if (e.key === '+' || e.key === '=') cam.dist = clamp(cam.dist - 1, 5, 18); if (e.key === '-') cam.dist = clamp(cam.dist + 1, 5, 18);
+    });
+    let hintHidden = false;
+    function hideHint() { if (hintHidden) return; hintHidden = true; $('hint').style.opacity = '0'; setTimeout(() => { $('hint').hidden = true; }, 600); }
+    setTimeout(hideHint, 9000);
+
+    // ---------- гардероб ----------
+    let previews = null;
+    function skinPreviews() {
+        if (previews) return previews;
+        previews = {};
+        try {
+            const c = document.createElement('canvas'); c.width = 208; c.height = 208;
+            const g2 = new Gfx(c, { alpha: true, keep: true });
+            const vp = m4.mul(m4.persp(0.62, 1, 0.1, 20), m4.lookAt([1.2, 1.1, 1.75], [0, 0.5, 0], [0, 1, 0]));
+            const env = { ...ENV, fog: [0.85, 0.9, 0.95], fogN: 50, fogF: 60, clearA: 0 };
+            SKINS.forEach(s => {
+                g2.frame(208, 208, vp, [1.2, 1.1, 1.75], env);
+                g2.draw(playerGeo(s), m4.ry(0.35), { emit: s.id === 'gold' ? 0.2 : 0 });
+                previews[s.id] = c.toDataURL('image/png');
+            });
+            const lose = g2.gl.getExtension('WEBGL_lose_context'); if (lose) lose.loseContext();
+        } catch (e) {}
+        return previews;
+    }
+    function openWardrobe() {
+        $('wardrobe').hidden = false;
+        renderWardrobe();
+    }
+    function renderWardrobe() {
+        const pv = skinPreviews();
+        $('wCoins').textContent = save.coins;
+        $('skins').innerHTML = SKINS.map(s => {
+            const owned = !!save.owned[s.id], on = skinNow().id === s.id;
+            let btn;
+            if (on) btn = `<button type="button" class="sbtn sec" disabled>Надет</button>`;
+            else if (owned) btn = `<button type="button" class="sbtn" onclick="wear('${s.id}')">Надеть</button>`;
+            else btn = `<button type="button" class="sbtn" onclick="buy('${s.id}')" ${save.coins < s.price ? 'disabled' : ''}><span class="coin-ic">₽</span>${s.price}</button>`;
+            return `<div class="skin ${on ? 'on' : ''}">${pv[s.id] ? `<img src="${pv[s.id]}" alt="">` : ''}<b>${s.name}</b><small>${owned ? s.note : save.coins < s.price ? `Не хватает ${s.price - save.coins} · или найдите в подарке` : s.note}</small>${btn}</div>`;
+        }).join('');
+    }
+    function buy(id) {
+        const s = SKINS.find(x => x.id === id);
+        if (!s || save.owned[id] || save.coins < s.price) return;
+        save.coins -= s.price; save.owned[id] = 1; save.skin = id; persist();
+        sfx.gift(); renderCoins(true); renderWardrobe();
+    }
+    function wear(id) { if (!save.owned[id]) return; save.skin = id; persist(); renderWardrobe(); sfx.hop(); }
+    function openHelp() { $('help').hidden = false; }
+    function closePanels() { $('wardrobe').hidden = true; $('help').hidden = true; }
+    function leave() { location.href = 'index.html'; }
+
+    // =====================================================================
+    // ЗАПУСК И ГЛАВНЫЙ ЦИКЛ
+    // =====================================================================
+    const ENV = { sun: norm([-0.45, 0.85, 0.35]), sky: [0.92, 0.96, 1.0], ground: [0.62, 0.7, 0.82], fog: [0.81, 0.878, 0.933], fogN: 14, fogF: 34 };
+    let G, WORLD, COIN, BIG, GIFT, SHADOW, VP = m4.id();
+    function init() {
+        try { G = new Gfx(glc); }
+        catch (e) { $('loading').remove(); const d = document.createElement('div'); d.className = 'err'; d.innerHTML = '<div><b>Не удалось запустить 3D</b><p>Браузер не поддерживает WebGL или он отключён. Попробуйте другой браузер.</p><button class="sbtn" style="width:auto;padding:10px 18px" onclick="leave()">Вернуться в ProdU</button></div>'; document.body.appendChild(d); return; }
+        WORLD = buildWorld();
+        COIN = coinGeo(false); BIG = coinGeo(true); GIFT = giftGeo();
+        SHADOW = new Geo().cyl(0, 0, 0, 0.42, 0.001, 14, [0.25, 0.35, 0.5]);
+        resize(); renderCoins(); renderMusicBtn(); showDice(1 + (save.rolls % 6), false);
+        cam.target = P.pos.slice();
+        requestAnimationFrame(loop);
+        setTimeout(() => $('loading').classList.add('done'), 150);
+        try { sessionStorage.removeItem('produ_wipe'); } catch (e) {}
+        if (!save.seenHelp) { save.seenHelp = 1; persist(); setTimeout(openHelp, 700); }
+    }
+    function resize() {
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        glc.width = Math.round(innerWidth * dpr); glc.height = Math.round(innerHeight * dpr);
+        fx.width = Math.round(innerWidth * dpr); fx.height = Math.round(innerHeight * dpr); fx.dpr = dpr;
+        if (innerWidth < 560 && cam.dist === 12) cam.dist = 16;
+    }
+    window.addEventListener('resize', resize);
+    let last = performance.now(), T = 0;
+    function loop(now) {
+        requestAnimationFrame(loop);
+        const dt = Math.min(0.05, (now - last) / 1000); last = now; T += dt;
+        // движение персонажа
+        if (P.hop) {
+            const h = P.hop; h.t += dt / h.dur;
+            const t = Math.min(1, h.t), e = h.mode === 'slide' ? t : ease(t);
+            P.pos = [lerp(h.from[0], h.to[0], e), 0, lerp(h.from[2], h.to[2], e)];
+            const arc = h.mode === 'slide' ? 0 : Math.sin(t * Math.PI) * (h.mode === 'back' ? 0.35 : 0.55);
+            P.pos[1] = arc;
+            P.sy = h.mode === 'slide' ? 0.9 : 1 + Math.sin(t * Math.PI) * 0.12; P.sx = 2 - P.sy;
+            if (h.t >= 1) { P.pos = h.to.slice(); P.hop = null; P.sy = 0.8; P.sx = 1.18; if (h.mode !== 'slide') burstSnow(); h.res(); }
+        } else {
+            P.sy += (1 - P.sy) * Math.min(1, dt * 10); P.sx += (1 - P.sx) * Math.min(1, dt * 10);
+            P.bob += dt;
+        }
+        if (!P.hop && !busy) P.yawTarget = cam.yaw;   // в покое Продушик поворачивается лицом к камере
+        if (P.yawTarget !== undefined) { let d = P.yawTarget - P.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); P.yaw += d * Math.min(1, dt * 12); }
+        // камера плавно следует
+        for (let k = 0; k < 3; k++) cam.target[k] += (P.pos[k] * (k === 1 ? 0.3 : 1) - cam.target[k]) * Math.min(1, dt * 4);
+        const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+        cam.eye = [cam.target[0] + Math.sin(cam.yaw) * cp * cam.dist, cam.target[1] + sp * cam.dist, cam.target[2] + Math.cos(cam.yaw) * cp * cam.dist];
+        const proj = m4.persp(0.72, innerWidth / innerHeight, 0.1, 80);
+        VP = m4.mul(proj, m4.lookAt(cam.eye, [cam.target[0], cam.target[1] + 0.4, cam.target[2]], [0, 1, 0]));
+        // отрисовка
+        G.frame(glc.width, glc.height, VP, cam.eye, ENV);
+        G.draw(WORLD.g);
+        G.draw(WORLD.glow, IDENT, { emit: 0.55 });
+        // предметы на клетках
+        TYPES.forEach((t, i) => {
+            if (save.taken[i]) return;
+            const [x, , z] = world(i);
+            if (t === 'coin' || t === 'bag') G.draw(t === 'bag' ? BIG : COIN, m4.chain(m4.t(x, 0.55 + Math.sin(T * 2.4 + i) * 0.07, z), m4.ry(T * 2 + i)), { emit: 0.25 });
+            else if (t === 'gift') G.draw(GIFT, m4.chain(m4.t(x, 0.17 + Math.abs(Math.sin(T * 2 + i)) * 0.08, z), m4.ry(Math.sin(T + i) * 0.4)));
+        });
+        // Продушик
+        const skin = skinNow(), breathe = P.hop ? 0 : Math.sin(P.bob * 3) * 0.025;
+        G.draw(playerGeo(skin), m4.chain(m4.t(P.pos[0], P.pos[1] + 0.17, P.pos[2]), m4.ry(P.yaw), m4.s(P.sx, P.sy + breathe, P.sx)),
+            { emit: skin.id === 'gold' ? 0.15 + Math.sin(T * 3) * 0.08 : 0 });
+        // тени (прозрачные — в конце)
+        G.draw(WORLD.shadow, IDENT, { alpha: 0.18 });
+        const sh = clamp(1 - P.pos[1], 0.5, 1);
+        G.draw(SHADOW, m4.chain(m4.t(P.pos[0], 0.19, P.pos[2]), m4.s(sh, 1, sh)), { alpha: 0.22 });
+        drawFx(dt);
+    }
+    function burstSnow() {
+        const [x, y] = project([P.pos[0], 0.2, P.pos[2]]);
+        for (let i = 0; i < 6; i++) parts.push({ x, y, vx: (Math.random() - .5) * 140, vy: -40 - Math.random() * 70, life: 0.45, max: 0.45, c: '#ffffff', s: 2 + Math.random() * 2, g: 300 });
+    }
+    init();
+    </script>
+</body>
+</html>

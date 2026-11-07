@@ -11,8 +11,8 @@
  *     при закрытой странице нужен сервер, который пришлёт push в нужное время).
  */
 
-const CACHE = 'produ-v5';
-const PRECACHE = ['./', './index.html', './sport.html', './team.html', './manifest.json', './icon_newyear.png', './icon-192.png', './icon-512.png'];
+const CACHE = 'produ-v7';
+const PRECACHE = ['./', './index.html', './sport.html', './team.html', './winter.html', './manifest.json', './icon_newyear.png', './icon-192.png', './icon-512.png'];
 
 // ---------- IndexedDB (страница кладёт сюда список напоминаний) ----------
 function openDB() {

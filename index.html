@@ -646,6 +646,11 @@
         .fx-play b { display: block; font-size: 15px; font-weight: 600; }
         .fx-play small { font-size: 12px; opacity: .8; }
         .fx-menu .chk { padding: 6px 8px; }
+        .fx-play.winter { color: #f2f8ff; background: linear-gradient(135deg, #1d3557, #2f6f9f 60%, #7cc6ea); box-shadow: inset 0 0 0 2px rgba(220, 240, 255, .3); }
+        .fx-play svg { width: 40px; height: 40px; flex: none; animation: wgBob 1.6s ease-in-out infinite; }
+        @keyframes wgBob { 50% { transform: translateY(-3px) rotate(-4deg); } }
+        .game-tile .gi svg { width: 46px; height: 46px; display: block; margin: 0 auto; }
+        @media (prefers-reduced-motion: reduce) { .fx-play svg { animation: none; } }
         .game-tile .gi img { width: 40px; height: 40px; image-rendering: pixelated; display: block; margin: 0 auto; }
         /* частицы рисуются поверх содержимого, но под меню и окнами; клики проходят насквозь */
         .fx-canvas { position: fixed; left: 0; top: 0; width: 100vw; height: 100vh; z-index: 5; pointer-events: none; }
@@ -1851,6 +1856,7 @@
         <button class="theme-btn fx-btn" id="fxBtn" type="button" hidden onclick="toggleFxMenu()" aria-haspopup="true" aria-expanded="false"></button>
         <div class="fx-menu" id="fxMenu" hidden role="menu">
             <button type="button" class="fx-play" role="menuitem" onclick="openRunner()"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAFKklEQVR4nK2Xa2wUVRTHf/fOdHe7bbelLYbyrGANzyY+g5EGiKYBbEIqiJAYoyHEaIgflET9YECNiRoMoCFKVBIMAiKBEkGDRgwEYkSQQETkFSFChQZb2m7Z3W53jh9mdh7b2YKJdzOZmb33/v/n/O85595ROE0EoJW30t/KzxszDGoqP3Bwlzjd/nt+ighMXxrl9dhcBbtQygcnAtsole2fpBnZACPvFpdIufAqSO5nCFD5uwUE2s8p2s/ComUxFpNSSoESgR2U8v13GamfJoPB/8d28aSiuTnKAlJKQzNbPy0gzRsf9q4A7YxV4nsOG+9bFyXUNwpbP0sDzZgrOw9KotoB07iquY4XSO7KqMS5g7JFtceo4DiUBJ4rqhUruw+KPra5n9FTxF70kMAJcyRwF3teYeyFzRFgzBT49fN+TK0hXmkHmAJiuhqLAfqlJ4AkDoRCbC8lD+mxlqhySogDYJElLV1BL0RRmgCtwcyvgwLqSh5gYeUeklY7O2600Gtd8azO54byS+pJ9FD8NcZH5jImMgMRoTt3iZPpjRxPfUxKrttDfXKYaA+oruRB4rqWuK6lwhhNr3jEoUkK1BiTWFjZRpVxlz1MbIZKYxxNZW9wX+ly9idXcCqz2YcjmH4lvHWxAyKw5oUxIFBjTmRR5TckjLEAXM0eo2PgBADluo7x0TnE9XBaEpvIdWf4o/8rJxqVTew6Iy5lYF0KZc1LNKvsHRLGGASLozfXcSS1hqSzPBGVYEr/EmaWv0tUldNU9ibXcifo4iyg0EFPQ1ohqfOqxWRC9DEAzmf2sL9vhUsK0C+9HE9v4HByFYIwzGygxpjoAmgbPCSP/KT+QuxczRUfYmcw7O15BpNSGiLzHW/LWZDYRZkawS/pdXRkbfkfLV/rApt5D4q6XZi4btOeAMrCkgEao89SoUcywryfjoETpOSfgFrK+XmzHdC/sgdI5q7Qnv2JHuvPAHfh9Xt6C0KOs5mdWJJByLIv+RyTootJWn9z6OZKhKwz9gsEi9PpLz3MlvVKZiz0O5XfYcT3VqyFlbsiJdD3/+Gdrl7iK2tept96cwojKBIvBbmplcLVHWBsyUzuMBtvg1QxPjKPKmPCfzTM/l/buWtf4yPzaE200ZrYzTCjYUige2Iv8HhiN62JNkxiBGuiZ1worWBHdb67yriTiK4gIhVEVeWQlg83G0EpasxJaGUWnEZurZf2Y3bnLpK1kgDUGtMKLPfAIqqChB4DInQOnMGSgSJeFpFalCc1wIX+vXTlzoOC2eWrqTEmF5RQhULTGFtGfbQZlOJEagMDpAcZN9gIzxSFvTUGbDvQ9wqWZImqSuYntnNvbLlLntD1NMXfZlbZewBczR7ldGZbuFchhP7VMO2zjUW+/F3M/sBv6U00li6l2pzI7PL3mR5/FQBDRYnpanuu5PgxuYKb0lHUK/9p091NnQdTCjYdAfYln6c7d4mpsacZZjRQpusCwBcyeziaWsvlgUMh52lxnfAfjb2DL4ilUE9u0TJ2ItSM8opG3pZKYxy1xlQejq8CoCt3jiOp1XTmzpCVPvwRXGhA2AEfoLMdLp3VKJH1PLX9RZncZGEYg1TzpPDreBv9YYXTysGpQ5rNT3ygNLQQqxG6roJlhQD5mxRJECEQPeIcCAOkFnRdg1iNAC35T5gqlmztkXgCakfJYHOL1X2C5WKo0nH9sqKvF7YtSSilbnjjRBbzEW3y9ZrsEO4651o3RG/zG0fgkZcqeJk5Sik7/f4FpF0N+QawdDUAAAAASUVORK5CYII=" alt=""><span><b>Осенний забег</b><small>мини-игра · шляпки за монетки</small></span></button>
+            <button type="button" class="fx-play winter" role="menuitem" onclick="closeFxMenu(); goToApp('winter.html', event)"><svg viewBox="0 0 50 50" aria-hidden="true"><defs><linearGradient id="wgGradMenu" x1="25" y1="0" x2="25" y2="50" gradientUnits="userSpaceOnUse"><stop stop-color="#9EF01A"/><stop offset="1" stop-color="#70E000"/></linearGradient></defs><rect y="4" width="50" height="46" rx="14" fill="url(#wgGradMenu)"/><path d="M2 14q0-10 12-10h22q12 0 12 10q-4 3-8 0q-4 4-8 0q-4 4-8 0q-4 4-8 0q-4 4-8 0q-4 3-6 0z" fill="#fff"/><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><path d="M26.06 32.28a8.45 8.45 0 0 1-16.9 0"/><path d="M26.06 24.54a8.45 8.45 0 0 1 16.9 0"/><path d="M32 23.53l1.87 2.24 3.52-2.76" stroke-width="2"/></g><rect x="7.04" y="15.97" width="4.23" height="10.68" rx="1" fill="#fff"/></svg><span><b>Снежная тропа</b><small>3D-настолка · кубик, монетки и скины</small></span></button>
             <label class="chk"><input type="checkbox" id="fxMenuToggle" onchange="toggleFx()"> <span id="fxMenuLbl">Листопад</span></label>
         </div>
     </div>
@@ -7311,6 +7317,11 @@
                     <span class="gn">Осенний забег</span>
                     <span class="gb">${bestOf('runner') ? 'Рекорд: ' + bestOf('runner') + ' м' : 'Шляпки за монетки'}</span>
                 </button>
+                <button class="game-tile" onclick="goToApp('winter.html', event)">
+                    <span class="gi" aria-hidden="true"><svg viewBox="0 0 50 50" aria-hidden="true"><defs><linearGradient id="wgGradTile" x1="25" y1="0" x2="25" y2="50" gradientUnits="userSpaceOnUse"><stop stop-color="#9EF01A"/><stop offset="1" stop-color="#70E000"/></linearGradient></defs><rect y="4" width="50" height="46" rx="14" fill="url(#wgGradTile)"/><path d="M2 14q0-10 12-10h22q12 0 12 10q-4 3-8 0q-4 4-8 0q-4 4-8 0q-4 4-8 0q-4 4-8 0q-4 3-6 0z" fill="#fff"/><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><path d="M26.06 32.28a8.45 8.45 0 0 1-16.9 0"/><path d="M26.06 24.54a8.45 8.45 0 0 1 16.9 0"/><path d="M32 23.53l1.87 2.24 3.52-2.76" stroke-width="2"/></g><rect x="7.04" y="15.97" width="4.23" height="10.68" rx="1" fill="#fff"/></svg></span>
+                    <span class="gn">Снежная тропа</span>
+                    <span class="gb">3D · кубик и скины</span>
+                </button>
                 <button class="game-tile" onclick="openCrossMenu()">
                     <span class="gi" aria-hidden="true">📝</span>
                     <span class="gn">Кроссворды</span>
@@ -12250,7 +12261,7 @@
             if (!kind) return;
             const on = !!fxPrefs[kind];
             btn.textContent = FX_INFO[kind].icon;
-            btn.title = 'Осенний забег и ' + (kind === 'snow' ? 'снегопад' : 'листопад');
+            btn.title = 'Мини-игры и ' + (kind === 'snow' ? 'снегопад' : 'листопад');
             btn.setAttribute('aria-label', btn.title);
             btn.classList.toggle('on', on);
             if (on && !fx.running) fxStart(); else if (!on && fx.running) fxStop();
