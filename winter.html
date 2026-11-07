@@ -38,7 +38,7 @@
             box-shadow: inset 0 0 0 2px #c98d00, 0 2px 4px rgba(0, 0, 0, .15); display: grid; place-items: center; font-size: 13px; color: #a36c00; font-weight: 800; }
         .pill.bump { animation: bump .45s cubic-bezier(.3, 1.6, .5, 1); }
         @keyframes bump { 40% { transform: scale(1.12); } }
-        .lap { font-size: 14px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+        .stars { gap: 6px; }
 
         /* низ: кубик и кнопки */
         .bottom { position: fixed; left: 12px; right: 12px; bottom: calc(14px + env(safe-area-inset-bottom)); display: flex; align-items: flex-end; justify-content: center; gap: 14px; z-index: 5; pointer-events: none; }
@@ -100,7 +100,6 @@
             .title { font-size: 15px; padding: 7px 12px; }
             .title { display: none; }
             .pill { height: 44px; font-size: 16px; }
-            .lap { font-size: 13px; padding: 0 12px; }
             .roll-box { padding: 10px 10px 10px 14px; gap: 12px; }
             .roll-btn { min-width: 0; padding: 14px 16px; font-size: 16px; }
             .dice-scene { width: 52px; height: 52px; }
@@ -125,7 +124,7 @@
         <div class="spacer"></div>
         <button type="button" class="ib glass mus" id="musBtn" onclick="toggleMusic()" aria-pressed="true"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9 18V5l11-2v13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.6" fill="currentColor"/><circle cx="17.5" cy="16" r="2.6" fill="currentColor"/><path class="slash" d="M3 3l18 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
         <div class="pill glass" id="coinPill" title="Монетки"><span class="coin-ic">₽</span><span id="coins">0</span></div>
-        <div class="pill glass lap" title="Пройдено кругов"><span aria-hidden="true">⛳</span><span id="lap">Круг 1</span></div>
+        <div class="pill glass stars" title="Собрано звёзд"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 2.5l2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6L2.5 9.4l6.6-.8z" fill="#ffd23f" stroke="#d99a00" stroke-width="1.4" stroke-linejoin="round"/></svg><span id="stars">0</span></div>
     </div>
 
     <div class="bottom">
@@ -143,13 +142,13 @@
                     <div class="face f6"><i class="p1"></i><i class="p2"></i><i class="p3"></i><i class="p5"></i><i class="p6"></i><i class="p7"></i></div>
                 </div>
             </div>
-            <button type="button" class="roll-btn" id="rollBtn" onclick="roll()">Бросить кубик<small>или пробел</small></button>
+            <button type="button" class="roll-btn" id="rollBtn" onclick="rollOrStay()">Бросить кубик<small>или пробел</small></button>
         </div>
         <div class="side">
             <button type="button" class="ib glass" onclick="openHelp()" aria-label="Как играть" title="Как играть">?</button>
         </div>
     </div>
-    <div class="hint glass" id="hint">Потяните, чтобы повернуть камеру · колесо или щипок — приблизить</div>
+    <div class="hint glass" id="hint">Бросьте кубик и нажмите на подсвеченную клетку · потяните, чтобы повернуть камеру</div>
     <div class="toast glass" id="toast" hidden role="status" aria-live="polite"></div>
 
     <div class="scrim" id="wardrobe" hidden onclick="if (event.target === this) closePanels()">
@@ -162,15 +161,15 @@
     <div class="scrim" id="help" hidden onclick="if (event.target === this) closePanels()">
         <div class="panel glass help" role="dialog" aria-modal="true" aria-labelledby="hTitle">
             <div class="panel-head"><h2 id="hTitle">Как играть</h2><button type="button" class="x" onclick="closePanels()" aria-label="Закрыть">✕</button></div>
-            <p>Бросьте кубик — Продушик пройдёт по тропе столько клеток, сколько выпало. Что даст клетка, на которой он остановится:</p>
+            <p>Бросьте кубик — подсветятся клетки, до которых Продушик может дойти: не дальше выпавшего числа шагов, в любую сторону. Нажмите на клетку, и он пойдёт туда по самому короткому пути, собирая всё по дороге.</p>
             <div class="legend">
                 <span class="lg" style="background: #fff0b8;">🪙</span><span>Монетки: от 3 до 6</span>
                 <span class="lg" style="background: #ffe07a;">💰</span><span>Мешочек: 12 монеток</span>
                 <span class="lg" style="background: #ffd6e4;">🎁</span><span>Подарок: новый скин (или 25 монеток, если все собраны)</span>
-                <span class="lg" style="background: #bfeaff;">❄️</span><span>Лёд: скользите ещё на 2 клетки вперёд</span>
-                <span class="lg" style="background: #ffffff;">☃️</span><span>Сугроб: отступаете на 2 клетки назад</span>
-                <span class="lg" style="background: #ffd0cc;">🎄</span><span>Старт: за каждый пройденный круг +15 монеток, монетки и подарки на тропе появляются снова</span>
+                <span class="lg" style="background: #fff6c9;">⭐</span><span>Звезда — её видно издалека по лучу света: +20 монеток, и поле пополняется монетками</span>
+                <span class="lg" style="background: #bfeaff;">❄️</span><span>Лёд: остановитесь на нём — проскользите ещё до 2 клеток</span>
             </div>
+            <p>На компьютере можно ходить стрелками или WASD по одной клетке; пробел или Enter — остаться на месте и закончить ход. Q и E поворачивают камеру.</p>
             <p>Музыку можно выключить кнопкой с нотой сверху.</p>
             <p>Камеру можно поворачивать, потянув по экрану, и приближать колёсиком или щипком двумя пальцами.</p>
         </div>
@@ -204,6 +203,19 @@
         rx(a) { const m = m4.id(), c = Math.cos(a), s = Math.sin(a); m[5] = c; m[6] = s; m[9] = -s; m[10] = c; return m; },
         rz(a) { const m = m4.id(), c = Math.cos(a), s = Math.sin(a); m[0] = c; m[1] = s; m[4] = -s; m[5] = c; return m; },
         chain(...ms) { return ms.reduce((a, b) => m4.mul(a, b)); },
+        inv(m) {
+            const a = m, o = new Float32Array(16);
+            const b00 = a[0] * a[5] - a[1] * a[4], b01 = a[0] * a[6] - a[2] * a[4], b02 = a[0] * a[7] - a[3] * a[4], b03 = a[1] * a[6] - a[2] * a[5],
+                  b04 = a[1] * a[7] - a[3] * a[5], b05 = a[2] * a[7] - a[3] * a[6], b06 = a[8] * a[13] - a[9] * a[12], b07 = a[8] * a[14] - a[10] * a[12],
+                  b08 = a[8] * a[15] - a[11] * a[12], b09 = a[9] * a[14] - a[10] * a[13], b10 = a[9] * a[15] - a[11] * a[13], b11 = a[10] * a[15] - a[11] * a[14];
+            let det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+            if (!det) return null; det = 1 / det;
+            o[0] = (a[5] * b11 - a[6] * b10 + a[7] * b09) * det; o[1] = (a[2] * b10 - a[1] * b11 - a[3] * b09) * det; o[2] = (a[13] * b05 - a[14] * b04 + a[15] * b03) * det; o[3] = (a[10] * b04 - a[9] * b05 - a[11] * b03) * det;
+            o[4] = (a[6] * b08 - a[4] * b11 - a[7] * b07) * det; o[5] = (a[0] * b11 - a[2] * b08 + a[3] * b07) * det; o[6] = (a[14] * b02 - a[12] * b05 - a[15] * b01) * det; o[7] = (a[8] * b05 - a[10] * b02 + a[11] * b01) * det;
+            o[8] = (a[4] * b10 - a[5] * b08 + a[7] * b06) * det; o[9] = (a[1] * b08 - a[0] * b10 - a[3] * b06) * det; o[10] = (a[12] * b04 - a[13] * b02 + a[15] * b00) * det; o[11] = (a[9] * b02 - a[8] * b04 - a[11] * b00) * det;
+            o[12] = (a[5] * b07 - a[4] * b09 - a[6] * b06) * det; o[13] = (a[0] * b09 - a[1] * b07 + a[2] * b06) * det; o[14] = (a[13] * b01 - a[12] * b03 - a[14] * b00) * det; o[15] = (a[8] * b03 - a[9] * b01 + a[10] * b00) * det;
+            return o;
+        },
         ap(m, p) { return [m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12], m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13], m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14]]; }
     };
     const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
@@ -325,6 +337,7 @@
             }
             return m;
         }
+        free(geo) { const m = geo && this.vbos.get(geo); if (m) { this.gl.deleteBuffer(m.b); this.vbos.delete(geo); } }
         frame(w, h, vp, cam, env) {
             const gl = this.gl;
             gl.viewport(0, 0, w, h);
@@ -351,103 +364,129 @@
     const IDENT = m4.id();
 
     // =====================================================================
-    // ПОЛЕ
+    // ПОЛЕ: большая сетка клеток, по которой можно ходить в любую сторону
     // =====================================================================
     const S = 1.12;                         // шаг клетки
-    // тропа — замкнутый маршрут (дорожка из 46 клеток)
-    const ROUTE = [['E', 5], ['N', 3], ['E', 4], ['N', 4], ['W', 3], ['N', 3], ['W', 6], ['S', 2], ['W', 4], ['S', 5], ['E', 4], ['S', 3]];
-    const PATH = (() => {
-        const p = [[0, 0]]; let x = 0, y = 0;
-        const D = { E: [1, 0], W: [-1, 0], N: [0, 1], S: [0, -1] };
-        ROUTE.forEach(([d, n]) => { for (let i = 0; i < n; i++) { x += D[d][0]; y += D[d][1]; p.push([x, y]); } });
-        p.pop();   // последняя клетка совпадает со стартом
-        return p;
-    })();
-    const N = PATH.length;
-    const world = (i) => [PATH[i][0] * S, 0, -PATH[i][1] * S];
-    // типы клеток
-    const TYPES = PATH.map((_, i) => {
-        if (i === 0) return 'start';
-        if ([8, 19, 31, 41].includes(i)) return 'gift';
-        if ([13, 27, 38].includes(i)) return 'ice';
-        if ([16, 24, 35, 44].includes(i)) return 'drift';
-        if ([5, 22, 29].includes(i)) return 'bag';
-        if (i % 3 === 1 || i % 7 === 3) return 'coin';
-        return 'plain';
-    });
-    const TREE_CENTER = [3, 6];
+    const R0 = 14;                          // игровое поле — клетки от −14 до 14 по обеим осям
+    const START = [0, -3];
+    const key = (x, y) => x + ',' + y;
+    const unkey = k => k.split(',').map(Number);
+    const world = (x, y) => [x * S, 0, -y * S];
+    const inField = (x, y) => Math.abs(x) <= R0 && Math.abs(y) <= R0;
+    const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+    const MAP = { block: new Set(), ice: new Set(), plaza: new Set(), walk: [] };
+    const walkable = (x, y) => inField(x, y) && !MAP.block.has(key(x, y));
+    const POND = [8, 8];
 
     const COL = {
-        snow: hex('#f3f8fc'), snow2: hex('#e6eff7'), snowShade: hex('#dbe7f1'), tileA: hex('#ffffff'), tileB: hex('#e9f2fa'), tileEdge: hex('#b9cbdc'),
+        snow: hex('#f3f8fc'), snow2: hex('#e6eff7'), snowShade: hex('#dbe7f1'), tileA: hex('#ffffff'), tileB: hex('#eef4fa'), tileEdge: hex('#c9d7e4'),
+        plazaA: hex('#fbeee8'), plazaB: hex('#f6e4dc'), plazaEdge: hex('#d3b4a8'),
         fir: hex('#2f7d4f'), fir2: hex('#3b9460'), trunk: hex('#7a4d2c'), red: hex('#d9363e'), white: hex('#ffffff'), gold: hex('#f5c242'), ice: hex('#a6defa'), ice2: hex('#c9ecff'),
         coal: hex('#26282e'), carrot: hex('#f07a1a'), wood: hex('#8b5a35'), wood2: hex('#a8703f'), roof: hex('#b23a3a'), window: hex('#ffd36b'), rock: hex('#8e9bab'), blue: hex('#3b82d6'),
         green2: hex('#2fa86b'), purple: hex('#9b5de5'), pink: hex('#f15bb5')
     };
     const ORN = [COL.red, COL.gold, COL.blue, COL.purple, COL.pink, hex('#ffffff')];
 
-    function buildWorld() {
-        const g = new Geo(), glow = new Geo(), shadow = new Geo();
-        const R = rng(20261231);
-        const onPath = new Set(PATH.map(([x, y]) => x + ',' + y));
-        const near = (x, y, d = 1) => { for (let i = -d; i <= d; i++) for (let j = -d; j <= d; j++) if (onPath.has((x + i) + ',' + (y + j))) return true; return false; };
-        const used = new Set();
-        const W = (x, y) => [x * S, 0, -y * S];
-        const blob = (x, z, r, a = 1) => shadow.cyl(x, 0.012, z, r, 0.001, 12, [0.25 * a, 0.35 * a, 0.5 * a], r, null, true);
+    // ---- 1. раскладка карты (детерминированная — у всех одинаковая) ----
+    function planMap() {
+        const R = rng(20261231), decor = [];
+        const take = (x, y, d) => { MAP.block.add(key(x, y)); if (d) decor.push(d); };
+        // площадь с большой ёлкой в центре: сама ёлка занимает 3×3 клетки, по углам фонари
+        for (let x = -1; x <= 1; x++) for (let y = -1; y <= 1; y++) take(x, y);
+        decor.push({ t: 'bigtree', x: 0, y: 0 });
+        [[-3, -3], [3, -3], [-3, 3], [3, 3]].forEach(([x, y]) => take(x, y, { t: 'lamp', x, y }));
+        take(-4, 1); take(-4, 2, { t: 'sleigh', x: -4, y: 1.5 });
+        for (let x = -5; x <= 5; x++) for (let y = -5; y <= 5; y++) if (Math.hypot(x, y) <= 4.7 && !MAP.block.has(key(x, y))) MAP.plaza.add(key(x, y));
+        // замёрзший пруд, вокруг — скользкий лёд
+        for (let x = -4; x <= 4; x++) for (let y = -4; y <= 4; y++) {
+            const d = Math.hypot(x, y), cx = POND[0] + x, cy = POND[1] + y;
+            if (d <= 2.6) take(cx, cy); else if (d <= 3.7 && inField(cx, cy)) MAP.ice.add(key(cx, cy));
+        }
+        decor.push({ t: 'pond', x: POND[0], y: POND[1] });
+        // деревня: домики занимают 2×2 клетки
+        [[-11, 8, 0], [-7, 11, 1], [-12, 2, 1], [7, -11, 0], [11, -6, 1], [-10, -10, 0], [10, 1, 0], [-3, 9, 1]].forEach(([x, y, r]) => {
+            for (let i = 0; i < 2; i++) for (let j = 0; j < 2; j++) take(x + i, y + j);
+            decor.push({ t: 'house', x: x + 0.5, y: y + 0.5, r: r * Math.PI / 2 + (R() - 0.5) * 0.2, c: ['#e9d7b9', '#cfe2c6', '#e8c9c9', '#d6dcef', '#f1e2c2'][decor.length % 5] });
+        });
+        // ледяные дорожки
+        [[-6, -6], [5, -7], [-8, 4], [12, 11], [-1, 12], [-12, -4]].forEach(([x, y]) => {
+            for (let k = 0; k < 4; k++) { const cx = x + (k % 2), cy = y + (k >> 1); if (inField(cx, cy) && !MAP.block.has(key(cx, cy)) && !MAP.plaza.has(key(cx, cy))) MAP.ice.add(key(cx, cy)); }
+        });
+        // случайные препятствия: ели, снеговики, камни, подарки, леденцы, сугробы
+        for (let x = -R0; x <= R0; x++) for (let y = -R0; y <= R0; y++) {
+            const k = key(x, y);
+            if (MAP.block.has(k) || MAP.plaza.has(k) || MAP.ice.has(k) || Math.hypot(x - START[0], y - START[1]) < 2) continue;
+            const r = R(), edge = Math.max(Math.abs(x), Math.abs(y)) >= R0 - 1 ? 0.08 : 0;
+            const t = r < 0.12 + edge ? 'fir' : r < 0.135 ? 'snowman' : r < 0.155 ? 'rock' : r < 0.17 ? 'presents' : r < 0.18 ? 'cane' : r < 0.195 ? 'mound' : null;
+            if (t) take(x, y, { t, x, y, s: 0.8 + R() * 0.6, o: R() < 0.3, rot: R() * 6 });
+        }
+        // все свободные клетки должны быть достижимы со старта — недостижимые засаживаем ёлками
+        const seen = new Set([key(...START)]), q = [START];
+        while (q.length) { const [x, y] = q.shift(); for (const [dx, dy] of DIRS) { const nx = x + dx, ny = y + dy, k = key(nx, ny); if (!seen.has(k) && walkable(nx, ny)) { seen.add(k); q.push([nx, ny]); } } }
+        for (let x = -R0; x <= R0; x++) for (let y = -R0; y <= R0; y++) {
+            const k = key(x, y);
+            if (MAP.block.has(k)) continue;
+            if (!seen.has(k)) { take(x, y, { t: 'fir', x, y, s: 0.9, o: false, rot: 0 }); MAP.ice.delete(k); MAP.plaza.delete(k); }
+            else MAP.walk.push([x, y]);
+        }
+        // за забором — лес, холмы и ещё несколько домиков
+        for (let x = -R0 - 7; x <= R0 + 7; x++) for (let y = -R0 - 7; y <= R0 + 7; y++) {
+            if (inField(x, y)) continue;
+            const r = R(), ring = Math.max(Math.abs(x), Math.abs(y)) - R0;
+            if (ring === 1) { if (r < 0.12) decor.push({ t: 'mound', x: x + (R() - .5) * .5, y: y + (R() - .5) * .5, s: 1 + R() }); continue; }
+            if (r < 0.34 + ring * 0.03) decor.push({ t: 'fir', x: x + (R() - .5) * .6, y: y + (R() - .5) * .6, s: 0.9 + R() * 0.9, o: R() < 0.15 });
+            else if (r < 0.39) decor.push({ t: 'mound', x, y, s: 1 + R() * 1.4 });
+            else if (r < 0.41) decor.push({ t: 'rock', x, y, s: 1 + R() });
+        }
+        [[-18, 11, 0.4], [18, 9, -1.2], [-17, -15, 1.9], [17, -16, 2.6], [3, 18, 0.1], [-6, -18, 3.1], [12, 18, 0.3], [-19, 0, 1.6]].forEach(([x, y, r], i) =>
+            decor.push({ t: 'house', x, y, r, c: ['#e9d7b9', '#cfe2c6', '#e8c9c9', '#d6dcef', '#f1e2c2'][i % 5] }));
+        return decor;
+    }
+    const DECOR = planMap();
 
-        // снежная земля: клетки с лёгкой неровностью цвета
-        for (let gx = -16; gx <= 21; gx++) for (let gy = -12; gy <= 22; gy++) {
+    // ---- 2. геометрия ----
+    function buildWorld() {
+        const decor = DECOR;
+        const g = new Geo(), glow = new Geo(), shadow = new Geo();
+        const R = rng(7);
+        const blob = (x, z, r) => shadow.cyl(x, 0.012, z, r, 0.001, 12, [0.25, 0.35, 0.5], r, null, true);
+
+        // снежная земля
+        for (let gx = -R0 - 9; gx <= R0 + 9; gx++) for (let gy = -R0 - 9; gy <= R0 + 9; gy++) {
             const c = R() < 0.5 ? COL.snow : COL.snow2;
             const x0 = (gx - .5) * S, x1 = (gx + .5) * S, z0 = -(gy - .5) * S, z1 = -(gy + .5) * S;
             g.quad([x0, 0, z0], [x1, 0, z0], [x1, 0, z1], [x0, 0, z1], c, [(x0 + x1) / 2, -1, (z0 + z1) / 2]);
         }
-        // замёрзший пруд
-        const pond = [12, 12];
-        g.cyl(pond[0] * S, 0.003, -pond[1] * S, 2.4, 0.02, 20, COL.ice, 2.4, COL.ice);
-        g.cyl(pond[0] * S - 0.5, 0.024, -pond[1] * S + 0.4, 0.9, 0.004, 14, COL.ice2, 0.9, COL.ice2);
-        for (let i = -3; i <= 3; i++) for (let j = -3; j <= 3; j++) if (Math.hypot(i, j) < 3.2) used.add((pond[0] + i) + ',' + (pond[1] + j));
-
-        // клетки тропы
-        PATH.forEach(([x, y], i) => {
-            const [wx, , wz] = W(x, y), t = TYPES[i];
-            g.box(wx, 0.07, wz, 0.98, 0.14, 0.98, COL.tileEdge, null);
-            const top = t === 'ice' ? COL.ice : t === 'start' ? hex('#ffe3df') : (i % 2 ? COL.tileA : COL.tileB);
-            g.box(wx, 0.15, wz, 0.9, 0.03, 0.9, top);
-            const mark = { coin: hex('#ffe58a'), bag: hex('#ffd34d'), gift: hex('#ffc2d9'), drift: hex('#ffffff'), start: COL.red }[t];
-            if (mark && t !== 'drift') g.box(wx, 0.168, wz, 0.42, 0.01, 0.42, mark);
-            if (t === 'ice') { g.box(wx - 0.15, 0.17, wz + 0.1, 0.3, 0.008, 0.06, COL.white); g.box(wx + 0.1, 0.17, wz - 0.15, 0.22, 0.008, 0.05, COL.white); }
-            if (t === 'drift') g.sphere(wx, 0.16, wz, 0.38, COL.white, 4, 8, 0.45);
-            if (t === 'start') {
-                // арка из леденцов
-                for (const s of [-1, 1]) {
-                    for (let k = 0; k < 7; k++) g.cyl(wx + s * 0.46, 0.15 + k * 0.17, wz, 0.055, 0.17, 8, k % 2 ? COL.white : COL.red);
-                }
-                g.box(wx, 1.36, wz, 1.08, 0.12, 0.12, COL.red);
-                g.box(wx, 1.36, wz, 0.5, 0.13, 0.13, COL.white);
-                glow.sphere(wx, 1.5, wz, 0.1, COL.gold, 3, 6);
-            }
-            // номер клетки не рисуем: следим за ней по стрелке направления
-            const nx = PATH[(i + 1) % N];
-            if (t === 'plain' && i % 4 === 2) {
-                const dx = nx[0] - x, dy = nx[1] - y, ang = Math.atan2(dx, dy);
-                g.with(m4.chain(m4.t(wx, 0.17, wz), m4.ry(ang)), () => {
-                    g.tri([-0.12, 0, 0.05], [0.12, 0, 0.05], [0, 0, -0.14], COL.tileEdge, [0, -1, 0]);
-                });
-            }
+        // клетки
+        MAP.walk.forEach(([x, y]) => {
+            const [wx, , wz] = world(x, y), k = key(x, y), odd = (x + y) & 1;
+            const plaza = MAP.plaza.has(k), ice = MAP.ice.has(k);
+            g.box(wx, 0.07, wz, 0.98, 0.14, 0.98, plaza ? COL.plazaEdge : COL.tileEdge);
+            g.box(wx, 0.15, wz, 0.9, 0.03, 0.9, ice ? (odd ? COL.ice : COL.ice2) : plaza ? (odd ? COL.plazaA : COL.plazaB) : (odd ? COL.tileA : COL.tileB));
+            if (ice) { g.box(wx - 0.15, 0.17, wz + 0.1, 0.3, 0.008, 0.06, COL.white); g.box(wx + 0.1, 0.17, wz - 0.15, 0.22, 0.008, 0.05, COL.white); }
         });
+        // забор по краю поля
+        const E = (R0 + 0.5) * S;
+        for (let t = -R0 - 0.5; t <= R0 + 0.5; t++) {
+            const p = t * S;
+            [[p, -E], [p, E], [-E, p], [E, p]].forEach(([x, z]) => { g.box(x, 0.32, z, 0.1, 0.64, 0.1, COL.wood); g.box(x, 0.66, z, 0.13, 0.05, 0.13, COL.white); });
+        }
+        for (const s of [-1, 1]) for (const h of [0.24, 0.48]) {
+            g.box(0, h, s * E, 2 * E, 0.06, 0.04, COL.wood2); g.box(s * E, h, 0, 0.04, 0.06, 2 * E, COL.wood2);
+        }
 
         // ---- декорации ----
         const fir = (x, z, s, ornaments) => {
-            g.cyl(x, 0, z, 0.12 * s, 0.35 * s, 6, COL.trunk);
-            const layers = [[0.3, 0.75, 0.8], [0.75, 0.6, 0.72], [1.15, 0.45, 0.62]];
-            layers.forEach(([y, r, h], k) => {
+            g.cyl(x, 0, z, 0.12 * s, 0.35 * s, 6, COL.trunk, 0.12 * s, null, false);
+            [[0.3, 0.75, 0.8], [0.75, 0.6, 0.72], [1.15, 0.45, 0.62]].forEach(([y, r, h], k) => {
                 g.cyl(x, y * s, z, r * s, h * s, 8, k % 2 ? COL.fir2 : COL.fir, 0);
-                g.cyl(x, (y + h * 0.55) * s, z, r * s * 0.5, h * s * 0.45, 8, COL.white, 0);
+                g.cyl(x, (y + h * 0.55) * s, z, r * s * 0.5, h * s * 0.45, 8, COL.white, 0, null, false);
             });
             if (ornaments) for (let k = 0; k < 7; k++) {
                 const a = R() * Math.PI * 2, hgt = 0.45 + R() * 0.9, rr = (0.78 - hgt * 0.42) * s;
                 glow.sphere(x + Math.cos(a) * rr, hgt * s, z + Math.sin(a) * rr, 0.06 * s, ORN[(R() * ORN.length) | 0], 3, 6);
             }
-            blob(x, z, 0.7 * s, 0.9);
+            blob(x, z, 0.7 * s);
         };
         const snowman = (x, z, rot) => {
             g.sphere(x, 0.32, z, 0.34, COL.white, 5, 9);
@@ -477,10 +516,7 @@
         const cane = (x, z, rot) => {
             g.with(m4.chain(m4.t(x, 0, z), m4.ry(rot)), () => {
                 for (let k = 0; k < 7; k++) g.cyl(0, k * 0.15, 0, 0.06, 0.15, 8, k % 2 ? COL.white : COL.red);
-                for (let k = 0; k < 5; k++) {
-                    const a = k / 4 * Math.PI;
-                    g.sphere(0.16 - Math.cos(a) * 0.16, 1.05 + Math.sin(a) * 0.16, 0, 0.065, k % 2 ? COL.white : COL.red, 3, 6);
-                }
+                for (let k = 0; k < 5; k++) { const a = k / 4 * Math.PI; g.sphere(0.16 - Math.cos(a) * 0.16, 1.05 + Math.sin(a) * 0.16, 0, 0.065, k % 2 ? COL.white : COL.red, 3, 6); }
             });
             blob(x, z, 0.18);
         };
@@ -495,65 +531,70 @@
         const house = (x, z, rot, wall) => {
             g.with(m4.chain(m4.t(x, 0, z), m4.ry(rot)), () => {
                 g.box(0, 0.6, 0, 1.6, 1.2, 1.3, wall);
-                // крыша — две наклонные плиты со снегом
-                g.with(m4.chain(m4.t(0, 1.48, -0.38), m4.rx(0.62)), () => { g.box(0, 0, 0, 1.8, 0.1, 0.95, COL.roof); g.box(0, 0.08, 0, 1.82, 0.08, 0.97, COL.white); });
-                g.with(m4.chain(m4.t(0, 1.48, 0.38), m4.rx(-0.62)), () => { g.box(0, 0, 0, 1.8, 0.1, 0.95, COL.roof); g.box(0, 0.08, 0, 1.82, 0.08, 0.97, COL.white); });
+                // двускатная крыша: каждый скат опускается от конька наружу
+                g.with(m4.chain(m4.t(0, 1.48, -0.38), m4.rx(-0.62)), () => { g.box(0, 0, 0, 1.8, 0.1, 0.95, COL.roof); g.box(0, 0.08, 0, 1.82, 0.08, 0.97, COL.white); });
+                g.with(m4.chain(m4.t(0, 1.48, 0.38), m4.rx(0.62)), () => { g.box(0, 0, 0, 1.8, 0.1, 0.95, COL.roof); g.box(0, 0.08, 0, 1.82, 0.08, 0.97, COL.white); });
                 g.tri([-0.8, 1.2, -0.65], [-0.8, 1.2, 0.65], [-0.8, 1.75, 0], wall, [0, 1.3, 0]);
                 g.tri([0.8, 1.2, -0.65], [0.8, 1.2, 0.65], [0.8, 1.75, 0], wall, [0, 1.3, 0]);
-                g.box(0.45, 1.8, 0.25, 0.2, 0.5, 0.2, COL.rock); g.box(0.45, 2.06, 0.25, 0.24, 0.06, 0.24, COL.white);
+                g.box(0.45, 1.75, -0.28, 0.2, 0.55, 0.2, COL.rock); g.box(0.45, 2.04, -0.28, 0.24, 0.06, 0.24, COL.white);
                 g.box(0, 0.45, 0.66, 0.36, 0.7, 0.04, COL.wood);
                 glow.box(-0.5, 0.75, 0.66, 0.3, 0.3, 0.03, COL.window); glow.box(0.5, 0.75, 0.66, 0.3, 0.3, 0.03, COL.window);
-                glow.box(0.81, 0.75, 0, 0.03, 0.3, 0.3, COL.window);
-                // гирлянда по краю крыши
-                for (let k = 0; k < 9; k++) glow.sphere(-0.8 + k * 0.2, 1.17, 0.7, 0.04, ORN[k % ORN.length], 2, 5);
+                glow.box(0.81, 0.75, 0, 0.03, 0.3, 0.3, COL.window); glow.box(-0.81, 0.75, 0, 0.03, 0.3, 0.3, COL.window);
+                for (let k = 0; k < 9; k++) glow.sphere(-0.8 + k * 0.2, 1.17, 0.72, 0.04, ORN[k % ORN.length], 2, 5);
             });
             blob(x, z, 1.2);
         };
         const rock = (x, z, s) => { g.sphere(x, 0.08 * s, z, 0.3 * s, COL.rock, 3, 6, 0.7, COL.white); blob(x, z, 0.3 * s); };
-        const mound = (x, z, s) => g.sphere(x, 0, z, 0.5 * s, COL.snowShade, 3, 8, 0.35, COL.white);
-
-        // большая ёлка в центре петли
-        {
-            const [tx, , tz] = W(...TREE_CENTER);
-            g.cyl(tx, 0, tz, 0.28, 0.6, 8, COL.trunk);
-            const L = [[0.5, 1.6, 1.3], [1.3, 1.35, 1.2], [2.1, 1.05, 1.1], [2.85, 0.75, 1.0], [3.5, 0.45, 0.9]];
-            L.forEach(([y, r, h], k) => { g.cyl(tx, y, tz, r, h, 10, k % 2 ? COL.fir2 : COL.fir, 0); g.cyl(tx, y + h * 0.55, tz, r * 0.48, h * 0.45, 10, COL.white, 0); });
-            for (let k = 0; k < 46; k++) {
-                const hgt = 0.7 + R() * 3.0, a = R() * Math.PI * 2, rr = 1.55 - hgt * 0.36;
-                glow.sphere(tx + Math.cos(a) * rr, hgt, tz + Math.sin(a) * rr, 0.08, ORN[k % ORN.length], 3, 6);
-            }
-            // звезда
-            glow.with(m4.t(tx, 4.55, tz), () => {
-                for (let k = 0; k < 5; k++) glow.with(m4.rz(k / 5 * Math.PI * 2), () => glow.cyl(0, 0, 0, 0.12, 0.38, 4, COL.gold, 0));
-                glow.sphere(0, 0, 0, 0.16, COL.gold, 3, 6);
+        const mound = (x, z, s) => g.sphere(x, 0, z, 0.5 * s, COL.snowShade, 3, 8, 0.45, COL.white);
+        const sleigh = (x, z) => {
+            g.with(m4.chain(m4.t(x, 0, z), m4.ry(0.15)), () => {
+                for (const s of [-1, 1]) { g.box(s * 0.32, 0.06, 0, 0.06, 0.05, 1.7, COL.gold); g.box(s * 0.32, 0.18, -0.8, 0.06, 0.28, 0.06, COL.gold); for (const zz of [-0.4, 0.4]) g.box(s * 0.32, 0.2, zz, 0.05, 0.3, 0.05, COL.gold); }
+                g.box(0, 0.48, 0.1, 0.78, 0.36, 1.2, COL.red); g.box(0, 0.78, 0.55, 0.78, 0.36, 0.2, COL.red); g.box(0, 0.68, -0.47, 0.8, 0.06, 0.08, COL.gold);
+                present(-0.15, 0.1, 0.8, ORN[2], 0.3); present(0.18, -0.15, 0.6, ORN[3], 1.2);
+                glow.box(0, 0.67, 0.1, 0.82, 0.03, 1.22, COL.gold);
             });
-            blob(tx, tz, 1.8);
-            for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) used.add((TREE_CENTER[0] + i) + ',' + (TREE_CENTER[1] + j));
-            [[-1.3, 0.9], [1.1, 1.2], [1.4, -0.7], [-0.6, -1.4], [-1.5, -0.4]].forEach(([dx, dz], k) => present(tx + dx, tz + dz, 0.8 + R() * 0.5, ORN[k % 5], R() * 3));
-        }
-        // остальные декорации по сетке
-        for (let x = -14; x <= 19; x++) for (let y = -10; y <= 20; y++) {
-            const key = x + ',' + y;
-            if (onPath.has(key) || used.has(key)) continue;
-            if (near(x, y, 1)) { if (R() < 0.12) { const [wx, , wz] = W(x, y); (R() < 0.5 ? lamp : (a, b) => cane(a, b, R() * 6))(wx + (R() - .5) * .3, wz + (R() - .5) * .3); used.add(key); } continue; }
-            const r = R(), [wx, , wz] = W(x, y), jx = (R() - .5) * 0.6, jz = (R() - .5) * 0.6;
-            const far = Math.abs(x - 3) > 9 || y < -4 || y > 15;
-            if (r < (far ? 0.42 : 0.2)) fir(wx + jx, wz + jz, 0.8 + R() * 0.7, R() < 0.25);
-            else if (r < (far ? 0.44 : 0.235)) snowman(wx + jx, wz + jz, R() * 6);
-            else if (r < (far ? 0.47 : 0.27)) present(wx + jx, wz + jz, 0.8 + R() * 0.6, ORN[(R() * 5) | 0], R() * 3);
-            else if (r < (far ? 0.5 : 0.3)) rock(wx + jx, wz + jz, 0.8 + R() * 0.8);
-            else if (r < (far ? 0.53 : 0.33)) mound(wx + jx, wz + jz, 1 + R());
-            else continue;
-            used.add(key);
-        }
-        // домики по краям поля
-        [[13, 3, 0.4, hex('#e9d7b9')], [-9, 12, -0.3, hex('#cfe2c6')], [9, 15, 2.6, hex('#e8c9c9')], [-8, -1, 1.9, hex('#d6dcef')], [16, 7, -1.2, hex('#f1e2c2')]].forEach(([x, y, r, c]) => {
-            const [wx, , wz] = W(x, y); house(wx, wz, r, c);
+            blob(x, z, 0.9);
+        };
+        decor.forEach(d => {
+            const [wx, , wz] = world(d.x, d.y);
+            switch (d.t) {
+                case 'fir': fir(wx + (R() - .5) * .2, wz + (R() - .5) * .2, d.s, d.o); break;
+                case 'snowman': snowman(wx, wz, d.rot); break;
+                case 'rock': rock(wx, wz, d.s); break;
+                case 'presents': present(wx - 0.15, wz + 0.1, d.s * 0.9, ORN[(R() * 5) | 0], d.rot); present(wx + 0.2, wz - 0.15, d.s * 0.6, ORN[(R() * 5) | 0], d.rot + 1); break;
+                case 'cane': cane(wx, wz, d.rot); break;
+                case 'mound': mound(wx, wz, d.s); break;
+                case 'lamp': lamp(wx, wz); break;
+                case 'house': house(wx, wz, d.r, hex(d.c)); break;
+                case 'sleigh': sleigh(wx, wz); break;
+                case 'pond':
+                    g.cyl(wx, 0.003, wz, 2.9, 0.03, 22, COL.ice, 2.9, COL.ice);
+                    g.cyl(wx - 0.6, 0.035, wz + 0.5, 1.0, 0.004, 14, COL.ice2, 1.0, COL.ice2);
+                    g.cyl(wx + 0.9, 0.035, wz - 0.7, 0.5, 0.004, 12, COL.ice2, 0.5, COL.ice2);
+                    break;
+                case 'bigtree': {
+                    g.cyl(wx, 0, wz, 0.28, 0.6, 8, COL.trunk);
+                    [[0.5, 1.6, 1.3], [1.3, 1.35, 1.2], [2.1, 1.05, 1.1], [2.85, 0.75, 1.0], [3.5, 0.45, 0.9]].forEach(([y, r, h], k) => {
+                        g.cyl(wx, y, wz, r, h, 10, k % 2 ? COL.fir2 : COL.fir, 0); g.cyl(wx, y + h * 0.55, wz, r * 0.48, h * 0.45, 10, COL.white, 0, null, false);
+                    });
+                    for (let k = 0; k < 46; k++) {
+                        const hgt = 0.7 + R() * 3.0, a = R() * Math.PI * 2, rr = 1.55 - hgt * 0.36;
+                        glow.sphere(wx + Math.cos(a) * rr, hgt, wz + Math.sin(a) * rr, 0.08, ORN[k % ORN.length], 3, 6);
+                    }
+                    glow.with(m4.t(wx, 4.55, wz), () => {
+                        for (let k = 0; k < 5; k++) glow.with(m4.rz(k / 5 * Math.PI * 2), () => glow.cyl(0, 0, 0, 0.12, 0.38, 4, COL.gold, 0));
+                        glow.sphere(0, 0, 0, 0.16, COL.gold, 3, 6);
+                    });
+                    blob(wx, wz, 1.8);
+                    [[-1.3, 0.9], [1.1, 1.2], [1.4, -0.7], [-0.6, -1.4], [-1.5, -0.4]].forEach(([dx, dz], k) => present(wx + dx, wz + dz, 0.8 + R() * 0.5, ORN[k % 5], R() * 3));
+                    break;
+                }
+            }
         });
         return { g, glow, shadow };
     }
 
-    // ---------- предметы на клетках ----------
+    // ---------- предметы ----------
     function coinGeo(big) {
         const g = new Geo();
         g.with(m4.rx(Math.PI / 2), () => {
@@ -571,6 +612,18 @@
         g.with(m4.rz(-0.6), () => g.box(-0.12, 0.5, 0, 0.18, 0.06, 0.07, hex('#ffd23f')));
         return g;
     }
+    function starGeo() {
+        const g = new Geo(), pts = [], col = hex('#ffd23f'), side = hex('#e6a700'), d = 0.07;
+        for (let k = 0; k < 10; k++) { const a = Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 0.17 : 0.4; pts.push([Math.cos(a) * r, Math.sin(a) * r]); }
+        for (let k = 0; k < 10; k++) {
+            const [x1, y1] = pts[k], [x2, y2] = pts[(k + 1) % 10];
+            g.tri([0, 0, d], [x1, y1, d * 0.3], [x2, y2, d * 0.3], col, [0, 0, -1]);
+            g.tri([0, 0, -d], [x1, y1, -d * 0.3], [x2, y2, -d * 0.3], col, [0, 0, 1]);
+            g.quad([x1, y1, d * 0.3], [x2, y2, d * 0.3], [x2, y2, -d * 0.3], [x1, y1, -d * 0.3], side, [0, 0, 0]);
+        }
+        return g;
+    }
+    function beaconGeo() { return new Geo().cyl(0, 0, 0, 0.32, 7, 12, hex('#ffe680'), 0.05, null, false); }
 
     // ---------- Продушик и скины ----------
     // top/bottom — градиент тела сверху вниз (у классического — как на логотипе), face — цвет черт лица
@@ -657,15 +710,18 @@
     // =====================================================================
     // СОСТОЯНИЕ ИГРЫ
     // =====================================================================
-    const SAVE_KEY = 'produ_winter';
-    let save = (() => { try { return JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) { return null; } })() || {};
-    save = Object.assign({ coins: 0, pos: 0, lap: 1, owned: { classic: 1 }, skin: 'classic', taken: {}, rolls: 0 }, save);
+    const SAVE_KEY = 'produ_winter2';
+    const load = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
+    let save = load(SAVE_KEY);
+    if (!save) {   // переносим монетки и скины из прошлой версии (с круговой тропой)
+        const old = load('produ_winter') || {};
+        save = { coins: old.coins || 0, owned: old.owned || { classic: 1 }, skin: old.skin || 'classic', rolls: old.rolls || 0, seenHelp: 0 };
+    }
+    save = Object.assign({ coins: 0, stars: 0, cell: START.slice(), owned: { classic: 1 }, skin: 'classic', items: null, pending: 0, rolls: 0 }, save);
     const persist = () => { try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {} };
     const skinNow = () => SKINS.find(s => s.id === save.skin && save.owned[s.id]) || SKINS[0];
-
-    const P = { idx: save.pos, pos: world(save.pos), yaw: 0, hop: null, sx: 1, sy: 1, bob: 0 };
-    { const n = PATH[(save.pos + 1) % N], c = PATH[save.pos]; P.yaw = Math.atan2(n[0] - c[0], -(n[1] - c[1])); }
-    let busy = false;
+    if (!walkable(...save.cell)) save.cell = START.slice();
+    const P = { cell: save.cell.slice(), pos: world(...save.cell), yaw: 0, yawTarget: 0, hop: null, sx: 1, sy: 1, bob: 0 };
     const cam = { yaw: 0.72, pitch: 0.95, dist: 12, target: P.pos.slice(), eye: [0, 0, 0] };
 
     // ---------- звук ----------
@@ -810,12 +866,6 @@
         clearTimeout(toastT);
         toastT = setTimeout(() => { t.classList.add('hide'); setTimeout(() => { t.hidden = true; }, 300); }, 2600);
     }
-    function renderCoins(bump) {
-        $('coins').textContent = save.coins;
-        $('lap').textContent = 'Круг ' + save.lap;
-        if (bump) { const p = $('coinPill'); p.classList.remove('bump'); void p.offsetWidth; p.classList.add('bump'); }
-    }
-
     // ---------- кубик ----------
     const FACE_ROT = { 1: [0, 0], 2: [0, -90], 3: [0, 180], 4: [0, 90], 5: [-90, 0], 6: [90, 0] };
     let diceSpin = 0;
@@ -827,75 +877,192 @@
         d.style.transform = `rotateX(${rx - 24 + 360 * diceSpin}deg) rotateY(${ry + 32 + 360 * (diceSpin + 1)}deg)`;
     }
 
+    // ---------- предметы на поле: появляются в случайных свободных клетках ----------
+    const ITEM_TARGET = { coin: 26, bag: 6, gift: 3 };
+    function spawnItem(type, minDist = 2) {
+        for (let tries = 0; tries < 400; tries++) {
+            const [x, y] = MAP.walk[Math.floor(Math.random() * MAP.walk.length)], k = key(x, y);
+            if (save.items[k] || (x === P.cell[0] && y === P.cell[1])) continue;
+            if (Math.abs(x - P.cell[0]) + Math.abs(y - P.cell[1]) < minDist) continue;
+            save.items[k] = type; return k;
+        }
+        return null;
+    }
+    function topUpItems() {
+        if (!save.items) save.items = {};
+        // убираем предметы с клеток, которые стали недоступны (на случай изменений карты)
+        Object.keys(save.items).forEach(k => { const [x, y] = unkey(k); if (!walkable(x, y)) delete save.items[k]; });
+        const cnt = { coin: 0, bag: 0, gift: 0, star: 0 };
+        Object.values(save.items).forEach(t => { cnt[t] = (cnt[t] || 0) + 1; });
+        Object.entries(ITEM_TARGET).forEach(([t, n]) => { for (let i = cnt[t]; i < n; i++) spawnItem(t); });
+        if (!cnt.star) spawnItem('star', 10);
+    }
+
+    // ---------- поиск путей (в ширину, по четырём направлениям) ----------
+    function bfs(from, maxD) {
+        const res = new Map([[key(...from), { d: 0, prev: null, x: from[0], y: from[1] }]]), q = [from];
+        while (q.length) {
+            const [x, y] = q.shift(), cur = res.get(key(x, y));
+            if (cur.d >= maxD) continue;
+            for (const [dx, dy] of DIRS) {
+                const nx = x + dx, ny = y + dy, k = key(nx, ny);
+                if (res.has(k) || !walkable(nx, ny)) continue;
+                res.set(k, { d: cur.d + 1, prev: key(x, y), x: nx, y: ny });
+                q.push([nx, ny]);
+            }
+        }
+        return res;
+    }
+    function pathTo(reach, k) {
+        const out = [];
+        for (let c = reach.get(k); c && c.prev; c = reach.get(c.prev)) out.unshift([c.x, c.y]);
+        return out;
+    }
+
     // ---------- ход ----------
-    function hopTo(idx, mode = 'hop') {
-        return new Promise(res => {
-            const from = P.pos.slice(), to = world(idx);
-            const dx = to[0] - from[0], dz = to[2] - from[2];
-            if (mode !== 'back') P.yawTarget = Math.atan2(dx, dz);
-            P.hop = { from, to, t: 0, dur: mode === 'slide' ? 0.22 : mode === 'back' ? 0.34 : 0.3, mode, res, idx };
-            if (mode === 'hop' || mode === 'back') sfx.hop();
+    let mode = 'idle', busy = false, stepsLeft = 0, rollN = 0, reach = null, hoverKey = null, lastDir = [0, 1];
+    let HL = null, PATHG = null;   // подсветка доступных клеток и пути
+    function setReach() {
+        reach = mode === 'choose' ? bfs(P.cell, stepsLeft) : null;
+        if (HL) G.free(HL);
+        HL = new Geo();
+        if (reach) reach.forEach(c => {
+            if (!c.d) return;
+            const [wx, , wz] = world(c.x, c.y), h = 0.4;
+            HL.quad([wx - h, 0.172, wz - h], [wx + h, 0.172, wz - h], [wx + h, 0.172, wz + h], [wx - h, 0.172, wz + h], hex('#6cc40c'), [wx, 0, wz]);
+        });
+        setHover(hoverKey);
+    }
+    function setHover(k) {
+        hoverKey = k && reach && reach.has(k) && reach.get(k).d ? k : null;
+        if (PATHG) G.free(PATHG);
+        PATHG = new Geo();
+        if (!hoverKey) return;
+        const path = pathTo(reach, hoverKey);
+        path.forEach(([x, y], i) => {
+            const [wx, , wz] = world(x, y), last = i === path.length - 1;
+            if (last) {   // рамка на клетке назначения
+                const a = 0.44, b = 0.33;
+                [[0, a - (a - b) / 2, 2 * a, a - b], [0, -(a - (a - b) / 2), 2 * a, a - b], [a - (a - b) / 2, 0, a - b, 2 * b], [-(a - (a - b) / 2), 0, a - b, 2 * b]].forEach(([dx, dz, sx, sz]) =>
+                    PATHG.box(wx + dx, 0.178, wz + dz, sx, 0.012, sz, hex('#2e7d0a')));
+            } else PATHG.cyl(wx, 0.176, wz, 0.1, 0.01, 12, hex('#2e7d0a'));
         });
     }
-    async function roll() {
-        if (busy) return;
-        busy = true;
-        $('rollBtn').disabled = true;
-        hideHint();
-        const n = 1 + Math.floor(Math.random() * 6);
-        sfx.dice();
-        showDice(n, true);
-        await wait(1100);
-        toast(`Выпало ${n}`, `${['', 'одна клетка', 'две клетки', 'три клетки', 'четыре клетки', 'пять клеток', 'шесть клеток'][n]} вперёд`);
-        save.rolls++;
-        for (let k = 0; k < n; k++) {
-            const next = (P.idx + 1) % N;
-            await hopTo(next);
-            P.idx = next;
-            if (next === 0) await lapDone();
+    function renderRollBtn() {
+        const b = $('rollBtn');
+        if (mode === 'choose') {
+            const used = stepsLeft < rollN;
+            b.disabled = !used;
+            b.innerHTML = used ? `Остаться здесь<small>осталось шагов: ${stepsLeft}</small>` : `Куда идём?<small>до ${stepsLeft} ${plural(stepsLeft, 'шага', 'шагов', 'шагов')}</small>`;
+        } else {
+            b.disabled = mode !== 'idle';
+            b.innerHTML = `Бросить кубик<small>${matchMedia('(pointer: fine)').matches ? 'или пробел' : 'и выбрать клетку'}</small>`;
         }
-        await landOn(P.idx, true);
-        save.pos = P.idx; persist();
-        busy = false;
-        $('rollBtn').disabled = false;
+    }
+    const plural = (n, one, few, many) => { const m10 = n % 10, m100 = n % 100; return m10 === 1 && m100 !== 11 ? one : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? few : many; };
+    function hopTo(cell, kind = 'hop') {
+        return new Promise(res => {
+            const from = P.pos.slice(), to = world(...cell);
+            P.yawTarget = Math.atan2(to[0] - from[0], to[2] - from[2]);
+            P.hop = { from, to, t: 0, dur: kind === 'slide' ? 0.2 : 0.28, mode: kind, res };
+            if (kind === 'hop') sfx.hop();
+        });
     }
     const wait = ms => new Promise(r => setTimeout(r, ms));
-    async function lapDone() {
-        save.lap++; save.coins += 15; save.taken = {};
-        sfx.lap(); burst(P.pos, 18, '#ffd23f', true);
-        renderCoins(true);
-        toast('Круг пройден! +15', 'Монетки и подарки на тропе появились снова');
-        persist();
-        await wait(500);
+    async function roll() {
+        if (mode !== 'idle' || busy) return;
+        busy = true; mode = 'rolling'; renderRollBtn();
+        hideHint();
+        const n = 1 + Math.floor(Math.random() * 6);
+        sfx.dice(); showDice(n, true);
+        await wait(1100);
+        save.rolls++; save.pending = n; persist();
+        busy = false;
+        startChoose(n, true);
     }
-    async function landOn(i, allowMove) {
-        const t = TYPES[i];
-        if ((t === 'coin' || t === 'bag' || t === 'gift') && save.taken[i]) { toast('Клетка пуста', 'Здесь уже всё собрано на этом круге'); return; }
+    function startChoose(n, announce) {
+        rollN = n; stepsLeft = n; mode = 'choose';
+        setReach(); renderRollBtn();
+        if (announce) toast(`Выпало ${n}`, 'Нажмите на подсвеченную клетку — можно идти в любую сторону');
+    }
+    // идём по пути; full = ход закончится в конце пути (клик по клетке), иначе — шаг стрелками
+    async function walk(path, full) {
+        if (busy || !path.length) return;
+        busy = true; mode = 'walk'; setHover(null); setReach(); renderRollBtn();
+        for (const cell of path) {
+            lastDir = [cell[0] - P.cell[0], cell[1] - P.cell[1]];
+            await hopTo(cell);
+            P.cell = cell; save.cell = cell.slice(); stepsLeft--;
+            await collect(cell);
+        }
+        busy = false;
+        if (full || stepsLeft <= 0) await endTurn();
+        else { mode = 'choose'; save.pending = stepsLeft; persist(); setReach(); renderRollBtn(); }
+    }
+    async function endTurn() {
+        busy = true; mode = 'walk'; setReach(); renderRollBtn();
+        // лёд: скользим дальше в том же направлении, пока клетки свободны (не больше двух)
+        if (MAP.ice.has(key(...P.cell))) {
+            const next = c => [c[0] + lastDir[0], c[1] + lastDir[1]];
+            let n = 0;
+            if (walkable(...next(P.cell))) { sfx.ice(); toast('Лёд!', 'Продушик проскользил дальше'); await wait(250); }
+            while (n < 2 && walkable(...next(P.cell))) {
+                const c = next(P.cell); await hopTo(c, 'slide'); P.cell = c; save.cell = c.slice(); n++;
+                await collect(c);
+            }
+        }
+        save.pending = 0; persist();
+        busy = false; mode = 'idle'; renderRollBtn();
+    }
+    async function collect(cell) {
+        const k = key(...cell), t = save.items[k];
+        if (!t) return;
+        delete save.items[k];
         if (t === 'coin') {
             const n = 3 + Math.floor(Math.random() * 4);
-            save.coins += n; save.taken[i] = 1; sfx.coin(); flyCoins(n); renderCoins(true); toast(`+${n} монеток`);
+            save.coins += n; sfx.coin(); flyCoins(n); renderCoins(true); toast(`+${n} ${plural(n, 'монетка', 'монетки', 'монеток')}`);
         } else if (t === 'bag') {
-            save.coins += 12; save.taken[i] = 1; sfx.coin(); flyCoins(12); renderCoins(true); toast('Мешочек монеток! +12');
+            save.coins += 12; sfx.coin(); flyCoins(12); renderCoins(true); toast('Мешочек монеток! +12');
         } else if (t === 'gift') {
-            save.taken[i] = 1; sfx.gift(); burst(P.pos, 26, '#e8436f', true);
+            sfx.gift(); burst(P.pos, 26, '#e8436f', true);
             const locked = SKINS.filter(s => !save.owned[s.id]);
             if (locked.length) {
                 const s = locked[Math.floor(Math.random() * locked.length)];
                 save.owned[s.id] = 1;
-                toast(`Подарок: скин «${s.name}»!`, 'Наденьте его в гардеробе 🎁');
+                toast(`Подарок: скин «${s.name}»!`, 'Наденьте его в гардеробе');
             } else { save.coins += 25; flyCoins(10); renderCoins(true); toast('Подарок: +25 монеток', 'Все скины уже собраны'); }
-        } else if (t === 'ice' && allowMove) {
-            sfx.ice(); toast('Лёд!', 'Скользим ещё на 2 клетки вперёд');
-            await wait(350);
-            for (let k = 0; k < 2; k++) { const next = (P.idx + 1) % N; await hopTo(next, 'slide'); P.idx = next; if (next === 0) await lapDone(); }
-            await landOn(P.idx, false);
-        } else if (t === 'drift' && allowMove) {
-            sfx.drift(); burst(P.pos, 14, '#ffffff'); toast('Сугроб!', 'Отступаем на 2 клетки назад');
-            await wait(450);
-            for (let k = 0; k < 2; k++) { const prev = (P.idx - 1 + N) % N; await hopTo(prev, 'back'); P.idx = prev; }
-        } else if (t === 'start') toast('Старт у большой ёлки', 'Каждый круг приносит +15 монеток');
+            spawnItem('gift', 6);
+        } else if (t === 'star') {
+            save.stars++; save.coins += 20;
+            sfx.lap(); burst(P.pos, 30, '#ffd23f', true); flyCoins(12); renderCoins(true);
+            toast(`Звезда! +20 монеток`, 'Новая звезда зажглась в другом месте, монетки на поле пополнились');
+            topUpItems();
+            await wait(400);
+        }
+        if (t === 'coin' || t === 'bag') { const left = Object.values(save.items).filter(v => v === t).length; if (left < ITEM_TARGET[t] / 2) spawnItem(t, 5); }
         persist();
+        await wait(t === 'coin' ? 60 : 200);
     }
+    function onCellTap(x, y) {
+        if (mode !== 'choose' || busy) return;
+        const k = key(x, y);
+        if (!reach || !reach.has(k) || !reach.get(k).d) { if (walkable(x, y)) toast('Слишком далеко', `Можно пройти не больше ${stepsLeft} ${plural(stepsLeft, 'клетки', 'клеток', 'клеток')}`); return; }
+        walk(pathTo(reach, k), true);
+    }
+    // стрелки/WASD: шаг на одну клетку относительно направления камеры
+    function stepKey(dx, dy) {
+        if (mode !== 'choose' || busy) return;
+        // «вперёд» — туда, куда смотрит камера
+        const fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw);           // вектор взгляда в мире (x, z)
+        const fwd = Math.abs(fx) > Math.abs(fz) ? [Math.sign(fx), 0] : [0, -Math.sign(fz)];  // в клетках: y = −z
+        const right = [fwd[1], -fwd[0]];
+        const d = [right[0] * dx + fwd[0] * dy, right[1] * dx + fwd[1] * dy];
+        const c = [P.cell[0] + d[0], P.cell[1] + d[1]];
+        if (!walkable(...c)) { tone(160, 120, 0.12, 'triangle', 0.06); return; }
+        walk([c], false);
+    }
+    function stayHere() { if (mode === 'choose' && !busy && stepsLeft < rollN) endTurn(); }
+    function rollOrStay() { if (mode === 'choose') stayHere(); else roll(); }
 
     // ---------- частицы и снег (2D поверх 3D) ----------
     const fx = $('fx'), fxc = fx.getContext('2d');
@@ -947,28 +1114,59 @@
         }
     }
 
-    // ---------- камера: поворот перетаскиванием, приближение колесом и щипком ----------
-    const ptrs = new Map(); let pinch0 = 0, dist0 = 0;
+    // ---------- управление: касание клетки — ход; перетаскивание — поворот камеры; колесо/щипок — приближение ----------
+    const ptrs = new Map(); let pinch0 = 0, dist0 = 0, down = null;
     const glc = $('gl');
-    glc.addEventListener('pointerdown', e => { glc.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); dist0 = cam.dist; } hideHint(); });
-    glc.addEventListener('pointermove', e => {
-        if (!ptrs.has(e.pointerId)) return;
-        const prev = ptrs.get(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
-        if (ptrs.size === 1) { cam.yaw -= (e.clientX - prev[0]) * 0.008; cam.pitch = clamp(cam.pitch + (e.clientY - prev[1]) * 0.005, 0.5, 1.3); }
-        else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0) cam.dist = clamp(dist0 * pinch0 / d, 5, 18); }
+    // луч из камеры через точку экрана → клетка, в которую он попадает
+    function pickCell(cx, cy) {
+        const inv = m4.inv(VP);
+        if (!inv) return null;
+        const nx = cx / innerWidth * 2 - 1, ny = 1 - cy / innerHeight * 2;
+        const un = (z) => { const x = inv[0] * nx + inv[4] * ny + inv[8] * z + inv[12], y = inv[1] * nx + inv[5] * ny + inv[9] * z + inv[13], zz = inv[2] * nx + inv[6] * ny + inv[10] * z + inv[14], w = inv[3] * nx + inv[7] * ny + inv[11] * z + inv[15]; return [x / w, y / w, zz / w]; };
+        const a = un(-1), b = un(1), H = 0.165;
+        if (Math.abs(b[1] - a[1]) < 1e-6) return null;
+        const t = (H - a[1]) / (b[1] - a[1]);
+        if (t < 0) return null;
+        const px = a[0] + (b[0] - a[0]) * t, pz = a[2] + (b[2] - a[2]) * t;
+        return [Math.round(px / S), Math.round(-pz / S)];
+    }
+    glc.addEventListener('pointerdown', e => {
+        glc.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+        down = ptrs.size === 1 ? { x: e.clientX, y: e.clientY, t: performance.now(), moved: false } : null;
+        if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch0 = Math.hypot(a[0] - b[0], a[1] - b[1]); dist0 = cam.dist; }
     });
-    const up = e => { ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch0 = 0; };
+    glc.addEventListener('pointermove', e => {
+        if (!ptrs.has(e.pointerId)) {   // мышь без нажатия: подсвечиваем путь до клетки под курсором
+            if (e.pointerType === 'mouse' && mode === 'choose') { const c = pickCell(e.clientX, e.clientY); const k = c && key(...c); if (k !== hoverKey) setHover(k); glc.style.cursor = hoverKey ? 'pointer' : ''; }
+            return;
+        }
+        const prev = ptrs.get(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+        if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 8) { down.moved = true; hideHint(); }
+        if (ptrs.size === 1 && (!down || down.moved)) { cam.yaw -= (e.clientX - prev[0]) * 0.008; cam.pitch = clamp(cam.pitch + (e.clientY - prev[1]) * 0.005, 0.5, 1.3); }
+        else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; const d = Math.hypot(a[0] - b[0], a[1] - b[1]); if (pinch0) cam.dist = clamp(dist0 * pinch0 / d, 5, 22); }
+    });
+    const up = e => {
+        const wasTap = down && !down.moved && ptrs.size === 1 && e.type === 'pointerup';
+        ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch0 = 0;
+        if (wasTap) { const c = pickCell(e.clientX, e.clientY); if (c) onCellTap(...c); }
+        down = null;
+    };
     glc.addEventListener('pointerup', up); glc.addEventListener('pointercancel', up);
-    glc.addEventListener('wheel', e => { e.preventDefault(); cam.dist = clamp(cam.dist * (1 + Math.sign(e.deltaY) * 0.1), 5, 18); }, { passive: false });
+    glc.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && !ptrs.size) setHover(null); });
+    glc.addEventListener('wheel', e => { e.preventDefault(); cam.dist = clamp(cam.dist * (1 + Math.sign(e.deltaY) * 0.1), 5, 22); }, { passive: false });
     window.addEventListener('keydown', e => {
         if (!$('wardrobe').hidden || !$('help').hidden) { if (e.key === 'Escape') closePanels(); return; }
-        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); roll(); }
-        if (e.key === 'ArrowLeft') cam.yaw += 0.2; if (e.key === 'ArrowRight') cam.yaw -= 0.2;
-        if (e.key === '+' || e.key === '=') cam.dist = clamp(cam.dist - 1, 5, 18); if (e.key === '-') cam.dist = clamp(cam.dist + 1, 5, 18);
+        if (e.target.closest && e.target.closest('button') && (e.key === ' ' || e.key === 'Enter')) return;   // кнопки нажимаются сами
+        const k = e.key.toLowerCase();
+        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); rollOrStay(); return; }
+        const step = { arrowup: [0, 1], w: [0, 1], 'ц': [0, 1], arrowdown: [0, -1], s: [0, -1], 'ы': [0, -1], arrowleft: [-1, 0], a: [-1, 0], 'ф': [-1, 0], arrowright: [1, 0], d: [1, 0], 'в': [1, 0] }[k];
+        if (step) { e.preventDefault(); if (mode === 'choose') stepKey(...step); else if (step[1] === 0) cam.yaw -= step[0] * 0.25; return; }
+        if (k === 'q' || k === 'й') cam.yaw += 0.25; if (k === 'e' || k === 'у') cam.yaw -= 0.25;
+        if (e.key === '+' || e.key === '=') cam.dist = clamp(cam.dist - 1, 5, 22); if (e.key === '-') cam.dist = clamp(cam.dist + 1, 5, 22);
     });
     let hintHidden = false;
     function hideHint() { if (hintHidden) return; hintHidden = true; $('hint').style.opacity = '0'; setTimeout(() => { $('hint').hidden = true; }, 600); }
-    setTimeout(hideHint, 9000);
+    setTimeout(hideHint, 12000);
 
     // ---------- гардероб ----------
     let previews = null;
@@ -1019,20 +1217,27 @@
     // =====================================================================
     // ЗАПУСК И ГЛАВНЫЙ ЦИКЛ
     // =====================================================================
-    const ENV = { sun: norm([-0.45, 0.85, 0.35]), sky: [0.92, 0.96, 1.0], ground: [0.62, 0.7, 0.82], fog: [0.81, 0.878, 0.933], fogN: 14, fogF: 34 };
-    let G, WORLD, COIN, BIG, GIFT, SHADOW, VP = m4.id();
+    const ENV = { sun: norm([-0.45, 0.85, 0.35]), sky: [0.92, 0.96, 1.0], ground: [0.62, 0.7, 0.82], fog: [0.81, 0.878, 0.933], fogN: 16, fogF: 38 };
+    let G, WORLD, COIN, BIG, GIFT, STAR, BEACON, SHADOW, VP = m4.id();
     function init() {
         try { G = new Gfx(glc); }
         catch (e) { $('loading').remove(); const d = document.createElement('div'); d.className = 'err'; d.innerHTML = '<div><b>Не удалось запустить 3D</b><p>Браузер не поддерживает WebGL или он отключён. Попробуйте другой браузер.</p><button class="sbtn" style="width:auto;padding:10px 18px" onclick="leave()">Вернуться в ProdU</button></div>'; document.body.appendChild(d); return; }
         WORLD = buildWorld();
-        COIN = coinGeo(false); BIG = coinGeo(true); GIFT = giftGeo();
+        COIN = coinGeo(false); BIG = coinGeo(true); GIFT = giftGeo(); STAR = starGeo(); BEACON = beaconGeo();
         SHADOW = new Geo().cyl(0, 0, 0, 0.42, 0.001, 14, [0.25, 0.35, 0.5]);
+        topUpItems(); persist();
         resize(); renderCoins(); renderMusicBtn(); showDice(1 + (save.rolls % 6), false);
         cam.target = P.pos.slice();
+        if (save.pending > 0) startChoose(save.pending, false); else { setReach(); renderRollBtn(); }
         requestAnimationFrame(loop);
         setTimeout(() => $('loading').classList.add('done'), 150);
         try { sessionStorage.removeItem('produ_wipe'); } catch (e) {}
         if (!save.seenHelp) { save.seenHelp = 1; persist(); setTimeout(openHelp, 700); }
+    }
+    function renderCoins(bump) {
+        $('coins').textContent = save.coins;
+        $('stars').textContent = save.stars;
+        if (bump) { const p = $('coinPill'); p.classList.remove('bump'); void p.offsetWidth; p.classList.add('bump'); }
     }
     function resize() {
         const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -1050,8 +1255,7 @@
             const h = P.hop; h.t += dt / h.dur;
             const t = Math.min(1, h.t), e = h.mode === 'slide' ? t : ease(t);
             P.pos = [lerp(h.from[0], h.to[0], e), 0, lerp(h.from[2], h.to[2], e)];
-            const arc = h.mode === 'slide' ? 0 : Math.sin(t * Math.PI) * (h.mode === 'back' ? 0.35 : 0.55);
-            P.pos[1] = arc;
+            P.pos[1] = h.mode === 'slide' ? 0 : Math.sin(t * Math.PI) * 0.55;
             P.sy = h.mode === 'slide' ? 0.9 : 1 + Math.sin(t * Math.PI) * 0.12; P.sx = 2 - P.sy;
             if (h.t >= 1) { P.pos = h.to.slice(); P.hop = null; P.sy = 0.8; P.sx = 1.18; if (h.mode !== 'slide') burstSnow(); h.res(); }
         } else {
@@ -1059,32 +1263,37 @@
             P.bob += dt;
         }
         if (!P.hop && !busy) P.yawTarget = cam.yaw;   // в покое Продушик поворачивается лицом к камере
-        if (P.yawTarget !== undefined) { let d = P.yawTarget - P.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); P.yaw += d * Math.min(1, dt * 12); }
+        { let d = P.yawTarget - P.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); P.yaw += d * Math.min(1, dt * 12); }
         // камера плавно следует
         for (let k = 0; k < 3; k++) cam.target[k] += (P.pos[k] * (k === 1 ? 0.3 : 1) - cam.target[k]) * Math.min(1, dt * 4);
         const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
         cam.eye = [cam.target[0] + Math.sin(cam.yaw) * cp * cam.dist, cam.target[1] + sp * cam.dist, cam.target[2] + Math.cos(cam.yaw) * cp * cam.dist];
-        const proj = m4.persp(0.72, innerWidth / innerHeight, 0.1, 80);
+        const proj = m4.persp(0.72, innerWidth / innerHeight, 0.1, 90);
         VP = m4.mul(proj, m4.lookAt(cam.eye, [cam.target[0], cam.target[1] + 0.4, cam.target[2]], [0, 1, 0]));
         // отрисовка
         G.frame(glc.width, glc.height, VP, cam.eye, ENV);
         G.draw(WORLD.g);
         G.draw(WORLD.glow, IDENT, { emit: 0.55 });
-        // предметы на клетках
-        TYPES.forEach((t, i) => {
-            if (save.taken[i]) return;
-            const [x, , z] = world(i);
-            if (t === 'coin' || t === 'bag') G.draw(t === 'bag' ? BIG : COIN, m4.chain(m4.t(x, 0.55 + Math.sin(T * 2.4 + i) * 0.07, z), m4.ry(T * 2 + i)), { emit: 0.25 });
-            else if (t === 'gift') G.draw(GIFT, m4.chain(m4.t(x, 0.17 + Math.abs(Math.sin(T * 2 + i)) * 0.08, z), m4.ry(Math.sin(T + i) * 0.4)));
-        });
+        // предметы
+        let starAt = null;
+        for (const k in save.items) {
+            const t = save.items[k], [cx, cy] = unkey(k), [x, , z] = world(cx, cy), ph = cx * 1.7 + cy;
+            if (Math.abs(x - cam.target[0]) > 30 || Math.abs(z - cam.target[2]) > 30) continue;
+            if (t === 'coin' || t === 'bag') G.draw(t === 'bag' ? BIG : COIN, m4.chain(m4.t(x, 0.55 + Math.sin(T * 2.4 + ph) * 0.07, z), m4.ry(T * 2 + ph)), { emit: 0.25 });
+            else if (t === 'gift') G.draw(GIFT, m4.chain(m4.t(x, 0.17 + Math.abs(Math.sin(T * 2 + ph)) * 0.08, z), m4.ry(Math.sin(T + ph) * 0.4)));
+            else if (t === 'star') { starAt = [x, z]; G.draw(STAR, m4.chain(m4.t(x, 0.75 + Math.sin(T * 2) * 0.1, z), m4.ry(T * 1.6)), { emit: 0.45 }); }
+        }
         // Продушик
         const skin = skinNow(), breathe = P.hop ? 0 : Math.sin(P.bob * 3) * 0.025;
         G.draw(playerGeo(skin), m4.chain(m4.t(P.pos[0], P.pos[1] + 0.17, P.pos[2]), m4.ry(P.yaw), m4.s(P.sx, P.sy + breathe, P.sx)),
             { emit: skin.id === 'gold' ? 0.15 + Math.sin(T * 3) * 0.08 : 0 });
-        // тени (прозрачные — в конце)
+        // прозрачное — в конце: тени, подсветка клеток, путь, луч над звездой
         G.draw(WORLD.shadow, IDENT, { alpha: 0.18 });
         const sh = clamp(1 - P.pos[1], 0.5, 1);
         G.draw(SHADOW, m4.chain(m4.t(P.pos[0], 0.19, P.pos[2]), m4.s(sh, 1, sh)), { alpha: 0.22 });
+        if (HL) G.draw(HL, IDENT, { alpha: 0.5 + Math.sin(T * 4) * 0.1, emit: 0.15 });
+        if (PATHG) G.draw(PATHG, IDENT, { alpha: 0.9, emit: 0.3 });
+        if (starAt) G.draw(BEACON, m4.t(starAt[0], 0.2, starAt[1]), { alpha: 0.16 + Math.sin(T * 2) * 0.04, emit: 1 });
         drawFx(dt);
     }
     function burstSnow() {
