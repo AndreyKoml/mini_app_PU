@@ -312,17 +312,27 @@
         .logo-btn { width: 52px; height: 52px; padding: 0; border: none; background: none; border-radius: 15px; cursor: pointer; display: block; filter: drop-shadow(0 4px 10px rgba(112, 224, 0, .35)); -webkit-tap-highlight-color: transparent; }
         .logo-btn svg { width: 100%; height: 100%; display: block; border-radius: 15px; }
         .logo-wrap::before { content: ''; position: absolute; left: -6px; right: -6px; bottom: 100%; height: 0; }
-        .logo-wrap:hover::before, .logo-wrap.open::before { height: 140px; }
-        /* над логотипом всплывают логотипы двух других версий */
+        .logo-wrap.open::before { height: 140px; }
+        /* над логотипом всплывают логотипы двух других версий; повторное нажатие плавно убирает их обратно */
         .logo-alts { position: absolute; left: 50%; bottom: calc(100% + 12px); transform: translateX(-50%); display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
         .logo-alt { position: relative; width: 52px; height: 52px; padding: 0; border: none; background: none; border-radius: 15px; cursor: pointer;
-            transform: translateY(14px) scale(.6); opacity: 0; pointer-events: none; transition: transform .28s cubic-bezier(.3, 1.5, .5, 1), opacity .2s; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .18)); }
-        .logo-wrap:hover .logo-alt:first-child, .logo-wrap.open .logo-alt:first-child { transition-delay: .06s; }
+            transform: translateY(var(--drop, 14px)) scale(.6); opacity: 0; pointer-events: none; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .18));
+            transition: transform .3s cubic-bezier(.5, 0, .7, .4), opacity .22s ease .06s; }
+        .logo-alt:first-child { --drop: 76px; }
+        .logo-alt:last-child { --drop: 14px; transition-delay: .07s, .12s; }   /* при сворачивании верхний уходит первым */
         .logo-alt svg { width: 100%; height: 100%; display: block; border-radius: 15px; }
         .logo-alt .lbl { position: absolute; right: calc(100% + 10px); top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: 10px;
             background: var(--pill); box-shadow: var(--pill-shadow); color: var(--text-color); }
-        .logo-wrap:hover .logo-alt, .logo-wrap.open .logo-alt, .logo-alt:focus-visible { transform: none; opacity: 1; pointer-events: auto; }
-        .logo-alt:hover { transform: translateY(-2px) scale(1.06) !important; transition-delay: 0s !important; }
+        .logo-wrap.open .logo-alt, .logo-alt:focus-visible { transform: none; opacity: 1; pointer-events: auto; transition: transform .38s cubic-bezier(.3, 1.5, .5, 1), opacity .2s ease; }
+        .logo-wrap.open .logo-alt:first-child { transition-delay: .07s, .07s; }
+        .logo-wrap.open .logo-alt:hover { transform: translateY(-2px) scale(1.06); transition-delay: 0s; }
+        /* наведение мышью (на сенсорном экране показываем только по нажатию) */
+        @media all {
+            .logo-wrap.mhover:not(.shut)::before { height: 140px; }
+            .logo-wrap.mhover:not(.shut) .logo-alt { transform: none; opacity: 1; pointer-events: auto; transition: transform .38s cubic-bezier(.3, 1.5, .5, 1), opacity .2s ease; }
+            .logo-wrap.mhover:not(.shut) .logo-alt:first-child { transition-delay: .07s, .07s; }
+            .logo-wrap.mhover:not(.shut) .logo-alt:hover { transform: translateY(-2px) scale(1.06); transition-delay: 0s; }
+        }
         @media (max-width: 600px) {
             .bottom-bar { bottom: 10px; gap: 14px; }
             .nav3 { gap: 4px; padding: 5px; border-radius: 16px; }
@@ -848,7 +858,22 @@
 
         // ---- переход в основную ProdU: логотип справа снизу, при наведении сверху всплывает логотип ProdU ----
         function setLogoOpen(on) { $('logoWrap').classList.toggle('open', on); $('logoBtn').setAttribute('aria-expanded', String(on)); }
-        function logoTap() { setLogoOpen(!$('logoWrap').classList.contains('open')); }
+        // нажатие на логотип показывает другие версии, повторное — плавно убирает их обратно (даже если курсор над логотипом)
+        function logoIsOpen() {
+            const w = $('logoWrap');
+            return w.classList.contains('open') || (w.classList.contains('mhover') && !w.classList.contains('shut'));
+        }
+        function logoTap() {
+            const w = $('logoWrap'), open = logoIsOpen();
+            setLogoOpen(!open);
+            w.classList.toggle('shut', open);
+        }
+        (function () {
+            const w = document.getElementById('logoWrap');
+            if (!w) return;
+            w.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') w.classList.add('mhover'); });
+            w.addEventListener('pointerleave', () => w.classList.remove('mhover', 'shut'));
+        })();
         function goToApp(url, ev) {
             stopWorkout(true);
             const src = (ev && ev.currentTarget) || $('logoBtn');

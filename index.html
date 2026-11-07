@@ -325,6 +325,77 @@
         .theme-btn:hover { background: rgba(128,128,128,0.18); }
 
         .empty-state { text-align: center; opacity: 0.5; padding: 20px; font-style: italic; }
+        /* ---------- списки ---------- */
+        .lst-create .flex-row { align-items: center; }
+        .lst-tools { display: flex; gap: 8px; margin-top: 12px; }
+        .lst-tools[hidden] { display: none; }
+        .lst-tool { border: none; background: rgba(128, 128, 128, .14); color: var(--text-color); font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 10px; cursor: pointer; }
+        .lst-tool:hover { background: rgba(128, 128, 128, .22); }
+        .lst-wrap { display: flex; flex-direction: column; gap: 16px; }
+        .lst { padding: 0 !important; overflow: visible; }
+        .lst-head { display: flex; align-items: center; gap: 8px; padding: 14px 14px 10px 10px; position: relative; }
+        .lst-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; border: none; background: none; padding: 6px 6px; margin: -6px 0; border-radius: 12px; cursor: pointer;
+            color: var(--text-color); font: inherit; text-align: left; -webkit-tap-highlight-color: transparent; }
+        .lst-toggle:hover { background: rgba(128, 128, 128, .1); }
+        .lst-chev { width: 26px; height: 26px; flex: none; border-radius: 8px; display: grid; place-items: center; background: var(--pill); box-shadow: var(--pill-shadow); transition: transform .3s cubic-bezier(.3, .9, .3, 1); }
+        .lst-chev svg { width: 12px; height: 12px; }
+        .lst.collapsed .lst-chev { transform: rotate(-90deg); }
+        .lst-title { font-size: 18px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+        .lst-count { flex: none; font-size: 13px; font-weight: 600; padding: 4px 9px; border-radius: 9px; background: rgba(128, 128, 128, .14); font-variant-numeric: tabular-nums; }
+        .lst-count.full { background: color-mix(in srgb, var(--accent-color) 30%, transparent); }
+        .lst-more { flex: none; width: 34px; height: 34px; border: none; border-radius: 10px; background: transparent; color: var(--text-color); cursor: pointer; font-size: 20px; line-height: 1; padding-bottom: 6px; }
+        .lst-more:hover, .lst-more[aria-expanded="true"] { background: rgba(128, 128, 128, .14); }
+        .lst-menu { position: absolute; right: 12px; top: calc(100% - 4px); z-index: 20; min-width: 210px; padding: 6px; border-radius: 14px; display: flex; flex-direction: column; gap: 2px;
+            background: var(--pill); box-shadow: 0 12px 34px rgba(0, 0, 0, .2); animation: lstMenu .18s ease; }
+        @keyframes lstMenu { from { opacity: 0; transform: translateY(-4px); } }
+        .lst-menu button { border: none; background: none; text-align: left; padding: 10px 12px; border-radius: 10px; cursor: pointer; font: inherit; font-size: 14px; color: var(--text-color); }
+        .lst-menu button:hover { background: rgba(128, 128, 128, .12); }
+        .lst-menu button.danger { color: #e03131; }
+        .lst-menu button:disabled { opacity: .4; cursor: default; }
+        .lst-bar { height: 4px; margin: 0 16px; border-radius: 2px; background: rgba(128, 128, 128, .18); overflow: hidden; }
+        .lst-bar i { display: block; height: 100%; border-radius: 2px; background: var(--accent-color); transition: width .35s ease; }
+        .lst-body, .lst-done-body { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .32s cubic-bezier(.3, .9, .3, 1), opacity .25s; }
+        .lst-inner, .lst-done-inner { min-height: 0; overflow: hidden; }
+        .lst.collapsed .lst-body { grid-template-rows: 0fr; opacity: 0; }
+        .lst-inner > .lst-pad { padding: 12px 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+        .lst-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+        .li { display: flex; align-items: flex-start; gap: 12px; padding: 11px 10px 11px 12px; border-radius: 14px; background: var(--tile, var(--soft)); box-shadow: var(--tile-shadow, none);
+            animation: liIn .25s ease; }
+        @keyframes liIn { from { opacity: 0; transform: translateY(-3px); } }
+        .li-check { flex: none; width: 24px; height: 24px; margin-top: 1px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--text-color) 35%, transparent); background: transparent;
+            display: grid; place-items: center; padding: 0; cursor: pointer; color: transparent; transition: background .2s, border-color .2s, transform .15s; -webkit-tap-highlight-color: transparent; }
+        .li-check:hover { border-color: var(--accent-color); }
+        .li-check:active { transform: scale(.88); }
+        .li-check svg { width: 13px; height: 13px; }
+        .li.done .li-check { background: var(--accent-color); border-color: var(--accent-color); color: #fff; }
+        .li-text { flex: 1; min-width: 0; font-size: 15.5px; line-height: 1.4; overflow-wrap: anywhere; white-space: pre-wrap; cursor: text; padding-top: 2px; border-radius: 6px; }
+        .li-text:focus-visible { outline: 2px solid var(--accent-color); outline-offset: 2px; }
+        .li.done .li-text { text-decoration: line-through; opacity: .55; }
+        .li-edit { flex: 1; min-width: 0; font: inherit; font-size: 15.5px; line-height: 1.4; color: var(--text-color); background: transparent; border: none; border-bottom: 2px solid var(--accent-color);
+            padding: 1px 0; outline: none; resize: none; overflow: hidden; }
+        .li-del { flex: none; width: 28px; height: 28px; border: none; border-radius: 50%; background: transparent; color: color-mix(in srgb, var(--text-color) 45%, transparent); cursor: pointer;
+            font-size: 13px; display: grid; place-items: center; opacity: .0; transition: opacity .15s, background .15s; }
+        .li:hover .li-del, .li:focus-within .li-del { opacity: 1; }
+        .li-del:hover { background: rgba(224, 49, 49, .12); color: #e03131; }
+        @media (hover: none) { .li-del { opacity: .7; } }
+        .lst-add { display: flex; align-items: center; gap: 10px; padding: 6px 10px 6px 12px; border-radius: 14px; border: 1.5px dashed color-mix(in srgb, var(--text-color) 22%, transparent); }
+        .lst-add:focus-within { border-style: solid; border-color: var(--accent-color); }
+        .lst-add .plus { flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 18px; color: var(--accent-color); font-weight: 600; }
+        .lst-add input { flex: 1; min-width: 0; border: none; background: none; outline: none; font: inherit; font-size: 15.5px; color: var(--text-color); padding: 8px 0; }
+        .lst-add button { border: none; border-radius: 10px; background: var(--accent-color); color: #000; font: inherit; font-weight: 600; font-size: 13px; padding: 7px 12px; cursor: pointer; }
+        .lst-empty { font-size: 14px; opacity: .55; padding: 4px 4px 2px; }
+        .lst-done-toggle { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; border: none; background: none; padding: 6px 8px; margin: 4px 0 0 -4px; border-radius: 10px;
+            cursor: pointer; color: color-mix(in srgb, var(--text-color) 65%, transparent); font: inherit; font-size: 13.5px; font-weight: 600; }
+        .lst-done-toggle:hover { background: rgba(128, 128, 128, .1); }
+        .lst-done-toggle svg { width: 10px; height: 10px; transition: transform .3s cubic-bezier(.3, .9, .3, 1); }
+        .lst-done.closed .lst-done-toggle svg { transform: rotate(-90deg); }
+        .lst-done.closed .lst-done-body { grid-template-rows: 0fr; opacity: 0; }
+        .lst-done-inner .lst-items { padding-top: 6px; }
+        .lst.collapsed .lst-head { padding-bottom: 10px; }
+        .lst { min-width: 0; }
+        .lst-sum { padding: 0 16px 14px; font-size: 13px; line-height: 1.4; opacity: .6; display: none; overflow: hidden; overflow-wrap: anywhere; }
+        .lst.collapsed .lst-sum { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; padding-top: 8px; margin-bottom: 14px; padding-bottom: 0; }
+        @media (prefers-reduced-motion: reduce) { .lst-body, .lst-done-body, .lst-chev, .li { transition: none; animation: none; } }
         .day-badge { background: var(--accent-color); color: #000; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; white-space: nowrap; }
         .day-badge:empty { display: none; }
         .hint { font-size: 12px; opacity: 0.6; margin-top: 8px; line-height: 1.4; }
@@ -517,7 +588,7 @@
             padding: 22px 18px 20px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; background: rgba(38, 21, 42, .93);
             box-shadow: 0 0 0 4px #1a0f1c, 0 0 0 8px #e8742c, 0 0 0 12px #1a0f1c, 0 14px 0 12px rgba(0, 0, 0, .35); animation: rnPop .32s steps(5) both; }
         .rn-panel[hidden] { display: none; }
-        .rn-panel.wide { width: min(560px, calc(100% - 40px)); }
+        .rn-panel.wide { width: min(600px, calc(100% - 40px)); }
         @keyframes rnPop { from { opacity: 0; transform: translate(-50%, -44%) scale(.92); } to { opacity: 1; transform: translate(-50%, -50%); } }
         .rn-title { font-size: 22px; line-height: 1.4; color: #f6c453; text-transform: uppercase; text-shadow: 3px 3px 0 #a33a26, 6px 6px 0 #1a0f1c; margin: 2px 0 4px; }
         .rn-sub { font-size: 12px; color: #f6c453; text-transform: uppercase; text-shadow: 2px 2px 0 #1a0f1c; }
@@ -541,7 +612,7 @@
         .rn-stats b { color: #ffe680; font-weight: 400; }
         .rn-coin-s { width: 15px; height: 15px; vertical-align: -3px; margin: 0 2px; }
         .rn-help { font-size: 8px; line-height: 1.9; color: #d9c2b0; margin: 2px 0 0; }
-        .rn-shop-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; width: 100%; padding: 4px; box-sizing: border-box; }
+        .rn-shop-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; width: 100%; padding: 4px; box-sizing: border-box; }
         .rn-card { background: #3b2440; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; gap: 10px; box-shadow: 0 0 0 4px #1a0f1c; min-width: 0; }
         .rn-card.on { box-shadow: 0 0 0 4px #1a0f1c, 0 0 0 8px #8fe11a; }
         .rn-card-hero { height: 108px; display: flex; align-items: flex-end; }
@@ -552,7 +623,9 @@
         @keyframes rnTip { 0%, 75% { opacity: 1; } 100% { opacity: 0; } }
         .rn-hud { position: absolute; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); }
         .rn-hud[hidden] { display: none; }
+        .rn-hud { display: flex; gap: 14px; }
         .rn-hud .rn-btn { width: auto; font-size: 11px; padding: 10px 12px; }
+        .rn-music.off { opacity: .55; text-decoration: line-through; }
         .rn-big { font-size: 24px; color: #fff; text-shadow: 3px 3px 0 #1a0f1c; }
         #rnOverBest.new { color: #8fe11a; animation: rnBlink .7s steps(2) infinite; }
         @keyframes rnBlink { 50% { opacity: .35; } }
@@ -1431,17 +1504,27 @@
         /* переход в ProdU Sport: при наведении на логотип сверху всплывает логотип спорт-версии */
         .logo-wrap { position: relative; width: 52px; height: 52px; flex: none; }
         .logo-wrap::before { content: ''; position: absolute; left: -6px; right: -6px; bottom: 100%; height: 0; }
-        .logo-wrap:hover::before, .logo-wrap.open::before { height: 140px; }
-        /* над логотипом всплывают логотипы двух других версий */
+        .logo-wrap.open::before { height: 140px; }
+        /* над логотипом всплывают логотипы двух других версий; повторное нажатие плавно убирает их обратно */
         .logo-alts { position: absolute; left: 50%; bottom: calc(100% + 12px); transform: translateX(-50%); display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
         .logo-alt { position: relative; width: 52px; height: 52px; padding: 0; border: none; background: none; border-radius: 15px; cursor: pointer;
-            transform: translateY(14px) scale(.6); opacity: 0; pointer-events: none; transition: transform .28s cubic-bezier(.3, 1.5, .5, 1), opacity .2s; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .18)); }
-        .logo-wrap:hover .logo-alt:first-child, .logo-wrap.open .logo-alt:first-child { transition-delay: .06s; }
+            transform: translateY(var(--drop, 14px)) scale(.6); opacity: 0; pointer-events: none; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, .18));
+            transition: transform .3s cubic-bezier(.5, 0, .7, .4), opacity .22s ease .06s; }
+        .logo-alt:first-child { --drop: 76px; }
+        .logo-alt:last-child { --drop: 14px; transition-delay: .07s, .12s; }   /* при сворачивании верхний уходит первым */
         .logo-alt svg { width: 100%; height: 100%; display: block; border-radius: 15px; }
         .logo-alt .lbl { position: absolute; right: calc(100% + 10px); top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: 10px;
             background: var(--pill); box-shadow: var(--pill-shadow); color: var(--text-color); }
-        .logo-wrap:hover .logo-alt, .logo-wrap.open .logo-alt, .logo-alt:focus-visible { transform: none; opacity: 1; pointer-events: auto; }
-        .logo-alt:hover { transform: translateY(-2px) scale(1.06) !important; transition-delay: 0s !important; }
+        .logo-wrap.open .logo-alt, .logo-alt:focus-visible { transform: none; opacity: 1; pointer-events: auto; transition: transform .38s cubic-bezier(.3, 1.5, .5, 1), opacity .2s ease; }
+        .logo-wrap.open .logo-alt:first-child { transition-delay: .07s, .07s; }
+        .logo-wrap.open .logo-alt:hover { transform: translateY(-2px) scale(1.06); transition-delay: 0s; }
+        /* наведение мышью (на сенсорном экране показываем только по нажатию) */
+        @media all {
+            .logo-wrap.mhover:not(.shut)::before { height: 140px; }
+            .logo-wrap.mhover:not(.shut) .logo-alt { transform: none; opacity: 1; pointer-events: auto; transition: transform .38s cubic-bezier(.3, 1.5, .5, 1), opacity .2s ease; }
+            .logo-wrap.mhover:not(.shut) .logo-alt:first-child { transition-delay: .07s, .07s; }
+            .logo-wrap.mhover:not(.shut) .logo-alt:hover { transform: translateY(-2px) scale(1.06); transition-delay: 0s; }
+        }
         .app-wipe { position: fixed; inset: 0; z-index: 10001; pointer-events: none; display: grid; place-items: center; clip-path: circle(0 at var(--x) var(--y));
             transition: clip-path .5s cubic-bezier(.6, 0, .3, 1); }
         .app-wipe.go { clip-path: circle(150vmax at var(--x) var(--y)); }
@@ -1776,15 +1859,16 @@
     <div class="runner" id="runner" hidden data-noswipe role="dialog" aria-modal="true" aria-label="Мини-игра «Осенний забег»" onpointerdown="rnPointer(event)">
         <canvas id="rnCanvas" class="rn-canvas" width="384" height="216" aria-label="Игровое поле: Продушик бежит по осенней тропе"></canvas>
         <div class="rn-tip" id="rnTip" hidden></div>
-        <div class="rn-hud" id="rnHud" hidden><button type="button" class="rn-btn ghost" onclick="rnPause(true)" aria-label="Пауза">II</button></div>
+        <div class="rn-hud" id="rnHud" hidden><button type="button" class="rn-btn ghost rn-music" aria-pressed="true" aria-label="Музыка" onclick="rnMusicToggle()">♪</button><button type="button" class="rn-btn ghost" onclick="rnPause(true)" aria-label="Пауза">II</button></div>
         <div class="rn-panel" id="rnMenu" hidden>
             <div class="rn-title">Осенний<br>забег</div>
             <div class="rn-hero" id="rnHero"></div>
             <div class="rn-stats"><span><img class="rn-px rn-coin-s" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA8AAAAPCAYAAAA71pVKAAABtUlEQVR4nH2Tz24SURSHv3MZplAUpAU7oaY1prowMTFNWHbjypVr38CHcOGj6KO40WhISBPjQkMoGkOgYnGA4d/03utiBgYk9KzuuTnfPb+T+ztCHNYuTiVrapr/Qz1UcOePAIhEd5KAz62pd5HyAZLPb8DMBpgfn1HVFNATEZAFaNtnyP4phB9Af9+EFwqDHlJpAi1RAKbejcDp2xtBAMmVsF8VAA6cWTl8CeFH5v0O6dt7iOMui/VkxPXwKgLTLm7RQ4rHwMAqUx8he89Af2PabmBmkwQMfMJ+Bz320WOf6+EV834HcmVMTePcJDH8e4kJp+zef7J8LGh9wS16sWzdgvEbgEjSiuRUroDSu8m8jrsE45mTSBc9JL0OY80yVztZMpWTJF+Fg+Y5ZjJa5vPLn0zbja1jKVVNYf1fUafsLcx8gg58dOBHBW52kwp+o6rgQE9sV1sp3CP34ClB8xwdd8+Uj3DvHq2DqUfYwRCp9CV2mGdt6zj+v20a98F9gR02kVINeCcr3vasqc2Qg8dI4TCBMq9AVWBygWm8Rp0WgPeRtxc1W7dKVUBc1MkO5D+tbdU/I3qvpfB4BEUAAAAASUVORK5CYII=" alt="Монетки:"> <b id="rnMenuCoins">0</b></span><span>Рекорд <b id="rnMenuBest">0 м</b></span></div>
             <button type="button" class="rn-btn primary big" id="rnPlayBtn" onclick="rnStart()">Играть</button>
             <button type="button" class="rn-btn" onclick="rnShowShop()">Шляпки</button>
+            <button type="button" class="rn-btn ghost rn-music" aria-pressed="true" onclick="rnMusicToggle()"><span aria-hidden="true">♪</span> <span id="rnMusicLbl">Музыка: вкл</span></button>
             <button type="button" class="rn-btn ghost" onclick="closeRunner()">Выйти</button>
-            <p class="rn-help">Прыжок — пробел, ↑ или нажатие.<br>Пень перепрыгивай, под призраком беги.<br>Кофе возвращает жизнь.<br>На телефоне удобнее горизонтально.</p>
+            <p class="rn-help">Прыжок — пробел, ↑ или нажатие.<br>Бревно перепрыгивай, под призраком беги.<br>Кофе возвращает жизнь.<br>На телефоне удобнее горизонтально.</p>
         </div>
         <div class="rn-panel wide" id="rnShop" hidden>
             <div class="rn-sub">Шляпки</div>
@@ -2034,14 +2118,17 @@
 
         <!-- СПИСКИ -->
         <div class="dashboard" id="module-tasks">
-            <div class="glass-card full-width">
-                <div class="card-header">Создать новый список</div>
+            <div class="glass-card full-width lst-create">
                 <div class="flex-row">
-                    <input type="text" id="newListTitle" class="glass-input" placeholder="Название (Например: Покупки)" style="margin-bottom: 0;">
+                    <input type="text" id="newListTitle" class="glass-input" maxlength="80" placeholder="Новый список, например «Покупки»" style="margin-bottom: 0;" onkeydown="if (event.key === 'Enter') createNewList()">
                     <button class="glass-btn" onclick="createNewList()" style="width: auto; white-space: nowrap; margin-bottom: 0;">Создать</button>
                 </div>
+                <div class="lst-tools" id="listTools" hidden>
+                    <button type="button" class="lst-tool" onclick="setAllLists(true)">Свернуть все</button>
+                    <button type="button" class="lst-tool" onclick="setAllLists(false)">Развернуть все</button>
+                </div>
             </div>
-            <div id="customListsContainer" class="full-width stack"></div>
+            <div id="customListsContainer" class="full-width lst-wrap"></div>
         </div>
 
         <!-- КАРТЫ (ШТРИХКОДЫ) -->
@@ -6482,14 +6569,17 @@
 
         // ================= ИГРЫ =================
         // ================= МИНИ-ИГРА «ОСЕННИЙ ЗАБЕГ» =================
-        // Пиксельный раннер: Продушик бежит по осенней тропе, перепрыгивает пни, пробегает под призраками,
+        // Пиксельный раннер: Продушик бежит по осенней тропе, перепрыгивает брёвна, пробегает под призраками,
         // собирает монетки (на них покупаются шляпки) и стаканы кофе (это жизни, максимум три).
         // Сцена рисуется в низком разрешении (высота 216 точек) и растягивается без сглаживания — честный пиксель-арт.
         const rnClamp = (v, a, b) => Math.min(b, Math.max(a, v));
         const RN_IMG_SRC = {
             char: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAFKklEQVR4nK2Xa2wUVRTHf/fOdHe7bbelLYbyrGANzyY+g5EGiKYBbEIqiJAYoyHEaIgflET9YECNiRoMoCFKVBIMAiKBEkGDRgwEYkSQQETkFSFChQZb2m7Z3W53jh9mdh7b2YKJdzOZmb33/v/n/O85595ROE0EoJW30t/KzxszDGoqP3Bwlzjd/nt+ighMXxrl9dhcBbtQygcnAtsole2fpBnZACPvFpdIufAqSO5nCFD5uwUE2s8p2s/ComUxFpNSSoESgR2U8v13GamfJoPB/8d28aSiuTnKAlJKQzNbPy0gzRsf9q4A7YxV4nsOG+9bFyXUNwpbP0sDzZgrOw9KotoB07iquY4XSO7KqMS5g7JFtceo4DiUBJ4rqhUruw+KPra5n9FTxF70kMAJcyRwF3teYeyFzRFgzBT49fN+TK0hXmkHmAJiuhqLAfqlJ4AkDoRCbC8lD+mxlqhySogDYJElLV1BL0RRmgCtwcyvgwLqSh5gYeUeklY7O2600Gtd8azO54byS+pJ9FD8NcZH5jImMgMRoTt3iZPpjRxPfUxKrttDfXKYaA+oruRB4rqWuK6lwhhNr3jEoUkK1BiTWFjZRpVxlz1MbIZKYxxNZW9wX+ly9idXcCqz2YcjmH4lvHWxAyKw5oUxIFBjTmRR5TckjLEAXM0eo2PgBADluo7x0TnE9XBaEpvIdWf4o/8rJxqVTew6Iy5lYF0KZc1LNKvsHRLGGASLozfXcSS1hqSzPBGVYEr/EmaWv0tUldNU9ibXcifo4iyg0EFPQ1ohqfOqxWRC9DEAzmf2sL9vhUsK0C+9HE9v4HByFYIwzGygxpjoAmgbPCSP/KT+QuxczRUfYmcw7O15BpNSGiLzHW/LWZDYRZkawS/pdXRkbfkfLV/rApt5D4q6XZi4btOeAMrCkgEao89SoUcywryfjoETpOSfgFrK+XmzHdC/sgdI5q7Qnv2JHuvPAHfh9Xt6C0KOs5mdWJJByLIv+RyTootJWn9z6OZKhKwz9gsEi9PpLz3MlvVKZiz0O5XfYcT3VqyFlbsiJdD3/+Gdrl7iK2tept96cwojKBIvBbmplcLVHWBsyUzuMBtvg1QxPjKPKmPCfzTM/l/buWtf4yPzaE200ZrYzTCjYUige2Iv8HhiN62JNkxiBGuiZ1worWBHdb67yriTiK4gIhVEVeWQlg83G0EpasxJaGUWnEZurZf2Y3bnLpK1kgDUGtMKLPfAIqqChB4DInQOnMGSgSJeFpFalCc1wIX+vXTlzoOC2eWrqTEmF5RQhULTGFtGfbQZlOJEagMDpAcZN9gIzxSFvTUGbDvQ9wqWZImqSuYntnNvbLlLntD1NMXfZlbZewBczR7ldGZbuFchhP7VMO2zjUW+/F3M/sBv6U00li6l2pzI7PL3mR5/FQBDRYnpanuu5PgxuYKb0lHUK/9p091NnQdTCjYdAfYln6c7d4mpsacZZjRQpusCwBcyeziaWsvlgUMh52lxnfAfjb2DL4ilUE9u0TJ2ItSM8opG3pZKYxy1xlQejq8CoCt3jiOp1XTmzpCVPvwRXGhA2AEfoLMdLp3VKJH1PLX9RZncZGEYg1TzpPDreBv9YYXTysGpQ5rNT3ygNLQQqxG6roJlhQD5mxRJECEQPeIcCAOkFnRdg1iNAC35T5gqlmztkXgCakfJYHOL1X2C5WKo0nH9sqKvF7YtSSilbnjjRBbzEW3y9ZrsEO4651o3RG/zG0fgkZcqeJk5Sik7/f4FpF0N+QawdDUAAAAASUVORK5CYII=',
             ghost: 'data:image/png;base64,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',
-            stump: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACQAAAAWCAYAAACosj4+AAAFJUlEQVR4nK2Wa4hd1RXHf/u87jn3MZNJjNGMg00jGREFlfohooigiPpNRIRGkcpoWyQgBsFAQHygUCgtflBR9IvK+CDgWyOKsbVVjCYYTNqmtdEmmZm87sx9nHvOPnvv1Q935sbrZGYSdMGBs9fea63/+q+1F1vxE+SDB34t+yfrDA3U+vQC3PyncaWUOm2fp2Uh4w/K8XprduUY376TTlEQhyGC9BwK8Jvrr6S8agUUmn9+toPRR14+JYDBkiBEev9P3n4tWVb0Anc6HZxz6FwD4PseSiAvCl7evoPQD7DOcvRYndHPn+362v8H1Jr7F4y3JOQ9j90tH3y9D4DmTKMPIEAYhiTlMihYVi2DwPcHJ05kHHic94tzOTbT5PCx43x78CDP7zy0IFkLMiQi/O3h38rHu/fRajR7urkgI6vPRgClFJ7nAUK93qDZSns+BgdrDNVqHK7PYJ1bKveFAYkIvP6o7N1/AN8PWD44AMD0dAMjDhy02mmvbwAUCs9TDNQqPdq9MCC3BmMN0zNN2u2UJAz58PbLRKZuU2rVxlNkaOez/PHFbQRByEAlIYlCANI0RTnbBddozDNbMTRErVLurWfaHeozzdlkptFaU45KjO8+yOjjb5w6Q3z8ERMTE4yMjNBopzTaXSaGh8/C9/yTmgBMN1Om6tO99ZGjdSaPHAaEShwTlyKQxRv3pHuTm6/jwff3SKkUAZDECWevOpMo8BcyAcA4R5qmHJqa6ioEmO0731OEYUAlijjebBGHirUrK4xt3d3n8KQM6SzDWIuXFxhnMdYRT88sktcJKYqCQnfHQOD7hEE3hDEWpSw2cJTjiDQ3/GuyTfOhG6hueZu5a7fgLVNAUiqR6pw8zzkwMbHQ0T7xPY9qEs/T58agjUVEccZgGYWmneXcu3WXPLPl3R5LiwxGBUpQCIHvU4mjeSeExfshiULiKKLe6k73whpMalAIlSRi+UAF31eMXTIm47dexq3jX8wfT9vuWC/b/zPFVDNjsFLGWIuzghVLHEX8cKIlUYiIkGkDqlsuB5TCsMdW6PsEvqKV5nSKAm0MkR9QjkuEgY82BmMs1VLI6IoKXi9bEeSvm3jvH4c40soJvO5W4Pt4vkIb2wU326Sh51MKQ4LAh1mQxjm0sVhrAcE6hzYFpSgiKUUkYYTveWhr6OSaTp5jrUUp0MbyXav9w5J9zdg9LwlAFAYk0fwSpbkmjiKSUshgNZkFYfvOOOdoZTm1JMbz1FzxqSQlgsBHlKKRpmSmIDMn7K5bdya3vLKrm9ond10ur+78H53CUC7FBL7XK02m9WwzdpmZA7S8WqGZZhTW4hw0Oyl3rF/H+uHlauzVv4tSilIYEAchnqeolmMCz8MIbHlvq4JfzktYKYX3l7vWy7a9U3QKCyiMteSFIdMFmS5Yt2qAS88ZnGcM4MT1SuhEOP+MRLH5NW67ZJgNF69mpFamUxS0c02aaTpak+uCLzf+TuBNlFJ9H0Dwzp6jaGMYjMOThBQ23nKV4sJhNv3+aQFwysNZh3WCSLf3rFiWJQFD59TmHCuA7++7hj9/uk+6TOdkhYcCXtjxb/J7nxARmfdGOu0n3VsbfiVvfjNJtdydNdoY2rnmuV2HFvX16NVr5b/1dl/YlZWExz79ts/uJwHq5DlrVtTY9NRmpdZsWNROZDdMf9WvXFZDqZv6VEu+GH8sN159gfrueCZ7jzVZu7LKPVeMLgkGQKmLTjfUqYvIAe68eLXIN1t+dt//B20iYwl96VKmAAAAAElFTkSuQmCC',
+            log: 'data:image/png;base64,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',
+            hat_pumpkin: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAVCAYAAABc6S4mAAAEQUlEQVR4nJWVS2yUVRTHf+d+38w3Q2lpaSlIYkjRlKQB5WF4JWqIiZGYSEzcUN34WEnCQhdGTVzC1hgXBiUGHxsXGnVjjBpNCPhIERBQLI+2dOhjOp3O45v5Xvc7LqYpVGoq/+W95/zPuffc///CMlBVjgxt0ANHPFV9dbnwOyDLBfyg93D00KwaT8n2WL56IxGRZdMWYJYL2MeT7NjRS6aZIyq6/Mau/01+V1Ad5IkXu/S591bo3eS5S5MB3Mbz44By+As6AwPamsu/8V/Xtmh1IfGDjVqbqFK92kATpWktx43DkDG0bYroCx1eHhW6ejxyazJkvQzZV27KUoVkEXk4qM3j52n8NYYkMblul/pYwKm8x8+O0wrMKN76kK0VeNjvhFw7OQpIPk/bI/2wb5PAiYVCskBeHtTmJ78Tjk2QX5XCwH704jfYpsVbsxLNZuc7STFNHwDb2Yds2Evt7BDh5Uu0PbSdnBbIbhfYfVlEBFdVYeQZTU6OEM5UybgJ7Hoe7X8K58q3uO056OiBjEfafwD+/hqRItKoIOWraBqzcttj4Lj4Z87Bti3ImUkyjftVVcUAxCdH0aBBPhfgPPoCzgPPIk4GMlnoXItmPLT/aUzf46jjoSu70BXtNIsJdmIEQ0L7gzvJDWwh9S3ct4/wQgSA4dgGlVKBNEkwmuB29yFunqhSQsSgmSz0H8Bs3I9x8jh7XgMj4GaxYYoNUuwfXyKui9u5Gv/crwQ3JloNvnuvGmbqaBIRFH0axRhbGiaNfOpvv3TrqTpZxLiAYquF1ujmt2qjARo00Ppka6hJQlycRKMIogAzd81HbITx51pc5z+l9t37YOP5oYLODpM2ponHT2EunoA0aZFqSzNBMUBHTgLQqBrmTg+h1QrIbUJTIKwkZDtcou8/RqygiYc2apjpc6Q2xlRGkCRA54rExQpxLQGU5lRIbm2d5vWzNMrg5m7J1AAkAfiTEUkjIY0sIoabF4T6jQCpzqDNGqZ0CRP7UJrElmvUChFpoExfM9hEIGhiC2MtZoXaaIiNwU1jpXy5wdwE2NBBnABNhWZF8AshaWppW2dRmW6dNEiYu9qAVLGJIahBmsDssE+9JJTHUhDItwu9Wz3c1et7uHl9AlIh8luncTKKDZXxs8K6OCEsVu/wmDgUpoYhKKeAQxpBUAe1CgjrulbB4XExHC3I+s0dKFCbTCleMaSxAVHCWsrkn0pQc+ZFL6SJUL5hmBoW/BlLJRSsFWZGhdkRCyLs7PDIf/RTS8kigqrKwOa9Gr15iVNTVaw1xAmUm0K3KFPDitcmgJJaoT5lQaAaGCIVitcUf8ZiFHav6cQ7fUxENi/lpp/BW+9w/sNftBQlzIWGUqB054TOnJ03LlARqoEQpUJXXnFRejOGgdf3CIcOInLoTjddXGix31f6N+rn4xMoIPNbB3t7yY2OLspf6k/4B7+WRfBgsCAuAAAAAElFTkSuQmCC',
+            hat_frog: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABoAAAAOCAYAAAAxDQxDAAADFElEQVR4nH2Uz2tcVRTHP+feN5OJNVERcVGKGxf+EW2aye9KslELgiCiNCktuBBcKGLBulFwoyhM3AhuSiuF1DRJJ5k0ieI/oCtRkdSaWl3UmiYz7717vy7eZJKa2AsPHuee8/3y/Z5zj/E/Z7B6QnkeAHBOLK/Uzczuy5FE//ExSUU8ccby6rztAwMODFb7hnXp8jSV7lIBGMXE+GvEIECdUu89M7Of480A0WxlnHzu7IFkyX8D/UdHdOnyp7zy8hs0WykGzF6dJqv0Up18iI4oORrTW5TLCeMnJpEilUoXF7/6mBeeP6OVtUV7IFGIkT9/vkJz+x6tNGIYv/5wEQBfMsy1E6NhBG58f4G01aKwL3D7l6/ZsfyBRLhIiIFPPhgq8GRMnfuW6tQhrG1R4ZwYON3DqXPfUftoBNeO5yEHr32wHXmSqA5U9d7sM7z70m3SZnElE0OnenEJXKvdYXTqUQCu1e4yOtVLDNCYvou1B6LcDee/fIJ3xn/k+vVGZ4A6RH19Qzo/9zTl7kB9ISXkOx4Jc2AmQmYs1u4AxsjpHlxSlMe4xyIPY2NdpNvw1rM/8c3asnWsk8Tx/mFWGpvIOySHuf3yfUmMnikUmdtFd243Jwrm5psoRmRCEmZGIom+6oj6Xz/M8NjDLC5tov0cxGD4UrgPNM8c7qB+ODE4fIiQH+HYwJAkmR07OqzWi08xeCSQOOGtKAw5+GSnf1D/7B++uHIY79vE0Xh1/DcGz/Z0Rj7m4No1AZFHo7Ge0HVhHWcyokH9j4T5jYRWhEywVLtHmhm5IJeBM9IWxBiJMZI2hRwEFTlpZizVNov/KOo3yzQ2SkQr+py4xGFZRCWPMOq3yiBh3rO0XiZW2nZMPM7kyRu8/WEkGrz/pscmnmT+Vl7cN8E5T/33MkLszJllAecT3MrqgnXP3MRvRSxV8WXgRh5Bc39BU4XEVCCjuS3SLWFRkEVcCm4buPo3NvoYSsFSw1KwLVGZ2WB1dWF3S/ZVR5WHPXMKeO08w+KhGoaI7YhDaM+ytLaS3eOcY6299/4FwPJ6TtYNeZsAAAAASUVORK5CYII=',
+            hat_lantern: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAAaCAYAAAC6nQw6AAAErklEQVR4nIWUW2xUVRSGv3UuM2XOzHSGTttpS2PBFrAQLgZIMYIWCUrAWwzxRQ2BxISYQHj1EhMTTZCEBOPlQSUmxnhBjUACEpWQGARJKiC2VqmAQksvU3qb6VzOnLN8mKYdEeP/tPf6915rr7X/tYRbkNnbrj9dHUEMiNYIoNPcjx0pCq7PwtoQDxzokfJ70xtVhU82K/ctFJJWGVOGby+A68KQy2BnSmv2fCcidf88o+pzZGurqv56Gw+3nt3H/o11qvrStM2YoT/g8sAIcOx/Hd0O1n9HVfa0xxUglXXp7M9y9KovIgC72Xl0h5zZsVR1fxuy64xYADq8HV5/R3duagJ2o/oMHH1CGxqjgBDL+oTDHumXa1V1s0x54+un55IbHp950djrp/X4lXGe/Oy66HMC3z+lx776jaaGCABuHhor4d2z/ex+7biqIiLgqkfeK0vty4s3+GUwD8DjzYb6fEps1r+z7h3L81FHP94+UVA51TPM0M0JAOT0s/N1YFJR2+CxTXUcPHSDnF/ECc/8f9FV8hnIF2FwLEu+4LKhJcqZvyYIB02W1keQi7sW6R01EYqmzcc/95JLg2FCoGLmJV4R8pnSejSTJZ0toEB7c4R58QoMy5yR3cmtc9hxqFdBQHRG0MptxFkyvLLOly1flFnefzih3/yeYSCTp7UmRCbv0zdRYFm9w6XhHLmiT8Kx6RvL0xgN4gQMuoYmSTgBHpofZvuRlMjeB2froqiJGbT4/OdRNraahKPKqG9wrhOamxRPobNHWb1UiJtKZlw41uXzaGsUw/D4bdDDuNibpTGKbPiwRRKOxYL5PitW2bTdGwOUxUurWLIsQcgW7lkTZ+UqmwULlETIYtObzdIYRc7dyJa3SAnhFT6R9UmctW0AzFrZTmhlOyA4a9tK3AqvVMcyGEsaYixe1wKspTrqYFmCAoZAddQhaFsEbJPqqIMxVXTbFKqjDlS1s3hNK0sa4hgB0wTbBtZTF3ewLQMpDGNOdpOMhwnmugjmOknGHczJbqQwjG0JdfEwsARsCFhS3rRrqa50kJyJf3MEIz9BcnYLgfFuQEnOnoOR6sELukhuFtWVIaB1+u+t8gkIkDklaKWJHzaJJITCn4IgRBJC+ryBOWmSGTNvUZVidQ2MkTp1jcSWKWtKYFjwTUhbymy3NG7T44o/IBielGJP5ZI6e5nO/nHkjQ0xba4U2hY2cOJKgYrxAcxiAUwTu34exUIfIFiBJG7fVfCKeFaAXLSW9XMD/PDHAD0pt6TsAw/H9Mz1InfVRrg0OEG64BG0LLasmsvJ7huAcv/Ceg6evUK+WCQcMGmpifD74AQrGyy2HRktDbZtR0ZFX5zDAx/06Zo7q8iNFenoS7P42hDne0vdWusM0dGXY3m9Q03E5vAv/Zx4REXentIRgO5r5b2OtLZUBSm6BWIBj2W1AUYyOZoqDZqiJiOZHMtrA1QGfFzXZX5VBW/1xFT3zSsVXM+v5vCrl/XCYIFQ0C55N8CwZlre9xW/WFrnXY9C0Zvm7k5W8MgLy0WeXx3R8Kwg8UiI5mQMBYIhqIiUDbYcTI6VZNI/kmZ4IjvNTeZdJnJ5/gYXvOU7sXPgaQAAAABJRU5ErkJggg==',
             cup: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAATCAYAAAB2pebxAAADxElEQVR4nGWUS2hUZxTHf9+dOzP33sxkHkk6amzVxHTsQ62G2HahuBCUPkSwBNwWC27jpgt3hW6qUAulNqs+dhXaEqEV0UIbjY+ojehYU01jdBITk5nMO3fm3rlzusjDPv7wh+/A+T7+55z/+QAQEUSEQ4cOISJ0dm2UDRs75OPjn8jA2fNy/NPPJJlMSnJTUpbz+vv7WYYSEU4c6ZUrkxmydeHwB0eINZs8nBxFQ2PzSz3YlQXK+Sxr13eQnpml/4tTdK1tp1tl1PtfnkGta4vL9q1dJHdsw61WCQYMDDE5e+YHPBFe3b6D/Pw86Ydj7H+vFwebhtcgEm7h90uD/HZ1BD0YbWH3/l5OHD9BW9CPYRmEozEafgNESN25vSg5aHJxcJBSIU++WMbGR19fH1fuTqApv8beg29zK5XizX3vUDei5KqCGBEwo89oRMjXwDOi7Nr3LkM3htlzcC9K19Bb4i0MXbrMzt07OfbRMfw+P6IE4RkEUP+Iq26Vp6Uphq/cIBaPofV096hzP55jVaSdoN+goYRavY6zxFq9juPVqXmL55nCNNlyBpRw5rsB8FDayZMnKdccvv3qa5rNCK2hViJWbIVRK0bUXKIVQ1NLmkSt6NMBLl79lTUbVjGXz5CIP4eGolqv8sf4KKVymXAozMsdSQJ6EBAKpSIPJsaxfS5ZdwH9wIEDGCE/j/x/8fn3p0iEVyMi5Gp5phYeUfVsgsrg+eH1NAXC5OwM2VKGy7ev4zX5mEtPig7QFDJpX99G2Zpm3p7k5rVREu0Jdu15jaczc7iOw9CtQQr5IqGYRSCgk1gbZ3a6AgLawMAAWs2nUhfuEWltYs0LrcRjMfa81cPYgwnS6Sc8nc3ySvc6LMskFA6iB3QyGZvpa+N0b9mmNID0gzSuU+f+vcfU3QaiIDs7Ty5XRERwHQ/XaSz2syEg4NUbeLU6lUoFbXn2laKD63pofmg06szNzmOaARqeUKs2yOfKoIFP18nlaiillhzE4iOu65J/UqQwVSTg89McD3LvzgTNlsXmLZ2sTsSYHJ8h2taEpvko5KsUxucIaH5GRkYWRwxQmcyp24P3pVJUGCGdUNzgwtmbFHMLNEct2lclmB1dbKTfblB8PEfIMRT/cTOapsnVu9coVcoM/PIz5Vpl6cOAN7b2sPv1nZTsPMND1zl6+Ci2basVsy3DNE11+pvTcvTDPra8uJkFt8py5aZuYLsLTJVKnP/pPJ2dnSqVSvE/JQCWZUnXpi4CvsC/lhDA9Rwcx2HszzFc1125+zfy8MYBjuYCvQAAAABJRU5ErkJggg==',
             hat_cat: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAMCAYAAABiDJ37AAACP0lEQVR4nHWSzU8TURTFfzNtpzNtp9NpFWxKoBZQ2lhDDRpSjRHcGBNXblxojCzxP3ShrjAxGhI3KEKkoQYqlI8OpZ8z10WhQAln8fLeu/ec+949FwaQTmdJjU5IxLYHQ32kUikMw5C5ublLMfX8QUTw+RWZyuW4kZwQO5mRQUI2e09GxiYlX5hlbWPzUtw/eBEK64QNnUQ8xuH+DunxrGiaBkC72cCMRRkeHqLV6rBRKlMoFFheXr5asF53cF2XeMzEKkyjaQFURQGg23VRTvduF1AolUpXfzmRSOB5oCgqgYAfPaj1xJST6n4fPl+PcirsOM7Vgp2OyMTkFKqqXHy2Ql/0FD6fSjhiEdDtC31URQTTNMW2bdHDJqGQAUB5c4Pjer2XdULxPI+11ZV+FS0YQNMNbDsuhmGIiKAmk0l58+QZ84+egtdl518FgL3qLq1260xQelNQ2d4C4LjR4qBa4cWdHO+fvySfn+F27r74H4xkiJgmab9OJZdn9dcqiWvXuTs9A8Bm6U/PABHSmUkePp6n3e5QLm9hWSaF0QxNz+VWKsWnb19Rf1R3yRsWs6E4zlETF42Vn785qB3RancwLYvRsZtErd6g7x06lMo77O9VQdUZUYO8S47TOGqgoKAsLi7y/fMXqXW7bO/XcD2h03SIxlPE7CimafQbLgKHtTq7lQrtpoMWDDMUizBkhCgf13j7+pVyzrul3roECwsLrK//FTWgoOvRM4cFWk0HPJfmxw8KxV4+QLFYBOA/8inaV9hTOsoAAAAASUVORK5CYII=',
             hat_witch: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABkAAAAVCAYAAACzK0UYAAAD/ElEQVR4nJ2VXWxUVRDHf+fu3V1ud9tuKQXaUmCLtQIFFfSBJgaNICgxhsQYE2Oi0fjQEGM00cTw5osh8SNRn4REg/hg4psaJUYJRNTEBFGBkpayLbvAttv93u3d+3HGh40tZRdSPG9zZub/n//cuXMU/+Ps3/Iu5wunxHbKAAhCW3gN/0x+qZrFN7281RGE4Y2vix1Is75nPTP5WdJXxhAUhu/RFlrLH8mjDZjGnZDs3vSmZP0EQ/1DlOwq2emrmJ7w+YEfVUhZlOYyTfOWrOSVHV9zMnNU7hvcRrFaYjJzFSkWkLLDhcxxJSJ1QNUIuWQlJ1NHJBbrojUcIZVNN1arVFOCJZM8d9dhrNZ2NvcNksql8bS/1Nqak4hcRj5rXbD/jqDDxyQSjaGAyUxqUbyvXS6PyJ2R4I1waWxO7BFT5KtuSf5Qk4DKsG5lH4kbCJRShMwQGpuPz5y8QxLzIBuKUNngM5WdRlU0y6PtRMMWtltbSNRC0PcxlcnPiQ9uK8W8+SLx9E6J7dPoFFQuCSGB7YHTnDqToBB9hNWxlZhA0HGZuJ7CMALk5xoH4bZK1h/epLJTAQrXFLPXYCYDkY4WRq2tiPYppZNkUpeZmDg3nxM0AuzoflGOvdZc0PzM7ep/g1RpVAD2WqfZFi+gNSTTBt9WHiBvrUK1ROcTJZuBWr192vQoD+RQf1m0Gd0ImnOz36j/Rlp98oTw3p+7JBhto291nOliBq+cx98+hhExGTqV47y1c1FlYs9BLjtvV7uK2NuLRL5bQdhYBggVp0JABXl5z2mlNvQ+JmvWDRBftZbZcp7EdBKtfcreRVbst5Epl9KFQYLVMEoUIEghj/gurmXj35+DDoU+s4xIqmNxMSI4vofpa5f4yrUUq2Um0lNIqQhaE3E7yf+UpmdPhKF9il8+HaVWqf+E0iYELOh+1KScAfs3CysZW7ykpD7mWjuozfGnpLWzi57OHi5eu1T3CkgxD75G3Cr53jQPHxggFDVBYHwigVP2SX7vEJuNY7S0I64D+VyDEkOFUc/e+xFn7RMy0DdIKp/Gdux6hO/XVYXCqGAQx50GNHgaRKMCQUzaUdEbtsNMGlxv3va0x4M9L9U//+5tb8tU+Tz9vQMIQiqbRjs1MAOgbppy10HyOehYjjKDi9oj2RlwHEQET3ziXcMcHz20sDb3Dr7FeO2stHesYk1XL+PXJ6l7GzerdmooZYBpguchNRvsOXAcXM/BNCwev/tD9f6vW2hAOHFQePXYM+K4VaQliDICmGGrgaTeb41nV5GajRTLBIwQAMMbX1BHDj2PGl6AvuWj9eTWd8h5V+RqYbypP2CY3NPxkAJotzr54veRW0HxL3LY3txI1mW0AAAAAElFTkSuQmCC',
@@ -6499,9 +6589,12 @@
         };
         const RN_HATS = [
             { id: '', name: 'Без шляпы', price: 0 },
-            { id: 'cat', name: 'Котик', price: 25, img: 'hat_cat', dy: 5, w: 20 },
-            { id: 'pot', name: 'Горшок', price: 40, img: 'hat_pot', dy: 3, w: 16 },
-            { id: 'witch', name: 'Шляпа ведьмы', price: 60, img: 'hat_witch', dy: 4, w: 25 }
+            { id: 'cat', name: 'Котик', price: 60, img: 'hat_cat', dy: 5, w: 20 },
+            { id: 'pot', name: 'Горшок', price: 90, img: 'hat_pot', dy: 3, w: 16 },
+            { id: 'frog', name: 'Лягушка', price: 120, img: 'hat_frog', dy: 4, w: 26 },
+            { id: 'witch', name: 'Шляпа ведьмы', price: 160, img: 'hat_witch', dy: 4, w: 25 },
+            { id: 'pumpkin', name: 'Тыква', price: 200, img: 'hat_pumpkin', dy: 4, w: 24 },
+            { id: 'lantern', name: 'Фонарь', price: 260, img: 'hat_lantern', dy: 2, w: 18 }
         ];
         const RN = {
             H: 216, W: 384, GROUND: 186, GRAV: 1500, JUMP: -470,
@@ -6540,8 +6633,31 @@
                     g.imageSmoothingEnabled = false;
                     g.drawImage(bg, 0, 0);
                     g.save(); g.translate(bg.width * 2, 0); g.scale(-1, 1); g.drawImage(bg, 0, 0); g.restore();
+                    // фон темнее и холоднее, чтобы персонаж, монетки и препятствия не терялись
+                    g.globalCompositeOperation = 'multiply';
+                    g.fillStyle = '#9a86ad'; g.fillRect(0, 0, c.width, c.height);
+                    const sky = g.createLinearGradient(0, 0, 0, c.height);
+                    sky.addColorStop(0, 'rgba(40, 20, 60, 1)'); sky.addColorStop(0.55, 'rgba(255, 255, 255, 1)'); sky.addColorStop(1, 'rgba(90, 60, 90, 1)');
+                    g.fillStyle = sky; g.fillRect(0, 0, c.width, c.height);
+                    g.globalCompositeOperation = 'source-over';
                     RN.bgTile = c;
                 }
+                // тёмная пиксельная обводка у спрайтов — чтобы читались на любом участке фона
+                Object.keys(RN.img).filter(k => k !== 'bg').forEach(k => {
+                    const im = RN.img[k];
+                    if (!im) return;
+                    const c = document.createElement('canvas');
+                    c.width = im.width + 2; c.height = im.height + 2;
+                    const g = c.getContext('2d');
+                    g.imageSmoothingEnabled = false;
+                    [[0, 1], [2, 1], [1, 0], [1, 2]].forEach(([dx, dy]) => g.drawImage(im, dx, dy));
+                    g.globalCompositeOperation = 'source-in';
+                    g.fillStyle = k === 'ghost' ? 'rgba(20, 8, 30, .75)' : 'rgba(18, 6, 14, .85)';
+                    g.fillRect(0, 0, c.width, c.height);
+                    g.globalCompositeOperation = 'source-over';
+                    g.drawImage(im, 1, 1);
+                    RN.img[k] = c;
+                });
                 RN.ready = true;
             });
             return RN.loading;
@@ -6575,6 +6691,153 @@
             over: () => { rnBeep(392, 196, 0.25, 'triangle', 0.08); setTimeout(() => rnBeep(262, 98, 0.45, 'triangle', 0.08), 220); }
         };
 
+
+        // ---------- фоновая музыка: тихая хэллоуинская мелодия, генерируется на лету (WebAudio) ----------
+        // ре минор, 84 удара в минуту, 8 тактов по кругу: музыкальная шкатулка, «терменвокс», бас, пэд, стук сердца и ветер.
+        const RN_MUSIC_KEY = 'produ_rn_music';
+        const rnMusicOn = () => { try { return localStorage.getItem(RN_MUSIC_KEY) !== 'off'; } catch (e) { return true; } };
+        const RNM = { ctx: null, master: null, timer: 0, next: 0, step: 0, playing: false, wind: null };
+        const RNM_BEAT = 60 / 84, RNM_8TH = RNM_BEAT / 2;
+        const midi = m => 440 * Math.pow(2, (m - 69) / 12);
+        // аккорды по тактам: Dm Bb Gm A | Dm F E° A
+        const RNM_CHORDS = [[50, 53, 57], [46, 50, 53], [43, 46, 50], [45, 49, 52], [50, 53, 57], [41, 45, 48], [40, 43, 46], [45, 49, 52]];
+        const RNM_ARP = [0, 1, 2, 3, 2, 1, 2, 1];
+        // мелодия: [доля такта, длительность в долях, нота]
+        const RNM_LEAD = [
+            [[0, 2, 81], [2, 1, 77], [3, 1, 76]], [[0, 3, 74], [3, 1, 77]], [[0, 1, 79], [1, 1, 82], [2, 1, 81], [3, 1, 79]], [[0, 2, 76], [2, 2, 73]],
+            [[0, 1, 81], [1, 1, 86], [2, 1, 85], [3, 1, 81]], [[0, 2, 84], [2, 1, 81], [3, 1, 77]], [[0, 1, 79], [1, 1, 76], [2, 2, 82]], [[0, 4, 81]]
+        ];
+        function rnMusicSetup() {
+            if (RNM.ctx) return;
+            if (!rnAudio) rnAudio = new (window.AudioContext || window.webkitAudioContext)();
+            const ctx = RNM.ctx = rnAudio;
+            RNM.master = ctx.createGain(); RNM.master.gain.value = 0;
+            const comp = ctx.createDynamicsCompressor();
+            RNM.master.connect(comp).connect(ctx.destination);
+            // «эхо склепа»: задержка с обратной связью и приглушёнными верхами
+            RNM.echo = ctx.createDelay(1); RNM.echo.delayTime.value = RNM_8TH * 3;
+            const fb = ctx.createGain(); fb.gain.value = 0.38;
+            const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800;
+            RNM.echo.connect(lp).connect(fb).connect(RNM.echo);
+            const wet = ctx.createGain(); wet.gain.value = 0.55;
+            lp.connect(wet).connect(RNM.master);
+        }
+        function rnVoice(t, freq, dur, { type = 'sine', vol = 0.1, attack = 0.01, release = 0.4, echo = 0, vibrato = 0, glideFrom = 0, filter = 0, detune = 0 } = {}) {
+            const ctx = RNM.ctx, o = ctx.createOscillator(), g = ctx.createGain();
+            o.type = type; o.detune.value = detune;
+            if (glideFrom) { o.frequency.setValueAtTime(glideFrom, t); o.frequency.exponentialRampToValueAtTime(freq, t + 0.12); } else o.frequency.setValueAtTime(freq, t);
+            if (vibrato) {
+                const lfo = ctx.createOscillator(), lg = ctx.createGain();
+                lfo.frequency.value = 5.2; lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(freq * vibrato, t + 0.35);
+                lfo.connect(lg).connect(o.frequency); lfo.start(t); lfo.stop(t + dur + release + 0.05);
+            }
+            g.gain.setValueAtTime(0.0001, t);
+            g.gain.linearRampToValueAtTime(vol, t + attack);
+            g.gain.setValueAtTime(vol, t + Math.max(attack, dur - 0.02));
+            g.gain.exponentialRampToValueAtTime(0.0001, t + dur + release);
+            let node = o;
+            if (filter) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = filter; o.connect(f); node = f; }
+            node.connect(g); g.connect(RNM.master);
+            if (echo) { const e = ctx.createGain(); e.gain.value = echo; g.connect(e).connect(RNM.echo); }
+            o.start(t); o.stop(t + dur + release + 0.05);
+        }
+        function rnThump(t, vol) {   // «стук сердца»
+            const ctx = RNM.ctx, o = ctx.createOscillator(), g = ctx.createGain();
+            o.frequency.setValueAtTime(90, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.18);
+            g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
+            o.connect(g).connect(RNM.master); o.start(t); o.stop(t + 0.3);
+        }
+        let rnNoiseBuf = null;
+        function rnNoise() {
+            if (rnNoiseBuf) return rnNoiseBuf;
+            const ctx = RNM.ctx, b = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate), d = b.getChannelData(0);
+            for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+            return (rnNoiseBuf = b);
+        }
+        function rnTick(t, vol) {   // тиканье часов
+            const ctx = RNM.ctx, src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+            src.buffer = rnNoise(); f.type = 'bandpass'; f.frequency.value = 3200; f.Q.value = 6;
+            g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
+            src.connect(f).connect(g).connect(RNM.master); src.start(t, Math.random()); src.stop(t + 0.05);
+        }
+        function rnWindStart() {
+            const ctx = RNM.ctx, src = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(), lfo = ctx.createOscillator(), lg = ctx.createGain();
+            src.buffer = rnNoise(); src.loop = true;
+            f.type = 'bandpass'; f.frequency.value = 500; f.Q.value = 0.9;
+            lfo.frequency.value = 0.07; lg.gain.value = 320; lfo.connect(lg).connect(f.frequency);
+            g.gain.value = 0.035;
+            src.connect(f).connect(g).connect(RNM.master);
+            src.start(); lfo.start();
+            RNM.wind = [src, lfo];
+        }
+        function rnSchedule(step, t) {
+            const bar = (step >> 3) % 8, e = step & 7, ch = RNM_CHORDS[bar];
+            const tones = [ch[0] + 12, ch[1] + 12, ch[2] + 12, ch[0] + 24];
+            // музыкальная шкатулка
+            rnVoice(t, midi(tones[RNM_ARP[e]] + 12), 0.08, { type: 'triangle', vol: 0.045, release: 0.9, echo: 0.5 });
+            rnVoice(t, midi(tones[RNM_ARP[e]] + 24), 0.05, { type: 'sine', vol: 0.012, release: 0.5 });
+            if (e === 0) {
+                rnVoice(t, midi(ch[0] - 12), RNM_BEAT * 2.6, { type: 'triangle', vol: 0.16, attack: 0.02, release: 0.5, filter: 400 });
+                ch.forEach((m, i) => rnVoice(t, midi(m + 12), RNM_BEAT * 3.6, { type: 'sawtooth', vol: 0.018, attack: 0.9, release: 1.2, filter: 650, detune: i % 2 ? 7 : -7 }));
+                rnThump(t, 0.22); rnThump(t + 0.2, 0.13);
+            }
+            if (e === 6) rnVoice(t, midi(ch[2] - 12), RNM_BEAT * 0.9, { type: 'triangle', vol: 0.1, release: 0.3, filter: 400 });
+            if (!(e & 1)) rnTick(t, e === 0 ? 0.05 : 0.025);
+            // «терменвокс»: мелодия звучит в каждом втором проходе, в первом — только шкатулка и бас
+            if (Math.floor(step / 64) % 2 === 1) {
+                RNM_LEAD[bar].forEach(([at, len, m], i, arr) => {
+                    if (at * 2 !== e) return;
+                    const prev = i ? arr[i - 1][2] : (RNM_LEAD[(bar + 7) % 8].slice(-1)[0][2]);
+                    rnVoice(t, midi(m), len * RNM_BEAT * 0.92, { type: 'sine', vol: 0.07, attack: 0.08, release: 0.45, vibrato: 0.012, glideFrom: midi(prev), echo: 0.35 });
+                });
+            }
+        }
+        function rnMusicPump() {
+            const ctx = RNM.ctx;
+            while (RNM.next < ctx.currentTime + 0.25) { rnSchedule(RNM.step, RNM.next); RNM.next += RNM_8TH; RNM.step = (RNM.step + 1) % 128; }
+        }
+        function rnMusicStart() {
+            if (!rnMusicOn()) return;
+            try { rnMusicSetup(); } catch (e) { return; }
+            const ctx = RNM.ctx;
+            if (ctx.state === 'suspended') ctx.resume();
+            if (!RNM.playing) {
+                RNM.playing = true;
+                RNM.next = ctx.currentTime + 0.1;
+                clearInterval(RNM.timer); RNM.timer = setInterval(rnMusicPump, 50);
+                if (!RNM.wind) rnWindStart();
+            }
+            rnMusicVolume(RN.state === 'pause' ? 0.25 : 1);
+            rnMusicBtns();
+        }
+        function rnMusicVolume(v, time = 0.8) {
+            if (!RNM.master) return;
+            const g = RNM.master.gain, t = RNM.ctx.currentTime;
+            g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0.9 * v, t + time);
+        }
+        function rnMusicStop(time = 0.6) {
+            if (!RNM.playing) return;
+            rnMusicVolume(0, time);
+            RNM.playing = false;
+            setTimeout(() => {
+                if (RNM.playing) return;
+                clearInterval(RNM.timer);
+                if (RNM.wind) { RNM.wind.forEach(n => { try { n.stop(); } catch (e) {} }); RNM.wind = null; }
+            }, time * 1000 + 100);
+            rnMusicBtns();
+        }
+        function rnMusicToggle() {
+            const on = !rnMusicOn();
+            try { localStorage.setItem(RN_MUSIC_KEY, on ? 'on' : 'off'); } catch (e) {}
+            if (on) rnMusicStart(); else rnMusicStop(0.4);
+            rnMusicBtns();
+        }
+        function rnMusicBtns() {
+            const on = rnMusicOn();
+            document.querySelectorAll('.rn-music').forEach(b => { b.setAttribute('aria-pressed', String(on)); b.classList.toggle('off', !on); b.title = on ? 'Выключить музыку' : 'Включить музыку'; });
+            const l = $('rnMusicLbl'); if (l) l.textContent = on ? 'Музыка: вкл' : 'Музыка: выкл';
+        }
+
         // ---------- открыть / закрыть ----------
         async function openRunner() {
             closeFxMenu();
@@ -6584,6 +6847,7 @@
             document.documentElement.classList.add('rn-open');
             RN.best = bestOf('runner');
             rnShowMenu();
+            rnMusicStart();
             await rnLoadImages();
             rnResize();
             if (!RN.p) rnResetWorld(true);
@@ -6594,6 +6858,7 @@
         function closeRunner() {
             if (RN.state === 'play' || RN.state === 'pause') rnFinish(false);
             cancelAnimationFrame(RN.raf);
+            rnMusicStop(0.5);
             RN.state = 'closed';
             $('runner').hidden = true;
             document.documentElement.classList.remove('rn-open');
@@ -6720,12 +6985,12 @@
                 RN.items.push({ type: 'cup', x, y: high ? G - 64 : G - 20, ph: 0 });
                 width = coinRow(x + 26, high ? G - 64 : G - 18, 2) + 30;
             } else if (r < 0.38) {
-                RN.obs.push({ type: 'stump', x, w: 36, h: 22 });
+                RN.obs.push({ type: 'log', x, w: 42, h: 23 });
                 if (Math.random() < 0.45) {
                     // дуга монет над пнём — собираются в прыжке
                     for (let i = 0; i < 5; i++) { const k = (i - 2) / 2; RN.items.push({ type: 'coin', x: x - 22 + i * 18, y: G - 52 - 26 * (1 - k * k), ph: i * 0.6 }); }
                 }
-                if (RN.t > 25 && Math.random() < 0.25) { RN.obs.push({ type: 'stump', x: x + 36 + Math.max(90, v * 0.75), w: 36, h: 22 }); width += Math.max(90, v * 0.75) + 36; }
+                if (RN.t > 25 && Math.random() < 0.25) { RN.obs.push({ type: 'log', x: x + 42 + Math.max(95, v * 0.75), w: 42, h: 23 }); width += Math.max(95, v * 0.75) + 42; }
             } else if (r < 0.62 && canGhost) {
                 // призрак летит невысоко: под ним надо пробежать, прыжок — столкновение
                 RN.obs.push({ type: 'ghost', x, w: 34, h: 31, base: G - 36 - 31, ph: Math.random() * 6 });
@@ -6735,7 +7000,7 @@
                 const high = Math.random() < 0.4;
                 width = coinRow(x, high ? G - 70 : G - 16, 4 + ((Math.random() * 3) | 0));
             } else {
-                RN.obs.push({ type: 'stump', x, w: 36, h: 22 });
+                RN.obs.push({ type: 'log', x, w: 42, h: 23 });
             }
             const gapT = 0.95 + Math.random() * 0.9 - Math.min(0.35, RN.t / 200);
             RN.nextSpawn = x + width + Math.max(120, v * gapT);
@@ -6773,8 +7038,8 @@
             setTimeout(() => $('rnAgainBtn').focus({ preventScroll: true }), 30);
         }
         function rnPause(on = RN.state === 'play') {
-            if (on && RN.state === 'play') { RN.state = 'pause'; rnPanel('rnPause'); }
-            else if (!on && RN.state === 'pause') { RN.state = 'play'; rnPanel(null); RN.last = performance.now(); }
+            if (on && RN.state === 'play') { RN.state = 'pause'; rnPanel('rnPause'); rnMusicVolume(0.25, 0.4); }
+            else if (!on && RN.state === 'pause') { RN.state = 'play'; rnPanel(null); RN.last = performance.now(); rnMusicVolume(1, 0.4); }
         }
 
         // ---------- главный цикл ----------
@@ -6832,7 +7097,7 @@
             // столкновения
             const pb = { x: p.x + 5, y: p.y - 27, w: 20, h: 25 };
             RN.obs.forEach(o => {
-                const box = o.type === 'stump' ? { x: o.x + 8, y: G - o.h + 5, w: o.w - 16, h: o.h - 5 } : { x: o.x + 6, y: o.base + Math.sin(o.ph) * 3 + 5, w: o.w - 12, h: o.h - 9 };
+                const box = o.type === 'log' ? { x: o.x + 7, y: G - o.h + 5, w: o.w - 14, h: o.h - 5 } : { x: o.x + 6, y: o.base + Math.sin(o.ph) * 3 + 5, w: o.w - 12, h: o.h - 9 };
                 if (!o.hit && rnHit(pb, box)) { o.hit = true; rnDamage(); }
             });
             RN.items.forEach(it => {
@@ -6878,23 +7143,23 @@
                     // монетка «вращается»: ширина пульсирует
                     const k = Math.abs(Math.cos(it.ph * 0.5)), w = Math.max(3, Math.round(15 * k));
                     const bob = Math.round(Math.sin(it.ph * 0.7) * 1.5);
-                    g.drawImage(I.coin, Math.round(it.x + (15 - w) / 2), Math.round(it.y - 15 + bob), w, 15);
+                    g.drawImage(I.coin, Math.round(it.x + (15 - w) / 2) - 1, Math.round(it.y - 15 + bob) - 1, w + 2, 17);
                 } else {
                     const bob = Math.round(Math.sin(it.ph * 0.5) * 2);
                     g.globalAlpha = 0.35 + 0.25 * Math.sin(it.ph);
                     g.fillStyle = '#9ef01a'; g.fillRect(Math.round(it.x) - 2, Math.round(it.y) - 21 + bob, 21, 23);
                     g.globalAlpha = 1;
-                    g.drawImage(I.cup, Math.round(it.x), Math.round(it.y - 19 + bob));
+                    g.drawImage(I.cup, Math.round(it.x) - 1, Math.round(it.y - 19 + bob) - 1);
                 }
             });
             // препятствия
             RN.obs.forEach(o => {
-                if (o.type === 'stump') g.drawImage(I.stump, Math.round(o.x), G - o.h + 2);
+                if (o.type === 'log') g.drawImage(I.log, Math.round(o.x) - 1, G - o.h + 1);
                 else {
                     const y = Math.round(o.base + Math.sin(o.ph) * 3);
                     g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(Math.round(o.x) + 8, G - 2, 18, 2);
                     g.globalAlpha = o.hit ? 0.35 : 0.85 + 0.15 * Math.sin(o.ph * 1.7);
-                    g.drawImage(I.ghost, Math.round(o.x), y);
+                    g.drawImage(I.ghost, Math.round(o.x) - 1, y - 1);
                     g.globalAlpha = 1;
                 }
             });
@@ -6909,13 +7174,13 @@
                 g.fillStyle = `rgba(0,0,0,${0.28 - air * 0.18})`;
                 const sw = Math.round(22 - air * 10);
                 g.fillRect(Math.round(p.x + 15 - sw / 2), G - 1, sw, 2);
-                g.drawImage(I.char, x, y, w, h);
+                g.drawImage(I.char, x - 1, y - 1, w + 2, h + 2);
                 // шляпка с небольшим запаздыванием
                 const hat = rnHat();
                 if (hat.img && I[hat.img]) {
                     const hi = I[hat.img];
                     p.hatLag += ((p.ground ? 0 : (p.vy < 0 ? 2 : -2)) - p.hatLag) * 0.25;
-                    g.drawImage(hi, Math.round(x + w / 2 - hi.width / 2), Math.round(y - hi.height + hat.dy + p.hatLag));
+                    g.drawImage(hi, Math.round(x + w / 2 - hi.width / 2), Math.round(y - hi.height + 2 + hat.dy + p.hatLag));
                 }
             }
             // частицы
@@ -6960,12 +7225,12 @@
             // жизни — три стакана кофе
             for (let i = 0; i < 3; i++) {
                 g.globalAlpha = i < RN.lives ? 1 : 0.28;
-                g.drawImage(I.cup, 8 + i * 20, 8);
+                g.drawImage(I.cup, 7 + i * 20, 7);
             }
             g.globalAlpha = 1;
             // монетки
             const n = String(RN.runCoins), tw = n.length * 8;
-            g.drawImage(I.coin, W - tw - 30, 9);
+            g.drawImage(I.coin, W - tw - 31, 8);
             rnPixText(g, n, W - tw - 10, 13, '#ffe680', 2);
             // расстояние
             const d = Math.floor(RN.dist) + 'м', dw = (d.length - 1) * 8 + 14;
@@ -6988,7 +7253,11 @@
             e.preventDefault();
             rnJump();
         }
-        document.addEventListener('visibilitychange', () => { if (document.hidden && RN.state === 'play') rnPause(true); });
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && RN.state === 'play') rnPause(true);
+            if (!RNM.ctx || $('runner').hidden) return;
+            if (document.hidden) RNM.ctx.suspend(); else if (rnMusicOn()) RNM.ctx.resume();
+        });
 
 
         const GAMES = {
@@ -9772,11 +10041,24 @@
             const b = $('homeBadge');
             if (b) b.textContent = currentTab !== 'social' && socialBadgeTotal ? (socialBadgeTotal > 99 ? '99+' : socialBadgeTotal) : '';
         }
+        // нажатие на логотип показывает другие версии, повторное — плавно убирает их обратно (даже если курсор над логотипом)
+        function logoIsOpen() {
+            const w = $('logoWrap');
+            return w.classList.contains('open') || (w.classList.contains('mhover') && !w.classList.contains('shut'));
+        }
         function logoTap() {
+            const w = $('logoWrap'), open = logoIsOpen();
             const b = $('logoBtn');
             b.classList.remove('bounce'); void b.offsetWidth; b.classList.add('bounce');
-            setLogoOpen(!$('logoWrap').classList.contains('open'));   // на телефоне наведения нет — показываем по нажатию
+            setLogoOpen(!open);
+            w.classList.toggle('shut', open);
         }
+        (function () {
+            const w = document.getElementById('logoWrap');
+            if (!w) return;
+            w.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') w.classList.add('mhover'); });
+            w.addEventListener('pointerleave', () => w.classList.remove('mhover', 'shut'));
+        })();
         function setLogoOpen(on) { $('logoWrap').classList.toggle('open', on); $('logoBtn').setAttribute('aria-expanded', String(on)); }
         document.addEventListener('pointerdown', e => { if (!e.target.closest('#logoWrap')) setLogoOpen(false); });
         // переход между ProdU и ProdU Sport: круг расходится от логотипа, аккаунт и оформление общие
@@ -11342,25 +11624,141 @@
             if (focusedId && focusedId.startsWith('itemInput_')) document.getElementById(focusedId)?.focus();
         }
 
+        // состояние сворачивания — только на этом устройстве
+        let listUi = (() => { try { return JSON.parse(localStorage.getItem('produ_lists_ui') || '{}') || {}; } catch (e) { return {}; } })();
+        if (!listUi.collapsed) listUi.collapsed = {};
+        if (!listUi.doneOpen) listUi.doneOpen = {};
+        const saveListUi = () => { try { localStorage.setItem('produ_lists_ui', JSON.stringify(listUi)); } catch (e) {} };
+        const LST_CHEV = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 4.2 6 7.8l3.5-3.6" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        const LST_CHECK = '<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2.8 7.4l2.7 2.7 5.7-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        function lstItemHtml(list, item) {
+            return `<li class="li ${item.done ? 'done' : ''}" data-item="${item.id}">
+                <button type="button" class="li-check" role="checkbox" aria-checked="${!!item.done}" aria-label="${item.done ? 'Вернуть в список' : 'Отметить выполненным'}: ${esc(item.text)}" onclick="toggleListItem(${list.id}, ${item.id})">${LST_CHECK}</button>
+                <span class="li-text" tabindex="0" title="Нажмите, чтобы изменить" onclick="editListItem(${list.id}, ${item.id})" onkeydown="if (event.key === 'Enter') { event.preventDefault(); editListItem(${list.id}, ${item.id}); }">${esc(item.text)}</span>
+                <button type="button" class="li-del" aria-label="Удалить пункт" title="Удалить" onclick="deleteListItem(${list.id}, ${item.id})">✕</button>
+            </li>`;
+        }
         function renderListsHtml(listsContainer) {
+            const tools = document.getElementById('listTools');
+            if (tools) tools.hidden = data.lists.length < 2;
             listsContainer.innerHTML = data.lists.map(list => {
-                const itemsHtml = list.items.map(item => `
-                    <div class="list-item" style="${item.done ? 'opacity: 0.6;' : ''}">
-                        <div class="list-item-left">
-                            <input type="checkbox" ${item.done ? 'checked' : ''} onchange="toggleListItem(${list.id}, ${item.id})">
-                            <span class="item-text" style="${item.done ? 'text-decoration: line-through;' : ''}">${esc(item.text)}</span>
-                        </div>
-                        <button class="delete-btn" onclick="deleteListItem(${list.id}, ${item.id})">✕</button>
-                    </div>`).join('');
-                return `<div class="glass-card full-width">
-                    <div class="card-header">${esc(list.title)}<button class="delete-btn" onclick="deleteList(${list.id})">Удалить</button></div>
-                    <div style="margin-bottom: 15px;">${itemsHtml || '<div style="opacity:0.5; font-size:12px; margin-bottom:10px;">Список пуст</div>'}</div>
-                    <div class="flex-row">
-                        <input type="text" id="itemInput_${list.id}" class="glass-input" placeholder="Добавить пункт..." style="margin-bottom: 0;" onkeydown="if(event.key==='Enter') addListItem(${list.id})">
-                        <button class="glass-btn" onclick="addListItem(${list.id})" style="width: auto; margin-bottom: 0;">+</button>
+                const active = list.items.filter(i => !i.done), done = list.items.filter(i => i.done);
+                const total = list.items.length, pct = total ? Math.round(100 * done.length / total) : 0;
+                const collapsed = !!listUi.collapsed[list.id], doneOpen = !!listUi.doneOpen[list.id];
+                const summary = active.length ? 'Осталось: ' + active.slice(0, 4).map(i => i.text).join(' · ') + (active.length > 4 ? ` и ещё ${active.length - 4}` : '') : (total ? 'Всё выполнено 🎉' : 'Пустой список');
+                return `<section class="glass-card full-width lst ${collapsed ? 'collapsed' : ''}" data-list="${list.id}">
+                    <div class="lst-head">
+                        <button type="button" class="lst-toggle" aria-expanded="${!collapsed}" aria-controls="lstBody_${list.id}" onclick="toggleListCollapse(${list.id})">
+                            <span class="lst-chev">${LST_CHEV}</span><span class="lst-title" id="lstTitle_${list.id}">${esc(list.title)}</span></button>
+                        <span class="lst-count ${total && !active.length ? 'full' : ''}" title="Выполнено ${done.length} из ${total}">${done.length}/${total}</span>
+                        <button type="button" class="lst-more" aria-label="Действия со списком" aria-haspopup="true" aria-expanded="false" onclick="openListMenu(${list.id}, this)">⋯</button>
                     </div>
-                </div>`;
+                    ${total ? `<div class="lst-bar" aria-hidden="true"><i style="width: ${pct}%"></i></div>` : ''}
+                    <div class="lst-sum">${esc(summary)}</div>
+                    <div class="lst-body" id="lstBody_${list.id}"><div class="lst-inner"><div class="lst-pad">
+                        <ul class="lst-items">${active.map(i => lstItemHtml(list, i)).join('')}</ul>
+                        ${!total ? '<div class="lst-empty">Список пуст — добавьте первый пункт</div>' : !active.length ? '<div class="lst-empty">Все пункты выполнены</div>' : ''}
+                        <div class="lst-add"><span class="plus" aria-hidden="true">+</span>
+                            <input type="text" id="itemInput_${list.id}" maxlength="300" placeholder="Добавить пункт" aria-label="Новый пункт списка «${esc(list.title)}»" onkeydown="if (event.key === 'Enter') addListItem(${list.id})">
+                            <button type="button" onclick="addListItem(${list.id})">Добавить</button></div>
+                        ${done.length ? `<div class="lst-done ${doneOpen ? '' : 'closed'}">
+                            <button type="button" class="lst-done-toggle" aria-expanded="${doneOpen}" onclick="toggleDoneGroup(${list.id})">${LST_CHEV} Выполнено · ${done.length}</button>
+                            <div class="lst-done-body"><div class="lst-done-inner"><ul class="lst-items">${done.map(i => lstItemHtml(list, i)).join('')}</ul></div></div>
+                        </div>` : ''}
+                    </div></div></div>
+                </section>`;
             }).join('');
+        }
+        // свернуть/развернуть без перерисовки — чтобы анимация была плавной
+        function toggleListCollapse(id, force) {
+            const on = force === undefined ? !listUi.collapsed[id] : force;
+            if (on) listUi.collapsed[id] = 1; else delete listUi.collapsed[id];
+            saveListUi();
+            const card = document.querySelector(`.lst[data-list="${id}"]`);
+            if (card) { card.classList.toggle('collapsed', on); card.querySelector('.lst-toggle').setAttribute('aria-expanded', String(!on)); }
+        }
+        function setAllLists(collapsed) { data.lists.forEach(l => toggleListCollapse(l.id, collapsed)); }
+        function toggleDoneGroup(id) {
+            const open = !listUi.doneOpen[id];
+            if (open) listUi.doneOpen[id] = 1; else delete listUi.doneOpen[id];
+            saveListUi();
+            const g = document.querySelector(`.lst[data-list="${id}"] .lst-done`);
+            if (g) { g.classList.toggle('closed', !open); g.querySelector('.lst-done-toggle').setAttribute('aria-expanded', String(open)); }
+        }
+        // правка пункта прямо в списке
+        function editListItem(listId, itemId) {
+            const list = data.lists.find(l => l.id === listId), item = list && list.items.find(i => i.id === itemId);
+            const span = document.querySelector(`.lst[data-list="${listId}"] .li[data-item="${itemId}"] .li-text`);
+            if (!item || !span) return;
+            const ta = document.createElement('textarea');
+            ta.className = 'li-edit'; ta.rows = 1; ta.maxLength = 300; ta.value = item.text;
+            ta.setAttribute('aria-label', 'Текст пункта');
+            const fit = () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
+            let done = false;
+            const finish = save => {
+                if (done) return; done = true;
+                const v = ta.value.replace(/\s+/g, ' ').trim();
+                if (save && v && v !== item.text) { item.text = v; touch(item); saveData(); }
+                else renderLists();
+            };
+            ta.addEventListener('input', fit);
+            ta.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+                if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+            });
+            ta.addEventListener('blur', () => finish(true));
+            span.replaceWith(ta);
+            fit(); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+        }
+        function closeListMenus() {
+            document.querySelectorAll('.lst-menu').forEach(m => m.remove());
+            document.querySelectorAll('.lst-more[aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+        }
+        function openListMenu(id, btn) {
+            const had = btn.getAttribute('aria-expanded') === 'true';
+            closeListMenus();
+            if (had) return;
+            const list = data.lists.find(l => l.id === id);
+            if (!list) return;
+            const doneN = list.items.filter(i => i.done).length;
+            const m = document.createElement('div');
+            m.className = 'lst-menu'; m.setAttribute('role', 'menu');
+            m.innerHTML = `<button type="button" role="menuitem" onclick="closeListMenus(); renameList(${id})">Переименовать</button>
+                <button type="button" role="menuitem" onclick="closeListMenus(); clearDoneItems(${id})" ${doneN ? '' : 'disabled'}>Удалить выполненные${doneN ? ' (' + doneN + ')' : ''}</button>
+                <button type="button" role="menuitem" class="danger" onclick="closeListMenus(); deleteList(${id})">Удалить список</button>`;
+            btn.closest('.lst-head').appendChild(m);
+            btn.setAttribute('aria-expanded', 'true');
+            m.querySelector('button').focus({ preventScroll: true });
+        }
+        document.addEventListener('pointerdown', e => { if (!e.target.closest('.lst-menu') && !e.target.closest('.lst-more')) closeListMenus(); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeListMenus(); });
+        function renameList(id) {
+            const list = data.lists.find(l => l.id === id), span = document.getElementById('lstTitle_' + id);
+            if (!list || !span) return;
+            if (listUi.collapsed[id]) toggleListCollapse(id, false);
+            const inp = document.createElement('input');
+            inp.className = 'li-edit'; inp.style.fontSize = '18px'; inp.style.fontWeight = '600'; inp.maxLength = 80; inp.value = list.title;
+            let done = false;
+            const finish = save => {
+                if (done) return; done = true;
+                const v = inp.value.trim();
+                if (save && v && v !== list.title) { list.title = v; touch(list); saveData(); } else renderLists();
+            };
+            inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') finish(true); if (e.key === 'Escape') finish(false); });
+            inp.addEventListener('click', e => e.stopPropagation());
+            inp.addEventListener('blur', () => finish(true));
+            span.replaceWith(inp);
+            inp.focus(); inp.select();
+        }
+        function clearDoneItems(id) {
+            const list = data.lists.find(l => l.id === id);
+            if (!list) return;
+            const done = list.items.filter(i => i.done);
+            if (!done.length || !confirm(`Удалить выполненные пункты (${done.length})?`)) return;
+            done.forEach(i => tomb(`lists:${id}:${i.id}`));
+            list.items = list.items.filter(i => !i.done);
+            touch(list);
+            saveData();
         }
 
         // ================= ФИНАНСЫ =================
