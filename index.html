@@ -32,35 +32,19 @@
         .splash.hide { opacity: 0; visibility: hidden; pointer-events: none; }
         .splash .logo-anim { width: min(46vw, 190px); }
         .logo-anim { display: block; height: auto; overflow: visible; }
-        .logo-anim path { fill: none; stroke: #c3f73a; stroke-width: 45; stroke-linecap: round; stroke-dasharray: 100 101;
-            animation-duration: 2.4s; animation-iteration-count: infinite; animation-direction: alternate; animation-timing-function: linear; }
-        .logo-anim .la-eye { animation-name: laEye; }
-        .logo-anim .la-smile { animation-name: laSmile; }
-        .logo-anim .la-arch { animation-name: laArch; }
-        .logo-anim .la-dot { fill: #c3f73a; transform-box: fill-box; transform-origin: center;
-            animation: laDot 2.4s linear infinite alternate; }
-        /* 1 — глаз стекает вниз, в улыбку; 2 — улыбка слева направо, в правую дугу;
-           3 — дуга сворачивается к правому краю; 4 — остаётся маленькая точка. Потом всё обратно (alternate). */
-        @keyframes laEye {
-            0%, 6% { stroke-dashoffset: 0; stroke-width: 45; animation-timing-function: cubic-bezier(.55, 0, .45, 1); }
-            24% { stroke-dashoffset: -86; stroke-width: 45; animation-timing-function: ease-in; }
-            30%, 100% { stroke-dashoffset: -101; stroke-width: 0; }
-        }
-        @keyframes laSmile {
-            0%, 22% { stroke-dashoffset: 0; stroke-width: 45; animation-timing-function: cubic-bezier(.55, 0, .45, 1); }
-            54% { stroke-dashoffset: -88; stroke-width: 45; animation-timing-function: ease-in; }
-            60%, 100% { stroke-dashoffset: -101; stroke-width: 0; }
-        }
-        @keyframes laArch {
-            0%, 52% { stroke-dashoffset: 0; animation-timing-function: cubic-bezier(.55, 0, .45, 1); }
-            88%, 100% { stroke-dashoffset: -101; }
-        }
-        @keyframes laDot {
-            0%, 86% { transform: scale(1); animation-timing-function: cubic-bezier(.5, 0, .3, 1.4); }
-            95%, 100% { transform: scale(.5); }
+        /* Логотип собирается в одну линию и «стирается» с начала до точки (кадры 70 → 79 → 80 → 71 → 72 … 78), потом обратно.
+           Одна линия: глаз → улыбка → правая дуга → правая ножка; pathLength = 100. */
+        .logo-anim path { fill: none; stroke: #c3f73a; stroke-width: 45; stroke-linecap: round; stroke-linejoin: round;
+            stroke-dasharray: 8.97 8.87 28.18 8.87 28.03 200; animation: laLine 2s linear infinite alternate; }
+        @keyframes laLine {
+            0%, 6% { stroke-dasharray: 8.97 8.87 28.18 8.87 28.03 200; stroke-dashoffset: 0; animation-timing-function: cubic-bezier(.5, 0, .5, 1); }
+            16% { stroke-dasharray: 13.4 4.44 28.18 8.87 30.5 200; stroke-dashoffset: 0; animation-timing-function: cubic-bezier(.4, 0, .6, 1); }
+            25% { stroke-dasharray: 17.84 0 32.6 4.44 36 200; stroke-dashoffset: 0; animation-timing-function: cubic-bezier(.4, 0, .4, 1); }
+            34%, 38% { stroke-dasharray: 17.84 0 37.05 0 45.11 200; stroke-dashoffset: 0; animation-timing-function: cubic-bezier(.55, 0, .35, 1); }
+            88%, 100% { stroke-dasharray: 17.84 0 37.05 0 45.11 200; stroke-dashoffset: -99.5; }
         }
         @media (prefers-reduced-motion: reduce) {
-            .logo-anim path, .logo-anim .la-dot { animation: none; }
+            .logo-anim path { animation: none; }
             .logo-anim { animation: laPulse 1.6s ease-in-out infinite alternate; }
             @keyframes laPulse { from { opacity: 1; } to { opacity: .45; } }
         }
@@ -477,6 +461,54 @@
         .week-empty { font-size: 13px; opacity: 0.4; font-style: italic; }
 
         .add-box { margin-top: 10px; padding-top: 15px; border-top: 1px solid var(--glass-border); }
+        /* календарь «По часам» — как в ProdU Team */
+        .ctg-spans { margin: -2px 0 12px; }
+        .ctg-spans[hidden] { display: none !important; }
+        .ctg { --lw: 50px; --grid-line: rgba(0, 0, 0, .08); border-radius: 14px; overflow: hidden; background: var(--soft); }
+        body[data-theme="dark"] .ctg { --grid-line: rgba(255, 255, 255, .09); }
+        .ctg.narrow { --lw: 38px; }
+        .ctg-row { display: grid; grid-template-columns: var(--lw) repeat(var(--n), minmax(0, 1fr)); }
+        .ctg-head { border-bottom: 1px solid var(--grid-line); }
+        .ctg-dh { border: none; background: none; cursor: pointer; padding: 10px 6px 8px; font: inherit; font-size: 13px; color: inherit; opacity: .7; white-space: nowrap; overflow: hidden; min-width: 0; text-align: center; }
+        .ctg-dh b { font-weight: 700; font-size: 15px; }
+        .ctg-dh:hover { opacity: 1; }
+        .ctg-dh.sel { opacity: 1; }
+        .ctg-dh.sel b { box-shadow: inset 0 -2px 0 var(--accent-color); }
+        .ctg-dh.today { opacity: 1; }
+        .ctg-dh.today b { display: inline-grid; place-items: center; min-width: 26px; height: 26px; border-radius: 50%; background: var(--accent-color); color: #111; box-shadow: none; }
+        .ctg.narrow .ctg-dh span { display: block; font-size: 11px; }
+        .ctg-allday { border-bottom: 1px solid var(--grid-line); min-height: 38px; }
+        .ctg-lbl { font-size: 11px; opacity: .55; display: flex; align-items: center; justify-content: flex-end; padding: 4px 7px 4px 0; text-align: right; line-height: 1.15; }
+        .ctg-ad { border-left: 1px solid var(--grid-line); padding: 4px 3px; display: flex; flex-direction: column; gap: 3px; min-width: 0; cursor: copy; }
+        .ctg-body { overflow-y: auto; height: clamp(300px, calc(100vh - 360px), 760px); overscroll-behavior: contain; position: relative; }
+        .ctg-grid { height: calc(var(--hh) * 24); }
+        .ctg-hours { position: relative; }
+        .ctg-hours span { position: absolute; right: 7px; font-size: 11.5px; opacity: .55; transform: translateY(-50%); font-variant-numeric: tabular-nums; }
+        .ctg.narrow .ctg-hours span { right: 4px; font-size: 10px; }
+        .ctg-col { position: relative; border-left: 1px solid var(--grid-line); cursor: copy;
+            background-image: linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px); background-size: 100% var(--hh); }
+        .ctg-col.today { background-color: color-mix(in srgb, var(--accent-color) 7%, transparent); }
+        .ctg-now { position: absolute; left: 0; right: 0; height: 2px; margin-top: -1px; background: var(--danger); z-index: 3; pointer-events: none; }
+        .ctg-now::before { content: ''; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); }
+        .ctb { position: absolute; z-index: 2; border: none; border-radius: 8px; padding: 4px 7px; box-sizing: border-box; overflow: hidden; text-align: left; cursor: pointer; color: inherit; font: inherit;
+            background: color-mix(in srgb, var(--tc) 30%, var(--bg-color)); box-shadow: inset 3px 0 0 var(--tc), 0 2px 6px rgba(0, 0, 0, .1);
+            display: flex; flex-direction: column; gap: 1px; font-size: 12.5px; line-height: 1.22; transition: transform .12s, box-shadow .12s; }
+        .ctb:hover { transform: translateY(-1px); box-shadow: inset 3px 0 0 var(--tc), 0 6px 14px rgba(0, 0, 0, .16); z-index: 4; }
+        .ctb-t { font-weight: 600; overflow: hidden; display: -webkit-box; -webkit-line-clamp: var(--lines, 3); -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+        .ctb-time { font-size: 11px; opacity: .7; font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .ctb.short { flex-direction: row; align-items: center; gap: 6px; padding-top: 2px; padding-bottom: 2px; }
+        .ctb.short .ctb-t { -webkit-line-clamp: 1; flex: 1; min-width: 0; }
+        .ctb.done, .ctg-chip.done { opacity: .5; }
+        .ctb.done .ctb-t, .ctg-chip.done { text-decoration: line-through; }
+        .ctg-chip { display: block; width: 100%; box-sizing: border-box; border: none; border-radius: 6px; padding: 3px 7px; font: inherit; font-size: 12px; font-weight: 600; color: inherit; cursor: pointer; text-align: left;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; background: color-mix(in srgb, var(--tc) 30%, var(--bg-color)); box-shadow: inset 3px 0 0 var(--tc); flex: none; }
+        .ctg-more { border: none; background: none; font: inherit; font-size: 11.5px; opacity: .6; cursor: pointer; text-align: left; padding: 0 4px; font-weight: 600; color: inherit; }
+        .ctg.narrow .ctb { padding: 3px 5px; font-size: 11.5px; border-radius: 6px; }
+        .ctg.narrow .ctg-chip { font-size: 11px; padding: 2px 5px; }
+        .add-box.flash, #dayEvents .list-item.flash { animation: calFlash 1.2s ease; }
+        @keyframes calFlash { 0%, 35% { box-shadow: 0 0 0 3px var(--accent-color); } }
+        .add-box { border-radius: 4px; }
+
 
         /* --- ЧИПЫ --- */
         .chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -501,6 +533,37 @@
         [data-theme="dark"] .diary-more { color: var(--accent-color); }
         .tag-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
         .check-label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; margin-bottom: 10px; }
+        /* скрытые записи дневника */
+        .diary-lockhint { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: -2px 0 12px; padding: 10px 12px; border-radius: 12px; background: var(--soft); font-size: 13px; line-height: 1.4; }
+        .diary-lockhint span { opacity: .8; }
+        .diary-linkbtn { border: none; background: none; padding: 0; font: inherit; font-weight: 700; color: var(--accent-color); cursor: pointer; }
+        .diary-linkbtn.on { color: var(--danger); }
+        .diary-entry.locked .diary-title { opacity: .9; }
+        .diary-lockbox { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 12px 14px; border-radius: 14px; background: var(--soft); }
+        .diary-lockbox span { font-size: 13.5px; opacity: .7; }
+        .diary-lockbox .glass-btn { width: auto; margin: 0; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+        .diary-badge { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; padding: 2px 8px; border-radius: 999px; font-size: 11.5px; font-weight: 700; vertical-align: middle;
+            background: color-mix(in srgb, var(--accent-color) 22%, transparent); }
+        .diary-badge .ui-ic { margin: 0 !important; opacity: 1 !important; }
+        .pin-card { width: min(100%, 320px); display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+        .pin-lock { width: 54px; height: 54px; border-radius: 17px; display: grid; place-items: center; background: var(--soft); }
+        .pin-lock svg { width: 24px; height: 28px; }
+        .pin-title { font-weight: 700; font-size: 18px; }
+        .pin-sub { font-size: 13.5px; opacity: .7; line-height: 1.4; min-height: 1.4em; max-width: 260px; }
+        .pin-dots { display: flex; gap: 16px; margin: 8px 0 0; }
+        .pin-dots i { width: 15px; height: 15px; border-radius: 50%; border: 2px solid currentColor; opacity: .45; box-sizing: border-box; transition: transform .15s, background .15s, opacity .15s; }
+        .pin-dots i.on { background: var(--accent-color); border-color: var(--accent-color); opacity: 1; transform: scale(1.12); }
+        .pin-dots.shake { animation: pinShake .42s; }
+        @keyframes pinShake { 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+        .pin-msg { min-height: 18px; font-size: 13px; font-weight: 600; color: var(--danger); }
+        .pin-msg.ok { color: inherit; opacity: .65; }
+        .pin-pad { display: grid; grid-template-columns: repeat(3, 66px); gap: 12px; margin: 2px 0 8px; }
+        .pin-pad button { width: 66px; height: 66px; border-radius: 50%; border: 1px solid var(--glass-border); background: var(--soft); color: var(--text-color); font-family: inherit; font-size: 24px; font-weight: 600;
+            font-variant-numeric: tabular-nums; cursor: pointer; transition: transform .1s, background .15s; -webkit-tap-highlight-color: transparent; }
+        .pin-pad button:active { transform: scale(.93); background: var(--accent-color); color: #111; }
+        .pin-pad .pin-del { font-size: 20px; }
+        .pin-card > .glass-btn { width: 100%; margin: 0; }
+        #pinModal.pin-busy .pin-pad { opacity: .45; pointer-events: none; }
         .check-label input { accent-color: var(--accent-color); width: 18px; height: 18px; }
 
         /* --- УВЕДОМЛЕНИЯ (TOAST) --- */
@@ -645,7 +708,37 @@
         .fx-play img { width: 40px; height: 40px; image-rendering: pixelated; flex: none; animation: rnBob .45s steps(2) infinite alternate; --s: 1.3; }
         .fx-play b { display: block; font-size: 15px; font-weight: 600; }
         .fx-play small { font-size: 12px; opacity: .8; }
-        .fx-menu .chk { padding: 6px 8px; }
+        /* переключатель листопада/снегопада: во включённом состоянии — в цвет карточки игры */
+        .fx-switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; border: none; background: none; color: inherit; font: inherit; font-size: 15px;
+            font-weight: 600; padding: 8px 8px 8px 10px; border-radius: 12px; cursor: pointer; text-align: left; }
+        .fx-switch-row:hover { background: rgba(128, 128, 128, .12); }
+        .fx-switch { --on: linear-gradient(135deg, #3b2440, #6b2c2a 60%, #c9452c); --edge: rgba(255, 210, 127, .25);
+            position: relative; flex: none; width: 50px; height: 30px; border-radius: 999px; background: rgba(128, 128, 128, .32); transition: background .25s, box-shadow .25s; }
+        .fx-switch::before { content: ''; position: absolute; inset: 0; border-radius: inherit; background: var(--on); box-shadow: inset 0 0 0 2px var(--edge); opacity: 0; transition: opacity .3s; }
+        .fx-switch i { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
+            transition: transform .3s cubic-bezier(.3, 1.4, .5, 1); }
+        .fx-switch-row[aria-checked="true"] .fx-switch::before { opacity: 1; }
+        .fx-switch-row[aria-checked="true"] .fx-switch i { transform: translateX(20px); background: #fff3e0; }
+        .fx-menu.snow .fx-switch { --on: linear-gradient(135deg, #1d3557, #2f6f9f 60%, #7cc6ea); --edge: rgba(220, 240, 255, .3); }
+        .fx-menu.snow .fx-switch-row[aria-checked="true"] .fx-switch i { background: #f2f8ff; }
+        .fx-hint { font-size: 11.5px; line-height: 1.35; opacity: .6; padding: 0 10px 4px; }
+        /* зажатие кнопки с листиками: кольцо заполняется, затем эффект включается/выключается */
+        @property --fx-hold { syntax: '<number>'; inherits: false; initial-value: 0; }
+        .fx-btn { position: relative; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+        .fx-btn::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; pointer-events: none; opacity: 0; --fx-hold: 0;
+            background: conic-gradient(var(--fx-ring, #c9452c) calc(var(--fx-hold) * 1turn), transparent 0);
+            -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 3px)); mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 3px)); }
+        .fx-btn.snow { --fx-ring: #4fa3d6; }
+        .fx-btn.holding::after { opacity: 1; animation: fxHoldRing .55s linear forwards; }
+        .fx-btn.holding { transform: scale(.94); }
+        .fx-btn.fired { animation: fxFired .45s cubic-bezier(.3, 1.6, .5, 1); }
+        @keyframes fxHoldRing { from { --fx-hold: 0; } to { --fx-hold: 1; } }
+        @keyframes fxFired { 40% { transform: scale(1.14); } }
+        .fx-bubble { position: absolute; left: 0; top: calc(100% + 10px); z-index: 31; white-space: nowrap; padding: 7px 12px; border-radius: 12px; font-size: 13px; font-weight: 600;
+            color: #fff3e0; background: linear-gradient(135deg, #3b2440, #6b2c2a 60%, #c9452c); box-shadow: 0 8px 22px rgba(0, 0, 0, .22); pointer-events: none; animation: fxMenuIn .22s cubic-bezier(.3, 1.4, .5, 1); }
+        .fx-bubble.snow { color: #f2f8ff; background: linear-gradient(135deg, #1d3557, #2f6f9f 60%, #7cc6ea); }
+        .fx-bubble[hidden] { display: none; }
+        @media (prefers-reduced-motion: reduce) { .fx-btn.fired { animation: none; } }
         .fx-play.winter { color: #f2f8ff; background: linear-gradient(135deg, #1d3557, #2f6f9f 60%, #7cc6ea); box-shadow: inset 0 0 0 2px rgba(220, 240, 255, .3); }
         .fx-play svg { width: 40px; height: 40px; flex: none; animation: wgBob 1.6s ease-in-out infinite; }
         @keyframes wgBob { 50% { transform: translateY(-3px) rotate(-4deg); } }
@@ -1677,6 +1770,25 @@
         .w-listcard li { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .w-listcard li.done { text-decoration: line-through; opacity: .5; }
         .w-cal { gap: 10px; }
+        .w-week span { cursor: pointer; transition: background .15s; }
+        .w-week span:not(.on):hover { background: rgba(128, 128, 128, .14); }
+        .w-week span.is-today:not(.on) { color: #70e000; font-weight: 700; }
+        /* записи выбранного дня под неделей */
+        .w-evs { flex: 0 0 auto; max-height: 128px; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; margin: 2px -4px -4px; padding: 0 4px 4px; overscroll-behavior: contain; scrollbar-width: thin; }
+        .w-ev { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 10px; cursor: pointer; flex: none;
+            background: color-mix(in srgb, var(--tc) 16%, transparent); box-shadow: inset 3px 0 0 var(--tc); transition: background .15s; }
+        .w-ev:hover { background: color-mix(in srgb, var(--tc) 26%, transparent); }
+        .w-ev input { width: 16px; height: 16px; margin: 0; flex: none; accent-color: var(--accent-color); cursor: pointer; }
+        .w-ev-time { flex: none; font-size: 11.5px; font-weight: 600; font-variant-numeric: tabular-nums; opacity: .75; white-space: nowrap; }
+        .w-ev-time small { font-size: 10.5px; font-weight: 500; opacity: .8; }
+        .w-ev-t { flex: 1; min-width: 0; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .w-ev.done .w-ev-t { text-decoration: line-through; opacity: .55; }
+        .w-ev-empty { font-size: 12.5px; opacity: .5; text-align: center; padding: 12px 0 4px; }
+        .w-ev-add { align-self: center; border: none; background: none; color: inherit; font: inherit; font-size: 12.5px; font-weight: 600; opacity: .6; cursor: pointer; padding: 6px 10px; border-radius: 8px; flex: none; }
+        .w-ev-add:hover { opacity: 1; background: rgba(128, 128, 128, .14); }
+        /* в высоком виджете список занимает всё свободное место; в обычном — до трёх строк с прокруткой */
+        .w-card.tall .w-evs, .w-grid > section.w-card:first-of-type .w-evs { flex: 1 1 0; max-height: none; }
+        .w-card.tall .w-cal, .w-grid > section.w-card:first-of-type .w-cal { flex: 1; min-height: 0; }
         .w-calday { display: flex; align-items: center; gap: 10px; }
         .w-calday .w-big { font-size: 34px; color: #70e000; }
         .w-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; font-size: 11px; }
@@ -1835,6 +1947,8 @@
         .w-tab-ic .sec-ic svg { height: 16px; }
         .w-tab { --bell-line: var(--pill); }
         .w-tab:not(.on) { --bell-line: #e9e6e1; }
+        .w-tab { --bell-line-d: var(--pill, #3a3a3a); }
+        body[data-theme="dark"] .w-tab:not(.on) { --bell-line-d: #2b2b2b; }
     </style>
 </head>
 <body>
@@ -1842,10 +1956,7 @@
     <!-- Экран загрузки с анимированным логотипом -->
     <div class="splash" id="splash" role="status" aria-label="Загрузка">
         <svg class="logo-anim" viewBox="71 99 458 400" aria-hidden="true">
-            <path class="la-eye" d="M114.5 160V253" pathLength="100"/>
-            <path class="la-smile" d="M114 345C114 396.362 155.638 438 207 438C258.362 438 300 396.362 300 345" pathLength="100"/>
-            <path class="la-arch" d="M300 253C300 201.638 341.414 160 392.5 160C443.586 160 485 201.638 485 253" pathLength="100"/>
-            <circle class="la-dot" cx="485" cy="253" r="22.5"/>
+            <path class="la-line" d="M114.5 160V345C114.5 396.362 156.138 438 207.25 438C258.362 438 300 396.362 300 345V253C300 201.638 341.414 160 392.5 160C443.586 160 485 201.638 485 253V430" pathLength="100"/>
         </svg>
     </div>
 
@@ -1853,11 +1964,15 @@
     <div class="lg-backdrop" aria-hidden="true"></div>
 
     <div class="top-left">
-        <button class="theme-btn fx-btn" id="fxBtn" type="button" hidden onclick="toggleFxMenu()" aria-haspopup="true" aria-expanded="false"></button>
+        <button class="theme-btn fx-btn" id="fxBtn" type="button" hidden onclick="fxBtnClick(event)" onpointerdown="fxHoldStart(event)" oncontextmenu="return false" aria-haspopup="true" aria-expanded="false" aria-describedby="fxHoldHint"></button>
+        <span class="fx-bubble" id="fxBubble" role="status" aria-live="polite" hidden></span>
         <div class="fx-menu" id="fxMenu" hidden role="menu">
             <button type="button" class="fx-play" role="menuitem" onclick="openRunner()"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAFKklEQVR4nK2Xa2wUVRTHf/fOdHe7bbelLYbyrGANzyY+g5EGiKYBbEIqiJAYoyHEaIgflET9YECNiRoMoCFKVBIMAiKBEkGDRgwEYkSQQETkFSFChQZb2m7Z3W53jh9mdh7b2YKJdzOZmb33/v/n/O85595ROE0EoJW30t/KzxszDGoqP3Bwlzjd/nt+ighMXxrl9dhcBbtQygcnAtsole2fpBnZACPvFpdIufAqSO5nCFD5uwUE2s8p2s/ComUxFpNSSoESgR2U8v13GamfJoPB/8d28aSiuTnKAlJKQzNbPy0gzRsf9q4A7YxV4nsOG+9bFyXUNwpbP0sDzZgrOw9KotoB07iquY4XSO7KqMS5g7JFtceo4DiUBJ4rqhUruw+KPra5n9FTxF70kMAJcyRwF3teYeyFzRFgzBT49fN+TK0hXmkHmAJiuhqLAfqlJ4AkDoRCbC8lD+mxlqhySogDYJElLV1BL0RRmgCtwcyvgwLqSh5gYeUeklY7O2600Gtd8azO54byS+pJ9FD8NcZH5jImMgMRoTt3iZPpjRxPfUxKrttDfXKYaA+oruRB4rqWuK6lwhhNr3jEoUkK1BiTWFjZRpVxlz1MbIZKYxxNZW9wX+ly9idXcCqz2YcjmH4lvHWxAyKw5oUxIFBjTmRR5TckjLEAXM0eo2PgBADluo7x0TnE9XBaEpvIdWf4o/8rJxqVTew6Iy5lYF0KZc1LNKvsHRLGGASLozfXcSS1hqSzPBGVYEr/EmaWv0tUldNU9ibXcifo4iyg0EFPQ1ohqfOqxWRC9DEAzmf2sL9vhUsK0C+9HE9v4HByFYIwzGygxpjoAmgbPCSP/KT+QuxczRUfYmcw7O15BpNSGiLzHW/LWZDYRZkawS/pdXRkbfkfLV/rApt5D4q6XZi4btOeAMrCkgEao89SoUcywryfjoETpOSfgFrK+XmzHdC/sgdI5q7Qnv2JHuvPAHfh9Xt6C0KOs5mdWJJByLIv+RyTootJWn9z6OZKhKwz9gsEi9PpLz3MlvVKZiz0O5XfYcT3VqyFlbsiJdD3/+Gdrl7iK2tept96cwojKBIvBbmplcLVHWBsyUzuMBtvg1QxPjKPKmPCfzTM/l/buWtf4yPzaE200ZrYzTCjYUige2Iv8HhiN62JNkxiBGuiZ1worWBHdb67yriTiK4gIhVEVeWQlg83G0EpasxJaGUWnEZurZf2Y3bnLpK1kgDUGtMKLPfAIqqChB4DInQOnMGSgSJeFpFalCc1wIX+vXTlzoOC2eWrqTEmF5RQhULTGFtGfbQZlOJEagMDpAcZN9gIzxSFvTUGbDvQ9wqWZImqSuYntnNvbLlLntD1NMXfZlbZewBczR7ldGZbuFchhP7VMO2zjUW+/F3M/sBv6U00li6l2pzI7PL3mR5/FQBDRYnpanuu5PgxuYKb0lHUK/9p091NnQdTCjYdAfYln6c7d4mpsacZZjRQpusCwBcyeziaWsvlgUMh52lxnfAfjb2DL4ilUE9u0TJ2ItSM8opG3pZKYxy1xlQejq8CoCt3jiOp1XTmzpCVPvwRXGhA2AEfoLMdLp3VKJH1PLX9RZncZGEYg1TzpPDreBv9YYXTysGpQ5rNT3ygNLQQqxG6roJlhQD5mxRJECEQPeIcCAOkFnRdg1iNAC35T5gqlmztkXgCakfJYHOL1X2C5WKo0nH9sqKvF7YtSSilbnjjRBbzEW3y9ZrsEO4651o3RG/zG0fgkZcqeJk5Sik7/f4FpF0N+QawdDUAAAAASUVORK5CYII=" alt=""><span><b>Осенний забег</b><small>мини-игра · шляпки за монетки</small></span></button>
             <button type="button" class="fx-play winter" role="menuitem" onclick="closeFxMenu(); goToApp('winter.html', event)"><svg viewBox="0 0 50 50" aria-hidden="true"><defs><linearGradient id="wgGradMenu" x1="25" y1="0" x2="25" y2="50" gradientUnits="userSpaceOnUse"><stop stop-color="#9EF01A"/><stop offset="1" stop-color="#70E000"/></linearGradient></defs><rect y="4" width="50" height="46" rx="14" fill="url(#wgGradMenu)"/><path d="M2 14q0-10 12-10h22q12 0 12 10q-4 3-8 0q-4 4-8 0q-4 4-8 0q-4 4-8 0q-4 4-8 0q-4 3-6 0z" fill="#fff"/><g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><path d="M26.06 32.28a8.45 8.45 0 0 1-16.9 0"/><path d="M26.06 24.54a8.45 8.45 0 0 1 16.9 0"/><path d="M32 23.53l1.87 2.24 3.52-2.76" stroke-width="2"/></g><rect x="7.04" y="15.97" width="4.23" height="10.68" rx="1" fill="#fff"/></svg><span><b>Снежная тропа</b><small>3D-настолка · кубик, монетки и скины</small></span></button>
-            <label class="chk"><input type="checkbox" id="fxMenuToggle" onchange="toggleFx()"> <span id="fxMenuLbl">Листопад</span></label>
+            <button type="button" class="fx-switch-row" id="fxMenuToggle" role="switch" aria-checked="false" onclick="toggleFx()">
+                <span id="fxMenuLbl">Листопад</span><span class="fx-switch" aria-hidden="true"><i></i></span>
+            </button>
+            <div class="fx-hint" id="fxHoldHint">Зажмите кнопку с листиками — листопад включится или выключится без меню</div>
         </div>
     </div>
     <canvas id="fxCanvas" class="fx-canvas" aria-hidden="true" hidden></canvas>
@@ -1946,6 +2061,24 @@
         </div>
     </div>
 
+    <!-- Пароль для скрытых записей дневника -->
+    <div class="modal" id="pinModal" hidden onclick="if (event.target === this) pinCancel()">
+        <div class="modal-card pin-card" role="dialog" aria-modal="true" aria-labelledby="pinTitle" aria-describedby="pinSub">
+            <div class="pin-lock" aria-hidden="true"><svg viewBox="0 0 40 46"><path d="M10.5 20v-6.5a9.5 9.5 0 0 1 19 0V20" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path fill="currentColor" fill-rule="evenodd" d="M10 18h20a7 7 0 0 1 7 7v12a7 7 0 0 1-7 7H10a7 7 0 0 1-7-7V25a7 7 0 0 1 7-7Zm10 7.5a3.6 3.6 0 0 0-2 6.6V35a2 2 0 0 0 4 0v-2.9a3.6 3.6 0 0 0-2-6.6Z"/></svg></div>
+            <div class="pin-title" id="pinTitle">Введите пароль</div>
+            <div class="pin-sub" id="pinSub"></div>
+            <div class="pin-dots" id="pinDots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+            <div class="pin-msg" id="pinMsg" role="status" aria-live="polite"></div>
+            <div class="pin-pad" role="group" aria-label="Цифры">
+                <button type="button" onclick="pinKey('1')">1</button><button type="button" onclick="pinKey('2')">2</button><button type="button" onclick="pinKey('3')">3</button>
+                <button type="button" onclick="pinKey('4')">4</button><button type="button" onclick="pinKey('5')">5</button><button type="button" onclick="pinKey('6')">6</button>
+                <button type="button" onclick="pinKey('7')">7</button><button type="button" onclick="pinKey('8')">8</button><button type="button" onclick="pinKey('9')">9</button>
+                <span></span><button type="button" onclick="pinKey('0')">0</button><button type="button" class="pin-del" onclick="pinKey('del')" aria-label="Стереть цифру">⌫</button>
+            </div>
+            <button type="button" class="glass-btn secondary" onclick="pinCancel()">Отмена</button>
+        </div>
+    </div>
+
     <!-- Фон профиля: что сделать -->
     <div class="modal" id="coverMenu" hidden onclick="if (event.target === this) closeCoverMenu()">
         <div class="modal-card sheet-menu" role="dialog" aria-modal="true" aria-label="Фон профиля">
@@ -2010,8 +2143,14 @@
                     <div class="segmented" id="calViewSwitch" style="flex: 1;">
                         <button data-view="month" class="active" onclick="setCalView('month')">Месяц</button>
                         <button data-view="week" onclick="setCalView('week')">Неделя</button>
+                        <button data-view="grid" onclick="setCalView('grid')" title="Сетка по часам, как в ProdU Team">Часы</button>
                     </div>
                     <button class="glass-btn secondary compact" onclick="calToday()">Сегодня</button>
+                </div>
+                <div class="segmented ctg-spans" id="calSpanSwitch" hidden>
+                    <button data-span="1" onclick="setCalSpan(1)">День</button>
+                    <button data-span="3" onclick="setCalSpan(3)">3 дня</button>
+                    <button data-span="7" onclick="setCalSpan(7)">Неделя</button>
                 </div>
                 <div id="calBody" class="cal-grid"></div>
                 <div class="cal-legend">
@@ -2036,6 +2175,16 @@
                             <option value="event">Событие</option>
                         </select>
                         <input type="time" id="evTime" class="glass-input" title="Время (необязательно)">
+                        <select id="evDur" class="glass-select" title="Длительность (если указано время)" aria-label="Длительность">
+                            <option value="">Длительность</option>
+                            <option value="15">15 мин</option>
+                            <option value="30">30 мин</option>
+                            <option value="60">1 час</option>
+                            <option value="90">1,5 часа</option>
+                            <option value="120">2 часа</option>
+                            <option value="180">3 часа</option>
+                            <option value="240">4 часа</option>
+                        </select>
                     </div>
                     <select id="evNotify" class="glass-select">
                         <option value="">Без уведомления</option>
@@ -2112,9 +2261,14 @@
                 <div class="flex-row" style="gap: 20px;">
                     <label class="check-label"><input type="checkbox" id="diaryPinned"> <span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 44 44"><path d="M18 25.89 4.12 39.77" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><g fill="currentColor"><path d="M20.38 21.05a2 2 0 0 1 2.03 2.03l-.16 11.23c-.03 1.77-2.16 2.64-3.41 1.39L7.77 24.63c-1.25-1.25-.38-3.39 1.38-3.42Z"/><path d="M19.92 25.81a2 2 0 0 1-2.27-2.27l2.1-14.25c.25-1.62 2.24-2.28 3.4-1.12l12.14 12.14c1.16 1.16.5 3.15-1.12 3.39Z"/></g></svg></span>Закрепить</label>
                     <label class="check-label"><input type="checkbox" id="diaryBookmarked"> <span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 48 50"><path d="M10 4.5h28a7.5 7.5 0 0 1 7.5 7.5v28a7.5 7.5 0 0 1-7.5 7.5H10A7.5 7.5 0 0 1 2.5 40V12A7.5 7.5 0 0 1 10 4.5Z" fill="none" stroke="currentColor" stroke-width="5"/><g fill="currentColor"><path d="M17.06 21.58a2 2 0 0 1 0-3.17L34.28 5.16c1.32-1.01 3.22-.08 3.22 1.58v26.52c0 1.66-1.9 2.6-3.22 1.58Z"/><path d="M30.94 21.58a2 2 0 0 0 0-3.17L13.72 5.16c-1.32-1.01-3.22-.08-3.22 1.58v26.52c0 1.66 1.9 2.6 3.22 1.58Z"/><path d="M25.58 24.94a2 2 0 0 1-3.17 0L10.89 9.97c-1.01-1.32-.08-3.22 1.58-3.22h23.05c1.66 0 2.6 1.9 1.58 3.22Z"/></g></svg></span>В закладки</label>
+                    <label class="check-label"><input type="checkbox" id="diaryLocked" onchange="diaryLockUi()"> <span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 40 46"><path d="M10.5 20v-6.5a9.5 9.5 0 0 1 19 0V20" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path fill="currentColor" fill-rule="evenodd" d="M10 18h20a7 7 0 0 1 7 7v12a7 7 0 0 1-7 7H10a7 7 0 0 1-7-7V25a7 7 0 0 1 7-7Zm10 7.5a3.6 3.6 0 0 0-2 6.6V35a2 2 0 0 0 4 0v-2.9a3.6 3.6 0 0 0-2-6.6Z"/></svg></span>Скрыть паролем</label>
+                </div>
+                <div class="diary-lockhint" id="diaryLockHint" hidden>
+                    <span id="diaryLockHintText"></span>
+                    <button type="button" class="diary-linkbtn" id="diaryChangePin" hidden onclick="diaryToggleChangePin()">Сменить пароль</button>
                 </div>
                 <div class="flex-row">
-                    <button class="glass-btn" onclick="saveDiaryEntry()">Сохранить</button>
+                    <button class="glass-btn" id="diarySaveBtn" onclick="saveDiaryEntry()">Сохранить</button>
                     <button class="glass-btn secondary" onclick="closeDiaryEditor()">Отмена</button>
                 </div>
             </div>
@@ -6064,7 +6218,7 @@
             else paintOthers(box);
         }
 
-        const LOGO_LOADER = '<div class="logo-loader" role="status" aria-label="Загрузка"><svg class="logo-anim" viewBox="71 99 458 400" aria-hidden="true"><path class="la-eye" d="M114.5 160V253" pathLength="100"/><path class="la-smile" d="M114 345C114 396.362 155.638 438 207 438C258.362 438 300 396.362 300 345" pathLength="100"/><path class="la-arch" d="M300 253C300 201.638 341.414 160 392.5 160C443.586 160 485 201.638 485 253" pathLength="100"/><circle class="la-dot" cx="485" cy="253" r="22.5"/></svg></div>';
+        const LOGO_LOADER = '<div class="logo-loader" role="status" aria-label="Загрузка"><svg class="logo-anim" viewBox="71 99 458 400" aria-hidden="true"><path class="la-line" d="M114.5 160V345C114.5 396.362 156.138 438 207.25 438C258.362 438 300 396.362 300 345V253C300 201.638 341.414 160 392.5 160C443.586 160 485 201.638 485 253V430" pathLength="100"/></svg></div>';
 
         // ---- лайки ----
         const HEART_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-9.6-9.2C1 8 2.9 4.5 6.4 4.5c2.2 0 3.6 1.3 4.4 2.6l1.2 1.7 1.2-1.7c.8-1.3 2.2-2.6 4.4-2.6 3.5 0 5.4 3.5 4 6.8-2.1 4.6-9.6 9.2-9.6 9.2z"/></svg>';
@@ -10196,6 +10350,8 @@
             friend: '<svg viewBox="0 0 31 36"><g fill="currentColor"><path d="M31 29.64c0 6.6-7.72 5.75-15.5 5.75S0 36.24 0 29.64s7.72-10.45 15.5-10.45S31 23.05 31 29.64Z"/><ellipse cx="15.5" cy="7.38" rx="8.12" ry="7.38"/></g></svg>',
             sound: '<svg viewBox="10 4 50 37"><path d="M15.45 38.25c-2.31 0-3.75-2.5-2.6-4.5L25.41 12c1.15-2 4.04-2 5.19 0l12.56 21.75c1.15 2-.29 4.5-2.6 4.5Z" fill="currentColor"/><path d="M39 16.05a6 6 0 0 1 6.1 10.57M33.53 9.1a14.6 14.6 0 0 1 16.04 24.57" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>',
             play: '<svg viewBox="0 0 28 32"><path d="M26.25 12.96c2 1.16 2 4.04 0 5.2L4.5 30.72c-2 1.15-4.5-.29-4.5-2.6V3c0-2.31 2.5-3.75 4.5-2.6Z" fill="currentColor"/></svg>',
+            lock: '<svg viewBox="0 0 40 46"><path d="M10.5 20v-6.5a9.5 9.5 0 0 1 19 0V20" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path fill="currentColor" fill-rule="evenodd" d="M10 18h20a7 7 0 0 1 7 7v12a7 7 0 0 1-7 7H10a7 7 0 0 1-7-7V25a7 7 0 0 1 7-7Zm10 7.5a3.6 3.6 0 0 0-2 6.6V35a2 2 0 0 0 4 0v-2.9a3.6 3.6 0 0 0-2-6.6Z"/></svg>',
+            unlock: '<svg viewBox="0 0 40 46"><path d="M10.5 18v-4.5a9.5 9.5 0 0 1 18.6-2.7" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path fill="currentColor" fill-rule="evenodd" d="M10 18h20a7 7 0 0 1 7 7v12a7 7 0 0 1-7 7H10a7 7 0 0 1-7-7V25a7 7 0 0 1 7-7Zm10 7.5a3.6 3.6 0 0 0-2 6.6V35a2 2 0 0 0 4 0v-2.9a3.6 3.6 0 0 0-2-6.6Z"/></svg>',
             pause: '<svg viewBox="0 0 28 32"><g fill="currentColor"><rect x="2" y="1" width="8.5" height="30" rx="3.5"/><rect x="17.5" y="1" width="8.5" height="30" rx="3.5"/></g></svg>',
         };
         const uiIc = k => `<span class="ui-ic" aria-hidden="true">${UI_ICONS[k]}</span>`;
@@ -10207,12 +10363,12 @@
             scan: ['<svg viewBox="0 0 51 51"><path d="M2.5 14v-1.5a10 10 0 0 1 10-10H14M2.5 37v1.5a10 10 0 0 0 10 10H14M37 2.5h1.5a10 10 0 0 1 10 10V14M37 48.5h1.5a10 10 0 0 0 10-10V37" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><g fill="currentColor"><rect x="14" y="20" width="4" height="12" rx="1.5"/><rect x="23" y="14" width="4" height="23" rx="1.5"/><rect x="32" y="20" width="4" height="17" rx="1.5"/><circle cx="16" cy="14" r="2.5"/><circle cx="34" cy="14" r="2.5"/><circle cx="16" cy="38" r="2.5"/></g></svg>', '<svg viewBox="0 0 51 51"><path d="M2.5 14v-1.5a10 10 0 0 1 10-10H14M2.5 37v1.5a10 10 0 0 0 10 10H14M37 2.5h1.5a10 10 0 0 1 10 10V14M37 48.5h1.5a10 10 0 0 0 10-10V37" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><g fill="currentColor"><rect x="14" y="20" width="4" height="12" rx="1.5"/><rect x="23" y="14" width="4" height="23" rx="1.5"/><rect x="32" y="20" width="4" height="17" rx="1.5"/><circle cx="16" cy="14" r="2.5"/><circle cx="34" cy="14" r="2.5"/><circle cx="16" cy="38" r="2.5"/></g></svg>'],
             list: ['<svg viewBox="0 0 48 48"><path d="M10 2.5h28a7.5 7.5 0 0 1 7.5 7.5v28a7.5 7.5 0 0 1-7.5 7.5H10A7.5 7.5 0 0 1 2.5 38V10A7.5 7.5 0 0 1 10 2.5Z" fill="none" stroke="currentColor" stroke-width="5"/><g fill="currentColor"><rect x="19.5" y="13.5" width="17" height="4" rx="1.5"/><rect x="19.5" y="22.5" width="17" height="4" rx="1.5"/><rect x="19.5" y="31.5" width="17" height="4" rx="1.5"/><circle cx="13.5" cy="15.5" r="2.5"/><circle cx="13.5" cy="24.5" r="2.5"/><circle cx="13.5" cy="33.5" r="2.5"/></g></svg>', '<svg viewBox="0 0 48 48"><path d="M10 2.5h28a7.5 7.5 0 0 1 7.5 7.5v28a7.5 7.5 0 0 1-7.5 7.5H10A7.5 7.5 0 0 1 2.5 38V10A7.5 7.5 0 0 1 10 2.5Z" fill="none" stroke="currentColor" stroke-width="5"/><g fill="currentColor"><rect x="19.5" y="13.5" width="17" height="4" rx="1.5"/><rect x="19.5" y="22.5" width="17" height="4" rx="1.5"/><rect x="19.5" y="31.5" width="17" height="4" rx="1.5"/><circle cx="13.5" cy="15.5" r="2.5"/><circle cx="13.5" cy="24.5" r="2.5"/><circle cx="13.5" cy="33.5" r="2.5"/></g></svg>'],
             diary: ['<svg viewBox="0 0 48 48"><path d="M10 2.5h28a7.5 7.5 0 0 1 7.5 7.5v28a7.5 7.5 0 0 1-7.5 7.5H10A7.5 7.5 0 0 1 2.5 38V10A7.5 7.5 0 0 1 10 2.5Z" fill="none" stroke="currentColor" stroke-width="5"/><g fill="currentColor"><rect x="9.5" y="13.5" width="17" height="4" rx="1.5"/><rect x="9.5" y="22.5" width="29" height="4" rx="1.5"/><rect x="9.5" y="31.5" width="29" height="4" rx="1.5"/></g></svg>', '<svg viewBox="0 0 48 48"><path d="M10 2.5h28a7.5 7.5 0 0 1 7.5 7.5v28a7.5 7.5 0 0 1-7.5 7.5H10A7.5 7.5 0 0 1 2.5 38V10A7.5 7.5 0 0 1 10 2.5Z" fill="none" stroke="currentColor" stroke-width="5"/><g fill="currentColor"><rect x="9.5" y="13.5" width="17" height="4" rx="1.5"/><rect x="9.5" y="22.5" width="29" height="4" rx="1.5"/><rect x="9.5" y="31.5" width="29" height="4" rx="1.5"/></g></svg>'],
-            calendar: ['<svg viewBox="0 0 49 49"><path d="M10 1.5h29a8.5 8.5 0 0 1 8.5 8.5v29a8.5 8.5 0 0 1-8.5 8.5H10A8.5 8.5 0 0 1 1.5 39V10A8.5 8.5 0 0 1 10 1.5Z" fill="none" stroke="currentColor" stroke-width="3"/><path d="M3.57 3.41A2 2 0 0 1 5.48 2h38.93a2 2 0 0 1 1.95 1.55l2.08 9a2 2 0 0 1-1.95 2.45H2.71a2 2 0 0 1-1.91-2.59Z" fill="currentColor"/><g fill="currentColor"><rect x="7" y="20" width="8" height="8" rx="2"/><rect x="7" y="32" width="8" height="8" rx="2"/><rect x="20" y="20" width="8" height="8" rx="2"/><rect x="20" y="32" width="8" height="8" rx="2"/><rect x="33" y="20" width="8" height="8" rx="2"/><rect x="33" y="32" width="8" height="8" rx="2"/></g></svg>',
-                       '<svg viewBox="0 0 49 49"><path d="M10 1.5h29a8.5 8.5 0 0 1 8.5 8.5v29a8.5 8.5 0 0 1-8.5 8.5H10A8.5 8.5 0 0 1 1.5 39V10A8.5 8.5 0 0 1 10 1.5Z" fill="none" stroke="currentColor" stroke-width="3"/><path d="M5 14h40" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><g fill="currentColor"><rect x="7.5" y="20.5" width="7" height="7" rx="1.5"/><rect x="7.5" y="32.5" width="7" height="7" rx="1.5"/><rect x="20.5" y="20.5" width="7" height="7" rx="1.5"/><rect x="20.5" y="32.5" width="7" height="7" rx="1.5"/><rect x="33.5" y="20.5" width="7" height="7" rx="1.5"/><rect x="33.5" y="32.5" width="7" height="7" rx="1.5"/></g></svg>'],
+            calendar: ['<svg viewBox="0 0 49 49"><path d="M10 1.5h29a8.5 8.5 0 0 1 8.5 8.5v29a8.5 8.5 0 0 1-8.5 8.5H10A8.5 8.5 0 0 1 1.5 39V10A8.5 8.5 0 0 1 10 1.5Z" fill="none" stroke="currentColor" stroke-width="3"/><path d="M5 14h40" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M3.57 3.41A2 2 0 0 1 5.48 2h38.93a2 2 0 0 1 1.95 1.55l2.08 9a2 2 0 0 1-1.95 2.45H2.71a2 2 0 0 1-1.91-2.59Z" fill="currentColor"/><g fill="currentColor"><rect x="7" y="20" width="8" height="8" rx="2"/><rect x="7" y="32" width="8" height="8" rx="2"/><rect x="20" y="20" width="8" height="8" rx="2"/><rect x="20" y="32" width="8" height="8" rx="2"/><rect x="33" y="20" width="8" height="8" rx="2"/><rect x="33" y="32" width="8" height="8" rx="2"/></g></svg>',
+                       '<svg viewBox="0 0 49 49"><path d="M10 1.5h29a8.5 8.5 0 0 1 8.5 8.5v29a8.5 8.5 0 0 1-8.5 8.5H10A8.5 8.5 0 0 1 1.5 39V10A8.5 8.5 0 0 1 10 1.5Z" fill="none" stroke="currentColor" stroke-width="3"/><path d="M5 14h40" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M3.57 3.41A2 2 0 0 1 5.48 2h38.93a2 2 0 0 1 1.95 1.55l2.08 9a2 2 0 0 1-1.95 2.45H2.71a2 2 0 0 1-1.91-2.59Z" fill="currentColor"/><g fill="currentColor"><rect x="7" y="20" width="8" height="8" rx="2"/><rect x="7" y="32" width="8" height="8" rx="2"/><rect x="20" y="20" width="8" height="8" rx="2"/><rect x="20" y="32" width="8" height="8" rx="2"/><rect x="33" y="20" width="8" height="8" rx="2"/><rect x="33" y="32" width="8" height="8" rx="2"/></g></svg>'],
             reminders: ['<svg viewBox="0 0 43 55"><path d="M38.67 27.5c0 17.19 17.19 17.19-17.19 17.19S4.3 44.69 4.3 27.5a17.19 17.19 0 0 1 34.38 0Z" fill="currentColor"/><circle cx="21.48" cy="3.44" r="3.44" fill="currentColor"/><path d="M28.36 48.13a6.88 6.88 0 0 1-13.75 0Z" fill="currentColor"/><path d="M10 38h13.75" stroke="var(--bell-line, #fff)" stroke-width="2" stroke-linecap="round"/></svg>',
-                        '<svg viewBox="0 0 43 55"><path d="M37.67 27.5c0 7.9 3.6 11.55 4.5 13.5.6 1.4-.5 2.69-2 2.69H3.3c-1.5 0-2.6-1.3-2-2.69.9-1.95 4-5.6 4-13.5a16.19 16.19 0 0 1 32.37 0Z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="21.48" cy="3.44" r="2.94" fill="currentColor"/><path d="M27.36 48.13a5.88 5.88 0 0 1-11.75 0Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 38h13.75" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'],
-            timer: ['<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="21" fill="none" stroke="currentColor" stroke-width="6"/><path d="M23.5 12v12H33" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><g fill="currentColor"><circle cx="19.5" cy="36.5" r="1.5"/><circle cx="14.5" cy="32.5" r="1.5"/><circle cx="11.5" cy="27.5" r="1.5"/></g></svg>',
-                    '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="21" fill="none" stroke="currentColor" stroke-width="4"/><path d="M23.5 12v12H33" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><g fill="currentColor"><circle cx="19.5" cy="36.5" r="1.5"/><circle cx="14.5" cy="32.5" r="1.5"/><circle cx="11.5" cy="27.5" r="1.5"/></g></svg>']
+                        '<svg viewBox="0 0 43 55"><path d="M38.67 27.5c0 17.19 17.19 17.19-17.19 17.19S4.3 44.69 4.3 27.5a17.19 17.19 0 0 1 34.38 0Z" fill="currentColor"/><circle cx="21.48" cy="3.44" r="3.44" fill="currentColor"/><path d="M28.36 48.13a6.88 6.88 0 0 1-13.75 0Z" fill="currentColor"/><path d="M10 38h13.75" stroke="var(--bell-line-d, var(--pill, #3a3a3a))" stroke-width="2" stroke-linecap="round"/></svg>'],
+            timer: ['<svg viewBox="0 0 48 56"><circle cx="24" cy="31.5" r="21" fill="none" stroke="currentColor" stroke-width="6"/><path d="M26 19.5a2.5 2.5 0 0 0-5 0v12h5Z" fill="currentColor"/><path d="M33 34a2.5 2.5 0 0 0 0-5H21v5Z" fill="currentColor"/><g fill="currentColor"><circle cx="19.5" cy="44" r="1.5"/><circle cx="14.5" cy="40" r="1.5"/><circle cx="11.5" cy="35" r="1.5"/></g><path d="M30 2.5H18" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg>',
+                    '<svg viewBox="0 0 48 56"><circle cx="24" cy="31.5" r="21" fill="none" stroke="currentColor" stroke-width="6"/><path d="M26 19.5a2.5 2.5 0 0 0-5 0v12h5Z" fill="currentColor"/><path d="M33 34a2.5 2.5 0 0 0 0-5H21v5Z" fill="currentColor"/><g fill="currentColor"><circle cx="19.5" cy="44" r="1.5"/><circle cx="14.5" cy="40" r="1.5"/><circle cx="11.5" cy="35" r="1.5"/></g><path d="M30 2.5H18" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg>']
         };
         // какой значок у вкладки виджета и у заголовка раздела
         const TAB_ICON = { calendar: 'calendar', reminders: 'reminders', timer: 'timer', tasks: 'check', goal: 'goal', lists: 'list', diary: 'diary', finance: 'finance', cards: 'scan' };
@@ -10360,14 +10516,23 @@
                         : '<div class="w-tile"><div class="w-empty">Списков пока нет</div></div>'}</div>`;
             }
             if (tab === 'calendar') {
-                const d0 = new Date(), mon = addDays(d0, -((d0.getDay() + 6) % 7));
+                // выбранный в виджете день (по умолчанию — сегодня); неделя — та, в которой этот день
+                if (wCalDay && wCalDay.at !== today) wCalDay = null;   // наступил новый день — снова «сегодня»
+                const sel = wCalDay ? wCalDay.d : today, d0 = parseYmd(sel), mon = startOfWeek(d0);
                 const week = Array.from({ length: 7 }, (_, i) => addDays(mon, i));
-                const n = eventsOn(today).length;
+                const evs = eventsOn(sel), n = evs.length, isToday = sel === today;
+                const when = isToday ? 'сегодня' : sel === ymd(addDays(new Date(), 1)) ? 'завтра' : sel === ymd(addDays(new Date(), -1)) ? 'вчера' : 'в этот день';
+                const rows = evs.map(e => `<div class="w-ev t-${e.type} ${e.done ? 'done' : ''}" data-stop role="button" tabindex="0" onclick="wCalOpen(${e.id})" title="Открыть в календаре">
+                        <input type="checkbox" ${e.done ? 'checked' : ''} aria-label="Готово: ${esc(e.title)}" onclick="event.stopPropagation()" onchange="toggleEvent(${e.id})">
+                        <span class="w-ev-time">${e.time ? e.time + (e.dur ? '<small>–' + evEnd(e) + '</small>' : '') : 'весь день'}</span>
+                        <span class="w-ev-t">${esc(e.title)}</span></div>`).join('');
                 return `<div class="w-tile w-cal">
                     <div class="w-calday"><span class="w-big">${d0.getDate()}</span><span class="w-mini">${MONTHS_GEN[d0.getMonth()]}<br>${['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'][d0.getDay()]}</span>
-                        <span class="w-mini w-calcount">${n ? `${n} ${ruPlural(n, 'запись', 'записи', 'записей')} сегодня` : 'сегодня свободно'}</span></div>
+                        <span class="w-mini w-calcount">${n ? `${n} ${ruPlural(n, 'запись', 'записи', 'записей')} ${when}` : `${when} свободно`}</span></div>
                     <div class="w-week">${week.map(d => { const s2 = ymd(d), k = eventsOn(s2).length;
-                        return `<span class="${s2 === today ? 'on' : ''}"><i>${'пвсчпсв'[(d.getDay() + 6) % 7]}</i>${d.getDate()}${k ? '<b></b>' : ''}</span>`; }).join('')}</div></div>`;
+                        return `<span class="${s2 === sel ? 'on' : ''} ${s2 === today ? 'is-today' : ''}" data-stop role="button" tabindex="0" onclick="wCalPick('${s2}')" aria-label="${d.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}"><i>${'пвсчпсв'[(d.getDay() + 6) % 7]}</i>${d.getDate()}${k ? '<b></b>' : ''}</span>`; }).join('')}</div>
+                    <div class="w-evs">${rows || `<div class="w-ev-empty">${isToday ? 'На сегодня ничего не запланировано' : 'На этот день ничего не запланировано'}</div>`}
+                        <button type="button" class="w-ev-add" data-stop onclick="wCalAdd()">+ Добавить${isToday ? '' : ' на ' + d0.getDate() + ' ' + MONTHS_GEN[d0.getMonth()]}</button></div></div>`;
             }
             if (tab === 'timer') {
                 return `<div class="w-row"><div class="w-tile w-timer" id="wTimer"></div>
@@ -10378,8 +10543,9 @@
             }
             if (tab === 'diary') {
                 const last = [...data.diary].sort((a, b) => (b.updated || b.created) - (a.updated || a.created))[0];
-                return `<div class="w-row">${wAdd('diary', 'Новая запись')}${last ? `<div class="w-tile"><div class="w-sub">${esc(last.title)}</div>
-                    <div class="w-clip">${esc((last.body || '').slice(0, 140))}</div><div class="w-mini">${fmtPostDate(last.updated || last.created)}</div></div>`
+                return `<div class="w-row">${wAdd('diary', 'Новая запись')}${last ? (last.locked ? `<div class="w-tile"><div class="w-sub">${uiIc('lock')} Скрытая запись</div>
+                    <div class="w-clip">Текст скрыт паролем</div><div class="w-mini">${fmtPostDate(last.updated || last.created)}</div></div>` : `<div class="w-tile"><div class="w-sub">${esc(last.title)}</div>
+                    <div class="w-clip">${esc((last.body || '').slice(0, 140))}</div><div class="w-mini">${fmtPostDate(last.updated || last.created)}</div></div>`)
                     : '<div class="w-tile"><div class="w-empty">Записей пока нет</div></div>'}</div>`;
             }
             if (tab === 'finance') {
@@ -10397,6 +10563,20 @@
             return '';
         }
 
+        // календарь на главной: выбор дня и переход к записи
+        let wCalDay = null;   // { d: 'ГГГГ-ММ-ДД', at: день, когда выбрали }
+        function wCalPick(ds) { wCalDay = ds === todayStr() ? null : { d: ds, at: todayStr() }; renderHome(); }
+        function wCalOpen(id) {
+            const e = data.events.find(x => x.id === id);
+            if (!e) return;
+            switchTab('calendar'); calSelect(e.date);
+            setTimeout(() => ctgShowDay(id), 60);
+        }
+        function wCalAdd() {
+            const ds = wCalDay ? wCalDay.d : todayStr();
+            switchTab('calendar'); calSelect(ds);
+            setTimeout(() => { const box = document.querySelector('#module-calendar .add-box'); box.scrollIntoView({ behavior: 'smooth', block: 'center' }); $('evTitle').focus({ preventScroll: true }); }, 60);
+        }
         function renderHome() {
             const grid = $('wGrid');
             if (!homeReady || !grid || !data) return;
@@ -10567,6 +10747,7 @@
         function switchTab(moduleName) {
             const prev = currentTab;
             currentTab = moduleName;
+            if (prev === 'diary' && moduleName !== 'diary') diaryLockAll();
             document.querySelectorAll('#mainAppContainer .dashboard').forEach(el => el.classList.remove('active'));
             document.getElementById(`module-${moduleName}`).classList.add('active');
             $('navHome').classList.toggle('active', !['settings', 'account', 'social', 'games', 'person'].includes(moduleName));
@@ -10598,7 +10779,7 @@
         }
 
         // ================= КАЛЕНДАРЬ =================
-        let calView = 'month';
+        let calView = (() => { try { const v = localStorage.getItem('produ_cal_view'); return ['month', 'week', 'grid'].includes(v) ? v : 'month'; } catch (e) { return 'month'; } })();
         let selectedDate = todayStr();
         let calCursor = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); })();
 
@@ -10608,13 +10789,22 @@
 
         function setCalView(v) {
             calView = v;
+            try { localStorage.setItem('produ_cal_view', v); } catch (e) {}
             document.querySelectorAll('#calViewSwitch button').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+            $('calSpanSwitch').hidden = v !== 'grid';
+            document.querySelectorAll('#calSpanSwitch button').forEach(b => b.classList.toggle('active', +b.dataset.span === ctgSpan()));
             if (v === 'month') { const d = parseYmd(selectedDate); calCursor = new Date(d.getFullYear(), d.getMonth(), 1); }
+            if (v === 'grid') ctgScrolled = false;
             renderCalendar();
         }
 
         function calNav(dir) {
             if (calView === 'month') calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() + dir, 1);
+            else if (calView === 'grid') {
+                const n = ctgSpan();
+                if (n === 7) selectedDate = ymd(addDays(parseYmd(selectedDate), 7 * dir));
+                else { ctgStart = ymd(addDays(parseYmd(ctgDays()[0]), n * dir)); selectedDate = ctgStart; }
+            }
             else selectedDate = ymd(addDays(parseYmd(selectedDate), 7 * dir));
             renderCalendar();
         }
@@ -10625,6 +10815,123 @@
             calCursor = new Date(d.getFullYear(), d.getMonth(), 1);
             renderCalendar();
         }
+
+        // ---- сетка часов, как в ProdU Team: День / 3 дня / Неделя ----
+        const CTG_SPANS = [[1, 'День'], [3, '3 дня'], [7, 'Неделя']];
+        let calSpan = (() => { try { return +localStorage.getItem('produ_cal_span') || 0; } catch (e) { return 0; } })();
+        let ctgStart = null, ctgScrolled = false;
+        const ctgSpan = () => calSpan || (window.innerWidth < 640 ? 3 : 7);
+        const CTG_H = () => window.innerWidth < 640 ? 44 : 52;   // высота часа в пикселях
+        const toMinutes = t => { const [h, m] = (t || '0:0').split(':').map(Number); return h * 60 + m; };
+        const hhmm = m => `${String(Math.floor(m / 60) % 24).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+        const evDur = e => e.dur || (e.type === 'reminder' ? 30 : 60);
+        const evEnd = e => hhmm(Math.min(1440, toMinutes(e.time) + evDur(e)));
+        function ctgDays() {
+            const n = ctgSpan(), sel = parseYmd(selectedDate);
+            let start;
+            if (n === 7) start = startOfWeek(sel);
+            else {
+                start = ctgStart ? parseYmd(ctgStart) : sel;
+                const diff = Math.round((sel - start) / 86400000);
+                if (diff < 0 || diff >= n) start = sel;
+            }
+            ctgStart = ymd(start);
+            return Array.from({ length: n }, (_, i) => ymd(addDays(start, i)));
+        }
+        function setCalSpan(n) {
+            calSpan = n;
+            try { localStorage.setItem('produ_cal_span', String(n)); } catch (e) {}
+            document.querySelectorAll('#calSpanSwitch button').forEach(b => b.classList.toggle('active', +b.dataset.span === ctgSpan()));
+            renderCalendar();
+        }
+        // раскладка пересекающихся дел по колонкам
+        function ctgLayout(items) {
+            items.sort((a, b) => a.s - b.s || b.e - a.e);
+            const out = []; let cluster = [], clusterEnd = -1;
+            const flush = () => {
+                const cols = [];
+                cluster.forEach(it => { let c = cols.findIndex(end => end <= it.s); if (c < 0) { c = cols.length; cols.push(0); } cols[c] = it.ve; it.col = c; });
+                cluster.forEach(it => { it.ncol = cols.length; });
+                out.push(...cluster); cluster = []; clusterEnd = -1;
+            };
+            items.forEach(it => {
+                it.ve = Math.max(it.e, it.s + 25);
+                if (cluster.length && it.s >= clusterEnd) flush();
+                cluster.push(it); clusterEnd = Math.max(clusterEnd, it.ve);
+            });
+            if (cluster.length) flush();
+            return out;
+        }
+        function ctgTitle(days) {
+            const a = parseYmd(days[0]), b = parseYmd(days[days.length - 1]);
+            if (days.length === 1) { const s = a.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }); return s.charAt(0).toUpperCase() + s.slice(1); }
+            if (a.getMonth() === b.getMonth()) return `${a.getDate()}–${b.getDate()} ${MONTHS_GEN[a.getMonth()]}`;
+            return `${a.getDate()} ${MONTHS_GEN[a.getMonth()]} – ${b.getDate()} ${MONTHS_GEN[b.getMonth()]}`;
+        }
+        function ctgHtml(days) {
+            const n = days.length, H = CTG_H(), today = todayStr(), narrow = window.innerWidth < 640;
+            const head = days.map(ds => {
+                const d = parseYmd(ds), wd = (d.getDay() + 6) % 7;
+                return `<button type="button" class="ctg-dh ${ds === today ? 'today' : ''} ${ds === selectedDate ? 'sel' : ''}" onclick="calSelect('${ds}')" aria-label="${d.toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}">
+                    <span>${WD_SHORT[wd]}</span> <b>${d.getDate()}</b></button>`;
+            }).join('');
+            const max = n === 1 ? 6 : n === 3 ? 3 : 2;
+            const allday = days.map(ds => {
+                const items = eventsOn(ds).filter(e => !e.time);
+                return `<div class="ctg-ad" onclick="ctgSlot(event, '${ds}', null)">${items.slice(0, max).map(e =>
+                    `<button type="button" class="ctg-chip t-${e.type} ${e.done ? 'done' : ''}" onclick="event.stopPropagation(); ctgOpen(${e.id})" title="${esc(e.title)}">${esc(e.title)}</button>`).join('')}${items.length > max ? `<button type="button" class="ctg-more" onclick="event.stopPropagation(); calSelect('${ds}'); ctgShowDay()">+ ещё ${items.length - max}</button>` : ''}</div>`;
+            }).join('');
+            let hours = '';
+            for (let h = 1; h < 24; h++) hours += `<span style="top: ${h * H}px">${h}:00</span>`;
+            const now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
+            const cols = days.map(ds => {
+                const items = ctgLayout(eventsOn(ds).filter(e => e.time).map(ev => { const s = toMinutes(ev.time); return { ev, s, e: Math.min(1440, s + evDur(ev)) }; }));
+                const blocks = items.map(it => {
+                    const e = it.ev, top = it.s * H / 60, h = Math.max(it.ve - it.s, 25) * H / 60 - 2;
+                    const lines = Math.max(1, Math.floor((h - (h >= 40 ? 16 : 0)) / 15));
+                    return `<button type="button" class="ctb t-${e.type} ${e.done ? 'done' : ''} ${h < 36 ? 'short' : ''}"
+                        style="top: ${top.toFixed(1)}px; height: ${h.toFixed(1)}px; left: calc(${(100 * it.col / it.ncol).toFixed(2)}% + 2px); width: calc(${(100 / it.ncol).toFixed(2)}% - 4px); --lines: ${lines}"
+                        onclick="event.stopPropagation(); ctgOpen(${e.id})" title="${esc(e.title)} · ${e.time}–${evEnd(e)}">
+                        <span class="ctb-t">${esc(e.title)}</span><span class="ctb-time">${e.time}${h >= 36 ? '–' + evEnd(e) : ''}</span></button>`;
+                }).join('');
+                return `<div class="ctg-col ${ds === today ? 'today' : ''}" onclick="ctgSlot(event, '${ds}', this)">${blocks}${ds === today ? `<div class="ctg-now" style="top: ${(nowMin * H / 60).toFixed(1)}px"></div>` : ''}</div>`;
+            }).join('');
+            return `<div class="ctg ${narrow ? 'narrow' : ''}" style="--n: ${n}; --hh: ${H}px">
+                <div class="ctg-row ctg-head"><div></div>${head}</div>
+                <div class="ctg-row ctg-allday"><div class="ctg-lbl">Весь<br>день</div>${allday}</div>
+                <div class="ctg-body" id="ctgBody"><div class="ctg-row ctg-grid"><div class="ctg-hours">${hours}</div>${cols}</div></div>
+            </div>`;
+        }
+        // клик по пустому месту сетки: выбираем день и время, форма ниже готова к вводу
+        function ctgSlot(ev, ds, col) {
+            if (ev.target.closest('button')) return;
+            calSelect(ds);
+            const time = $('evTime'), dur = $('evDur');
+            if (col) {
+                const r = col.getBoundingClientRect(), H = CTG_H();
+                const min = Math.max(0, Math.min(1410, Math.floor((ev.clientY - r.top) / H * 60 / 30) * 30));
+                time.value = hhmm(min);
+                if (!dur.value) dur.value = '60';
+            } else time.value = '';
+            const box = document.querySelector('#module-calendar .add-box');
+            box.classList.remove('flash'); void box.offsetWidth; box.classList.add('flash');
+            $('evTitle').focus({ preventScroll: true });
+            box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        function ctgOpen(id) {
+            const e = data.events.find(x => x.id === id);
+            if (!e) return;
+            calSelect(e.date);
+            ctgShowDay(id);
+        }
+        function ctgShowDay(id) {
+            const panel = $('dayEvents');
+            const row = id ? panel.querySelector(`[data-ev="${id}"]`) : null;
+            (row || panel).scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if (row) { row.classList.remove('flash'); void row.offsetWidth; row.classList.add('flash'); }
+        }
+        // красная линия «сейчас» двигается сама
+        setInterval(() => { if (currentTab === 'calendar' && calView === 'grid' && !document.hidden) renderCalendar(); }, 60000);
 
         function calSelect(s) {
             selectedDate = s;
@@ -10640,6 +10947,10 @@
         }
 
         function renderCalendar() {
+            // переключатели вида — в соответствии с сохранённым выбором
+            document.querySelectorAll('#calViewSwitch button').forEach(b => b.classList.toggle('active', b.dataset.view === calView));
+            $('calSpanSwitch').hidden = calView !== 'grid';
+            document.querySelectorAll('#calSpanSwitch button').forEach(b => b.classList.toggle('active', +b.dataset.span === ctgSpan()));
             const body = document.getElementById('calBody');
             const title = document.getElementById('calTitle');
             const t = todayStr();
@@ -10666,6 +10977,21 @@
                     html += `<div class="${cls.join(' ')}" onclick="calSelect('${s}')"><span class="num">${d.getDate()}</span><div class="cal-chips">${chips}</div><div class="cal-dots">${dots}</div></div>`;
                 }
                 body.className = 'cal-grid';
+            } else if (calView === 'grid') {
+                const days = ctgDays();
+                title.textContent = ctgTitle(days);
+                const old = $('ctgBody'), keep = old ? old.scrollTop : null;
+                body.className = 'cal-tg';
+                body.innerHTML = ctgHtml(days);
+                const sc = $('ctgBody');
+                if (keep !== null && ctgScrolled) sc.scrollTop = keep;
+                else {   // первый показ: к текущему часу (или к 8 утра)
+                    const n = new Date(), H = CTG_H();
+                    sc.scrollTop = days.includes(t) ? Math.max(0, (n.getHours() - 1.5) * H) : 8 * H - 10;
+                    ctgScrolled = true;
+                }
+                renderDayPanel();
+                return;
             } else {
                 const mon = startOfWeek(parseYmd(selectedDate));
                 const sun = addDays(mon, 6);
@@ -10687,12 +11013,12 @@
 
         function eventItemHtml(e, withDate = false) {
             const info = TYPE_INFO[e.type] || TYPE_INFO.task;
-            const timeHtml = e.time ? `<span class="time-badge">${e.time}</span>` : `<span class="time-badge allday">весь день</span>`;
+            const timeHtml = e.time ? `<span class="time-badge">${e.time}${e.dur ? '–' + evEnd(e) : ''}</span>` : `<span class="time-badge allday">весь день</span>`;
             const notify = hasNotify(e) ? `<span class="notify-mark">⏰ ${NOTIFY_LABELS[e.notifyBefore] || ''}</span>` : '';
             const sub = withDate
                 ? `<div class="notify-mark" style="white-space: normal;">${prettyDate(e.date)}, ${e.time} · ${NOTIFY_LABELS[e.notifyBefore] || ''} · ${relTime(eventStart(e))}</div>`
                 : '';
-            return `<div class="list-item t-${e.type}" style="${e.done ? 'opacity: 0.6;' : ''}">
+            return `<div class="list-item t-${e.type}" data-ev="${e.id}" style="${e.done ? 'opacity: 0.6;' : ''}">
                 <div class="list-item-left">
                     <input type="checkbox" ${e.done ? 'checked' : ''} onchange="toggleEvent(${e.id})">
                     ${withDate ? '' : timeHtml}
@@ -10737,9 +11063,11 @@
             if (type === 'reminder' && notifyBefore === null) notifyBefore = 0;
             if (notifyBefore !== null && !time) return alert('Чтобы получить уведомление, укажите время.');
 
-            createEvent({ date: selectedDate, title, type, time, notifyBefore });
+            const durV = document.getElementById('evDur').value;
+            createEvent({ date: selectedDate, title, type, time, notifyBefore, ...(time && durV ? { dur: Number(durV) } : {}) });
             titleEl.value = '';
             document.getElementById('evTime').value = '';
+            document.getElementById('evDur').value = '';
             document.getElementById('evNotify').value = '';
             document.getElementById('evType').value = 'task';
         }
@@ -10971,27 +11299,176 @@
         function setDiaryFilter(f) { diaryFilter = f; renderDiary(); }
         function toggleDiaryExpand(id) { diaryExpanded.has(id) ? diaryExpanded.delete(id) : diaryExpanded.add(id); renderDiary(); }
 
-        function openDiaryEditor(id = null) {
+        // ---- скрытые записи: текст шифруется (AES-GCM), ключ получается из пароля из 4 цифр (PBKDF2) ----
+        // В data.diary такая запись хранится только в зашифрованном виде — и локально, и на сервере.
+        // Расшифрованные записи живут лишь в памяти, пока открыт раздел.
+        const DIARY_KDF_ITER = 310000;
+        const diaryOpen = new Map();          // id → { title, body, tags, key, salt }
+        let diaryChangePin = false;
+        const b64 = buf => { const u = new Uint8Array(buf); let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
+        const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+        const cryptoOk = () => !!(window.crypto && crypto.subtle);
+        async function diaryKey(pin, salt, iter = DIARY_KDF_ITER) {
+            const base = await crypto.subtle.importKey('raw', new TextEncoder().encode('produ-diary:' + pin), 'PBKDF2', false, ['deriveKey']);
+            return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+        }
+        async function diaryEncrypt(key, salt, payload) {
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(JSON.stringify(payload)));
+            return { v: 1, it: DIARY_KDF_ITER, salt: b64(salt), iv: b64(iv), ct: b64(ct) };
+        }
+        async function diaryDecrypt(enc, pin) {
+            const salt = unb64(enc.salt), key = await diaryKey(pin, salt, enc.it || DIARY_KDF_ITER);
+            const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(enc.iv) }, key, unb64(enc.ct));
+            const d = JSON.parse(new TextDecoder().decode(pt));
+            return { title: d.title || '', body: d.body || '', tags: d.tags || [], key, salt };
+        }
+        // что показывать: открытая копия скрытой записи или сама запись
+        const diaryView = e => e.locked ? diaryOpen.get(e.id) || null : e;
+        function diaryLockAll() { if (!diaryOpen.size) return; diaryOpen.clear(); if (diaryEditingId && data.diary.some(x => x.id === diaryEditingId && x.locked)) closeDiaryEditor(); renderDiary(); }
+        function diaryLock(id) { diaryOpen.delete(id); diaryExpanded.delete(id); if (diaryEditingId === id) closeDiaryEditor(); renderDiary(); }
+        // свернули приложение больше чем на минуту — скрытые записи снова закрываются
+        let diaryHiddenAt = 0;
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) diaryHiddenAt = Date.now();
+            else if (diaryHiddenAt && Date.now() - diaryHiddenAt > 60000) diaryLockAll();
+        });
+        async function unlockDiary(id) {
+            const e = data.diary.find(x => x.id === id);
+            if (!e || !e.locked) return true;
+            if (diaryOpen.has(id)) return true;
+            if (!cryptoOk()) { alert('Этот браузер не поддерживает шифрование — откройте ProdU по https.'); return false; }
+            const got = await askPin({
+                title: 'Скрытая запись', sub: 'Введите пароль из 4 цифр',
+                verify: async p => { try { diaryOpen.set(id, await diaryDecrypt(e.enc, p)); return true; } catch (err) { return false; } }
+            });
+            if (got === null) return false;
+            renderDiary();
+            return true;
+        }
+
+        // ---- окно ввода пароля ----
+        const pin = { val: '', first: null, resolve: null, verify: null, confirm: false, busy: false, opts: {} };
+        function askPin(opts) {
+            if (pin.resolve) pinClose(null);
+            return new Promise(res => {
+                Object.assign(pin, { val: '', first: null, resolve: res, verify: opts.verify || null, confirm: !!opts.confirm, busy: false, opts });
+                $('pinTitle').textContent = opts.title; $('pinSub').textContent = opts.sub || '';
+                setPinMsg(''); drawPin();
+                pin.ret = document.activeElement;
+                $('pinModal').hidden = false;
+                pinCheckBlock();
+                setTimeout(() => $('pinModal').querySelector('.pin-pad button').focus({ preventScroll: true }), 30);
+            });
+        }
+        function drawPin() { [...$('pinDots').children].forEach((d, i) => d.classList.toggle('on', i < pin.val.length)); }
+        function setPinMsg(t, ok) { const m = $('pinMsg'); m.textContent = t; m.classList.toggle('ok', !!ok); }
+        function pinShake() { const d = $('pinDots'); d.classList.remove('shake'); void d.offsetWidth; d.classList.add('shake'); if (navigator.vibrate) navigator.vibrate(60); }
+        function pinKey(d) {
+            if (pin.busy || pinBlocked() || !pin.resolve) return;
+            if (d === 'del') { pin.val = pin.val.slice(0, -1); drawPin(); return; }
+            if (pin.val.length >= 4) return;
+            pin.val += d; drawPin();
+            if (pin.val.length === 4) setTimeout(pinDone, 140);
+        }
+        async function pinDone() {
+            const v = pin.val;
+            if (v.length !== 4) return;
+            if (pin.confirm) {
+                if (!pin.first) { pin.first = v; pin.val = ''; drawPin(); $('pinTitle').textContent = 'Повторите пароль'; setPinMsg(''); return; }
+                if (pin.first !== v) { pin.first = null; pin.val = ''; drawPin(); pinShake(); $('pinTitle').textContent = pin.opts.title; setPinMsg('Пароли не совпали — введите заново'); return; }
+                return pinClose(v);
+            }
+            if (pin.verify) {
+                pin.busy = true; $('pinModal').classList.add('pin-busy'); setPinMsg('Проверяем…', true);
+                let ok = false;
+                try { ok = await pin.verify(v); } catch (e) {}
+                pin.busy = false; $('pinModal').classList.remove('pin-busy');
+                if (!ok) { pinFail(); return; }
+                pinGuardSet({ fails: 0, until: 0 });
+            }
+            pinClose(v);
+        }
+        function pinClose(v) {
+            $('pinModal').hidden = true; clearInterval(pinTimer);
+            const r = pin.resolve; pin.resolve = null; pin.val = ''; pin.first = null;
+            if (pin.ret && pin.ret.focus && document.contains(pin.ret)) pin.ret.focus({ preventScroll: true });
+            if (r) r(v);
+        }
+        function pinCancel() { if (!pin.busy) pinClose(null); }
+        // защита от перебора: после каждых 5 неверных попыток — пауза, которая растёт (30 с, 1 мин, 2 мин…)
+        function pinGuard() { try { return JSON.parse(localStorage.getItem('produ_pin_guard')) || { fails: 0, until: 0 }; } catch (e) { return { fails: 0, until: 0 }; } }
+        function pinGuardSet(g) { try { localStorage.setItem('produ_pin_guard', JSON.stringify(g)); } catch (e) {} }
+        const pinBlocked = () => pinGuard().until > Date.now();
+        function pinFail() {
+            const g = pinGuard(); g.fails++;
+            if (g.fails % 5 === 0) g.until = Date.now() + 30000 * Math.pow(2, g.fails / 5 - 1);
+            pinGuardSet(g);
+            pin.val = ''; drawPin(); pinShake();
+            if (g.until > Date.now()) pinCheckBlock();
+            else { const left = 5 - g.fails % 5; setPinMsg(`Неверный пароль · ${left === 1 ? 'осталась 1 попытка' : `осталось ${left} попытки`} до паузы`); }
+        }
+        let pinTimer = 0;
+        function pinCheckBlock() {
+            clearInterval(pinTimer);
+            const tick = () => {
+                const left = pinGuard().until - Date.now();
+                if (left > 0) { setPinMsg(`Слишком много попыток. Подождите ${Math.ceil(left / 1000)} с`); $('pinModal').classList.add('pin-busy'); }
+                else { clearInterval(pinTimer); $('pinModal').classList.remove('pin-busy'); if (/Подождите/.test($('pinMsg').textContent)) setPinMsg(''); }
+            };
+            tick();
+            if (pinBlocked()) pinTimer = setInterval(tick, 500);
+        }
+        // с клавиатуры: цифры, Backspace, Esc (перехватываем раньше остальных горячих клавиш)
+        window.addEventListener('keydown', e => {
+            if ($('pinModal').hidden) return;
+            if (/^[0-9]$/.test(e.key)) pinKey(e.key);
+            else if (e.key === 'Backspace') pinKey('del');
+            else if (e.key === 'Escape') pinCancel();
+            else return;
+            e.preventDefault(); e.stopImmediatePropagation();
+        }, true);
+
+        // ---- редактор ----
+        async function openDiaryEditor(id = null) {
+            const src = id ? data.diary.find(x => x.id === id) : null;
+            if (src && src.locked && !(await unlockDiary(id))) return;
+            const e = src ? diaryView(src) : null;
             diaryEditingId = id;
-            const e = id ? data.diary.find(x => x.id === id) : null;
+            diaryChangePin = false;
             document.getElementById('diaryEditorTitle').textContent = e ? 'Редактирование записи' : 'Новая запись';
-            document.getElementById('diaryTitle').value = e ? e.title : '';
+            document.getElementById('diaryTitle').value = e ? (src.locked && e.title === 'Без заголовка' ? '' : e.title) : '';
             document.getElementById('diaryBody').value = e ? e.body : '';
             document.getElementById('diaryTags').value = e ? (e.tags || []).join(', ') : '';
-            document.getElementById('diaryPinned').checked = e ? !!e.pinned : false;
-            document.getElementById('diaryBookmarked').checked = e ? !!e.bookmarked : false;
+            document.getElementById('diaryPinned').checked = src ? !!src.pinned : false;
+            document.getElementById('diaryBookmarked').checked = src ? !!src.bookmarked : false;
+            document.getElementById('diaryLocked').checked = src ? !!src.locked : false;
+            diaryLockUi();
             const editor = document.getElementById('diaryEditor');
             editor.style.display = 'flex';
             editor.scrollIntoView({ behavior: 'smooth', block: 'start' });
             document.getElementById('diaryTitle').focus({ preventScroll: true });
         }
+        function diaryLockUi() {
+            const on = $('diaryLocked').checked, src = diaryEditingId ? data.diary.find(x => x.id === diaryEditingId) : null;
+            const had = !!(src && src.locked);
+            $('diaryLockHint').hidden = !on && !had;
+            $('diaryChangePin').hidden = !(on && had);
+            $('diaryChangePin').textContent = diaryChangePin ? 'Оставить прежний пароль' : 'Сменить пароль';
+            $('diaryChangePin').classList.toggle('on', diaryChangePin);
+            $('diaryLockHintText').textContent = !on ? 'Запись станет обычной: пароль больше не понадобится.'
+                : had ? (diaryChangePin ? 'После сохранения нужно будет придумать новый пароль.' : 'Запись останется скрытой под прежним паролем.')
+                : 'После сохранения придумайте пароль из 4 цифр. Восстановить его нельзя — запомните.';
+        }
+        function diaryToggleChangePin() { diaryChangePin = !diaryChangePin; diaryLockUi(); }
 
         function closeDiaryEditor() {
             document.getElementById('diaryEditor').style.display = 'none';
             diaryEditingId = null;
+            diaryChangePin = false;
         }
 
-        function saveDiaryEntry() {
+        async function saveDiaryEntry() {
             const title = document.getElementById('diaryTitle').value.trim();
             const body = document.getElementById('diaryBody').value.trim();
             if (!title && !body) return alert('Запись пустая — добавьте заголовок или текст.');
@@ -10999,12 +11476,33 @@
                 .split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean))];
             const pinned = document.getElementById('diaryPinned').checked;
             const bookmarked = document.getElementById('diaryBookmarked').checked;
-
+            const wantLock = document.getElementById('diaryLocked').checked;
             const existing = diaryEditingId ? data.diary.find(x => x.id === diaryEditingId) : null;
-            if (existing) {
-                touch(Object.assign(existing, { title: title || 'Без заголовка', body, tags, pinned, bookmarked, updated: Date.now() }));
+            const id = existing ? existing.id : uid();
+            const plain = { title: title || 'Без заголовка', body, tags };
+
+            if (wantLock) {
+                if (!cryptoOk()) return alert('Этот браузер не поддерживает шифрование — откройте ProdU по https.');
+                let open = existing && existing.locked ? diaryOpen.get(existing.id) : null;
+                if (!open || diaryChangePin) {
+                    const p = await askPin({ title: diaryChangePin ? 'Новый пароль' : 'Придумайте пароль', sub: '4 цифры. Восстановить пароль нельзя — запомните его', confirm: true });
+                    if (p === null) return;   // передумали — редактор остаётся открытым
+                    const salt = crypto.getRandomValues(new Uint8Array(16));
+                    $('diarySaveBtn').disabled = true;
+                    try { open = { key: await diaryKey(p, salt), salt }; } finally { $('diarySaveBtn').disabled = false; }
+                }
+                const enc = await diaryEncrypt(open.key, open.salt, plain);
+                // в самих данных — ни заголовка, ни текста, ни меток
+                const rec = { id, locked: true, enc, title: '', body: '', tags: [], pinned, bookmarked, created: existing ? existing.created : Date.now(), updated: existing ? Date.now() : null };
+                if (existing) { Object.keys(existing).forEach(k => { if (k !== '_u') delete existing[k]; }); touch(Object.assign(existing, rec)); }
+                else data.diary.unshift(touch(rec));
+                diaryOpen.set(id, { ...plain, key: open.key, salt: open.salt });
             } else {
-                data.diary.unshift(touch({ id: uid(), title: title || 'Без заголовка', body, tags, pinned, bookmarked, created: Date.now(), updated: null }));
+                if (existing) {
+                    delete existing.locked; delete existing.enc;
+                    touch(Object.assign(existing, plain, { pinned, bookmarked, updated: Date.now() }));
+                    diaryOpen.delete(id);
+                } else data.diary.unshift(touch({ id, ...plain, pinned, bookmarked, created: Date.now(), updated: null }));
             }
             closeDiaryEditor();
             saveData();
@@ -11015,33 +11513,41 @@
             if (e) { e[flag] = !e[flag]; touch(e); saveData(); }
         }
 
-        function deleteDiaryEntry(id) {
-            if (!confirm('Удалить запись из дневника?')) return;
+        async function deleteDiaryEntry(id) {
+            const e = data.diary.find(x => x.id === id);
+            if (!e) return;
+            if (e.locked && !diaryOpen.has(id) && !(await unlockDiary(id))) return;   // удалить скрытую запись можно только зная пароль
+            if (!confirm(e.locked ? 'Удалить скрытую запись? Восстановить её не получится.' : 'Удалить запись из дневника?')) return;
             data.diary = data.diary.filter(x => x.id !== id);
+            diaryOpen.delete(id);
             tomb('diary:' + id);
             if (diaryEditingId === id) closeDiaryEditor();
             saveData();
         }
 
         function renderDiary() {
-            const tags = [...new Set(data.diary.flatMap(e => e.tags || []))].sort((a, b) => a.localeCompare(b, 'ru'));
+            const views = data.diary.map(e => [e, diaryView(e)]);
+            const tags = [...new Set(views.flatMap(([, v]) => v ? v.tags || [] : []))].sort((a, b) => a.localeCompare(b, 'ru'));
             if (diaryFilter.startsWith('tag:') && !tags.includes(diaryFilter.slice(4))) diaryFilter = 'all';
 
-            const chips = [['all', 'Все'], ['pinned', 'Закреплённые', 'pin'], ['bookmarked', 'Закладки', 'bookmark'], ...tags.map(t => ['tag:' + t, '#' + t])];
+            const chips = [['all', 'Все'], ['pinned', 'Закреплённые', 'pin'], ['bookmarked', 'Закладки', 'bookmark'], ...(data.diary.some(e => e.locked) ? [['locked', 'Скрытые', 'lock']] : []), ...tags.map(t => ['tag:' + t, '#' + t])];
+            if (diaryFilter === 'locked' && !data.diary.some(e => e.locked)) diaryFilter = 'all';
             document.getElementById('diaryChips').innerHTML = chips.map(([k, label, icon]) =>
                 `<button class="chip ${diaryFilter === k ? 'active' : ''}" data-filter="${esc(k)}" onclick="setDiaryFilter(this.dataset.filter)">${icon ? uiIc(icon) : ''}${esc(label)}</button>`
             ).join('');
 
-            const list = data.diary.filter(e => {
+            const list = views.filter(([e, v]) => {
                 if (diaryFilter === 'pinned' && !e.pinned) return false;
                 if (diaryFilter === 'bookmarked' && !e.bookmarked) return false;
-                if (diaryFilter.startsWith('tag:') && !(e.tags || []).includes(diaryFilter.slice(4))) return false;
+                if (diaryFilter === 'locked' && !e.locked) return false;
+                if (diaryFilter.startsWith('tag:') && !(v && (v.tags || []).includes(diaryFilter.slice(4)))) return false;
                 if (diaryQuery) {
-                    const hay = `${e.title} ${e.body} ${(e.tags || []).join(' ')}`.toLowerCase();
+                    if (!v) return false;   // закрытые записи в поиске не участвуют
+                    const hay = `${v.title} ${v.body} ${(v.tags || []).join(' ')}`.toLowerCase();
                     if (!hay.includes(diaryQuery)) return false;
                 }
                 return true;
-            }).sort((a, b) => (Number(!!b.pinned) - Number(!!a.pinned)) || (b.created - a.created));
+            }).sort(([a], [b]) => (Number(!!b.pinned) - Number(!!a.pinned)) || (b.created - a.created));
 
             const container = document.getElementById('diaryList');
             if (!data.diary.length) {
@@ -11049,29 +11555,43 @@
                 return;
             }
             if (!list.length) {
-                container.innerHTML = '<div class="empty-state">Ничего не найдено</div>';
+                container.innerHTML = `<div class="empty-state">${diaryQuery && data.diary.some(e => e.locked && !diaryOpen.has(e.id)) ? 'Ничего не найдено. Скрытые записи ищутся, только когда открыты' : 'Ничего не найдено'}</div>`;
                 return;
             }
 
-            container.innerHTML = list.map(e => {
+            const flagBtns = e => `<button class="icon-btn ${e.pinned ? 'on' : ''}" title="${e.pinned ? 'Открепить' : 'Закрепить'}" onclick="toggleDiaryFlag(${e.id}, 'pinned')">${uiIc('pin')}</button>
+                            <button class="icon-btn ${e.bookmarked ? 'on' : ''}" title="${e.bookmarked ? 'Убрать из закладок' : 'В закладки'}" onclick="toggleDiaryFlag(${e.id}, 'bookmarked')">${uiIc('bookmark')}</button>`;
+            container.innerHTML = list.map(([e, v]) => {
+                const meta = `${fmtDateTime(e.created)}${e.updated ? ' · изменено ' + fmtDateTime(e.updated) : ''}`;
+                if (e.locked && !v) return `<div class="glass-card full-width diary-entry locked ${e.pinned ? 'pinned' : ''}">
+                    <div class="diary-head">
+                        <div style="min-width: 0;">
+                            <div class="diary-title">${e.pinned ? uiIc('pin') : ''}${e.bookmarked ? uiIc('bookmark') : ''}${uiIc('lock')}Скрытая запись</div>
+                            <div class="diary-meta">${meta}</div>
+                        </div>
+                        <div class="diary-actions">${flagBtns(e)}
+                            <button class="icon-btn" title="Удалить (нужен пароль)" onclick="deleteDiaryEntry(${e.id})">🗑</button>
+                        </div>
+                    </div>
+                    <div class="diary-lockbox"><span>Заголовок и текст скрыты паролем</span><button type="button" class="glass-btn secondary" onclick="unlockDiary(${e.id})">${uiIc('unlock')}Открыть</button></div>
+                </div>`;
                 const expanded = diaryExpanded.has(e.id);
-                const isLong = e.body && (e.body.length > 280 || e.body.split('\n').length > 4);
+                const isLong = v.body && (v.body.length > 280 || v.body.split('\n').length > 4);
                 return `<div class="glass-card full-width diary-entry ${e.pinned ? 'pinned' : ''}">
                     <div class="diary-head">
                         <div style="min-width: 0;">
-                            <div class="diary-title">${e.pinned ? uiIc('pin') : ''}${e.bookmarked ? uiIc('bookmark') : ''}${esc(e.title)}</div>
-                            <div class="diary-meta">${fmtDateTime(e.created)}${e.updated ? ' · изменено ' + fmtDateTime(e.updated) : ''}</div>
+                            <div class="diary-title">${e.pinned ? uiIc('pin') : ''}${e.bookmarked ? uiIc('bookmark') : ''}${esc(v.title)}${e.locked ? `<span class="diary-badge" title="Скрытая запись открыта">${uiIc('unlock')}открыта</span>` : ''}</div>
+                            <div class="diary-meta">${meta}</div>
                         </div>
-                        <div class="diary-actions">
-                            <button class="icon-btn ${e.pinned ? 'on' : ''}" title="${e.pinned ? 'Открепить' : 'Закрепить'}" onclick="toggleDiaryFlag(${e.id}, 'pinned')">${uiIc('pin')}</button>
-                            <button class="icon-btn ${e.bookmarked ? 'on' : ''}" title="${e.bookmarked ? 'Убрать из закладок' : 'В закладки'}" onclick="toggleDiaryFlag(${e.id}, 'bookmarked')">${uiIc('bookmark')}</button>
+                        <div class="diary-actions">${flagBtns(e)}
+                            ${e.locked ? `<button class="icon-btn" title="Скрыть снова" onclick="diaryLock(${e.id})">${uiIc('lock')}</button>` : ''}
                             <button class="icon-btn" title="Редактировать" onclick="openDiaryEditor(${e.id})">${uiIc('edit')}</button>
                             <button class="icon-btn" title="Удалить" onclick="deleteDiaryEntry(${e.id})">🗑</button>
                         </div>
                     </div>
-                    ${e.body ? `<div class="diary-body ${isLong && !expanded ? 'clamped' : ''}" ${isLong ? `onclick="toggleDiaryExpand(${e.id})"` : ''}>${esc(e.body)}</div>` : ''}
+                    ${v.body ? `<div class="diary-body ${isLong && !expanded ? 'clamped' : ''}" ${isLong ? `onclick="toggleDiaryExpand(${e.id})"` : ''}>${esc(v.body)}</div>` : ''}
                     ${isLong ? `<div class="diary-more" onclick="toggleDiaryExpand(${e.id})">${expanded ? 'Свернуть' : 'Читать дальше…'}</div>` : ''}
-                    ${(e.tags || []).length ? `<div class="tag-row">${e.tags.map(t => `<span class="chip small" data-filter="tag:${esc(t)}" onclick="setDiaryFilter(this.dataset.filter)">#${esc(t)}</span>`).join('')}</div>` : ''}
+                    ${(v.tags || []).length ? `<div class="tag-row">${v.tags.map(t => `<span class="chip small" data-filter="tag:${esc(t)}" onclick="setDiaryFilter(this.dataset.filter)">#${esc(t)}</span>`).join('')}</div>` : ''}
                 </div>`;
             }).join('');
         }
@@ -12264,14 +12784,66 @@
             btn.title = 'Мини-игры и ' + (kind === 'snow' ? 'снегопад' : 'листопад');
             btn.setAttribute('aria-label', btn.title);
             btn.classList.toggle('on', on);
+            btn.classList.toggle('snow', kind === 'snow');
+            fxSyncSwitch();
             if (on && !fx.running) fxStart(); else if (!on && fx.running) fxStop();
         }
+        // ---- зажатие кнопки: включить/выключить эффект без меню ----
+        const FX_HOLD_MS = 550;
+        let fxHold = null, fxSkipClick = false;
+        function fxHoldStart(e) {
+            if (!fx.kind || (e.pointerType === 'mouse' && e.button !== 0)) return;
+            fxHoldCancel();
+            const btn = $('fxBtn');
+            fxHold = { x: e.clientX, y: e.clientY, id: e.pointerId, t: setTimeout(fxHoldFire, FX_HOLD_MS) };
+            btn.classList.remove('fired');
+            btn.classList.add('holding');
+            window.addEventListener('pointermove', fxHoldMove);
+            window.addEventListener('pointerup', fxHoldCancel);
+            window.addEventListener('pointercancel', fxHoldCancel);
+        }
+        function fxHoldMove(e) { if (fxHold && e.pointerId === fxHold.id && Math.hypot(e.clientX - fxHold.x, e.clientY - fxHold.y) > 12) fxHoldCancel(); }
+        function fxHoldCancel() {
+            if (fxHold) clearTimeout(fxHold.t);
+            fxHold = null;
+            $('fxBtn').classList.remove('holding');
+            window.removeEventListener('pointermove', fxHoldMove);
+            window.removeEventListener('pointerup', fxHoldCancel);
+            window.removeEventListener('pointercancel', fxHoldCancel);
+        }
+        function fxHoldFire() {
+            fxHoldCancel();
+            fxSkipClick = true;               // отпускание после зажатия не открывает меню
+            setTimeout(() => { fxSkipClick = false; }, 700);
+            closeFxMenu();
+            toggleFx();
+            const btn = $('fxBtn'), on = !!fxPrefs[fx.kind];
+            void btn.offsetWidth; btn.classList.add('fired');
+            if (navigator.vibrate) navigator.vibrate(on ? [18, 40, 18] : 25);
+            const b = $('fxBubble');
+            b.textContent = (fx.kind === 'snow' ? 'Снегопад ' : 'Листопад ') + (on ? 'включён' : 'выключен');
+            b.classList.toggle('snow', fx.kind === 'snow');
+            b.hidden = false;
+            clearTimeout(fxHoldFire.t);
+            fxHoldFire.t = setTimeout(() => { b.hidden = true; }, 1400);
+        }
+        function fxBtnClick(e) {
+            if (fxSkipClick) { fxSkipClick = false; e.preventDefault(); return; }
+            toggleFxMenu();
+        }
         // кнопка с листиками открывает меню: мини-игра «Осенний забег» и переключатель листопада/снегопада
+        function fxSyncSwitch() {
+            const sw = $('fxMenuToggle'), snow = fx.kind === 'snow';
+            sw.setAttribute('aria-checked', String(!!fxPrefs[fx.kind]));
+            $('fxMenuLbl').textContent = snow ? 'Снегопад' : 'Листопад';
+            $('fxMenu').classList.toggle('snow', snow);
+            $('fxHoldHint').textContent = `Зажмите кнопку ${snow ? 'со снежинкой' : 'с листиками'} — ${snow ? 'снегопад' : 'листопад'} включится или выключится без меню`;
+        }
         function toggleFxMenu() {
             const m = $('fxMenu');
             if (!m.hidden) return closeFxMenu();
-            $('fxMenuToggle').checked = !!fxPrefs[fx.kind];
-            $('fxMenuLbl').textContent = fx.kind === 'snow' ? 'Снегопад' : 'Листопад';
+            fxSyncSwitch();
+            $('fxBubble').hidden = true;
             m.hidden = false;
             $('fxBtn').setAttribute('aria-expanded', 'true');
         }
@@ -12671,11 +13243,11 @@
         window.addEventListener('hashchange', openFromHash);
         try { sessionStorage.removeItem('produ_wipe'); } catch (e) {}
 
-        // ---- экран загрузки: показываем хотя бы один цикл «глаз → точка», ждём первую синхронизацию (не дольше 3 с) ----
+        // ---- экран загрузки: показываем хотя бы один цикл «логотип → линия → точка», ждём первую синхронизацию (не дольше 3 с) ----
         (function hideSplashWhenReady() {
             const sp = $('splash');
             if (!sp) return;
-            const minShow = new Promise(r => setTimeout(r, Math.max(0, 1300 - performance.now())));
+            const minShow = new Promise(r => setTimeout(r, Math.max(0, 1800 - performance.now())));
             const firstSync = Promise.race([Promise.resolve(syncPromise), new Promise(r => setTimeout(r, 3000))]).catch(() => {});
             const fonts = document.fonts && document.fonts.ready ? Promise.race([document.fonts.ready, new Promise(r => setTimeout(r, 1500))]) : Promise.resolve();
             Promise.all([minShow, firstSync, fonts]).then(() => {
