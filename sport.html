@@ -2144,5 +2144,67 @@
         };
     })();
     </script>
+    <!-- ===== Нижняя панель: скруглённая «таблетка» и подсветка, которая плавно переезжает к выбранному пункту ===== -->
+    <style>
+        .nav3 { position: relative; isolation: isolate; border-radius: 999px !important; }
+        .nav3-btn { border-radius: 999px !important; }
+        .nav3-btn.active { background: transparent !important; box-shadow: none !important; }
+        .nav3-btn.active:hover { background: transparent !important; }
+        .nav3-ind { position: absolute; top: 0; left: 0; width: 0; z-index: -1; border-radius: 999px; pointer-events: none; opacity: 0;
+            background: var(--nav-active); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .06); transition: opacity .25s ease; will-change: transform, width; }
+        .nav3-ind.on { opacity: 1; }
+        .nav3[data-on="navHome"] .nav3-ind.green { background: color-mix(in srgb, var(--green-2, #70e000) 18%, transparent); }
+    </style>
+    <script>
+    (function () {
+        'use strict';
+        const nav = document.getElementById('mainDock');
+        if (!nav) return;
+        const ind = document.createElement('span');
+        ind.className = 'nav3-ind';
+        ind.setAttribute('aria-hidden', 'true');
+        nav.prepend(ind);
+        // в ProdU Sport/Team у «Главной» своя зелёная подсветка — сохраняем её
+        try {
+            const hasGreenHome = [...document.styleSheets].some(sh => { try { return [...sh.cssRules].some(r => r.selectorText === '#navHome.active'); } catch (e) { return false; } });
+            if (hasGreenHome) ind.classList.add('green');
+        } catch (e) {}
+        const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+        let cur = null, anim = null;
+        function place(animate) {
+            const b = nav.querySelector('.nav3-btn.active');
+            if (!b) { ind.classList.remove('on'); return; }
+            const x = b.offsetLeft, w = b.offsetWidth;
+            ind.style.top = b.offsetTop + 'px';
+            ind.style.height = b.offsetHeight + 'px';
+            nav.dataset.on = b.id;
+            const wasOn = ind.classList.contains('on');
+            if (wasOn && cur && cur.x === x && cur.w === w) return;   // уже на месте — не сбиваем текущую анимацию
+            if (anim) { anim.cancel(); anim = null; }
+            if (animate && wasOn && cur && (cur.x !== x || cur.w !== w) && ind.animate && !reduce.matches) {
+                // «перетекание»: подсветка вытягивается в сторону нового пункта и догоняет его
+                const c0 = cur.x + cur.w / 2, c1 = x + w / 2, mid = (c0 + c1) / 2;
+                const mw = Math.max(cur.w, w) + Math.abs(c1 - c0) * 0.42;
+                anim = ind.animate([
+                    { transform: `translateX(${cur.x}px)`, width: cur.w + 'px' },
+                    { transform: `translateX(${mid - mw / 2}px)`, width: mw + 'px', offset: 0.45 },
+                    { transform: `translateX(${x}px)`, width: w + 'px' }
+                ], { duration: 460, easing: 'cubic-bezier(.3, .8, .3, 1)' });
+                anim.onfinish = () => { anim = null; };
+            }
+            ind.style.transform = `translateX(${x}px)`;
+            ind.style.width = w + 'px';
+            ind.classList.add('on');
+            cur = { x, w };
+        }
+        let queued = false;
+        const schedule = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; place(true); }); };
+        new MutationObserver(schedule).observe(nav, { subtree: true, attributes: true, attributeFilter: ['class'] });
+        if ('ResizeObserver' in window) new ResizeObserver(() => place(false)).observe(nav);
+        window.addEventListener('resize', () => place(false));
+        place(false);
+        requestAnimationFrame(() => place(false));
+    })();
+    </script>
 </body>
 </html>

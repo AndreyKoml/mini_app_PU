@@ -533,6 +533,18 @@
         [data-theme="dark"] .diary-more { color: var(--accent-color); }
         .tag-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
         .check-label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; margin-bottom: 10px; }
+        /* очистка бюджета */
+        .fin-clear-btn { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 14px auto 0; padding: 8px 14px; border: none; border-radius: 999px;
+            background: transparent; color: inherit; font: inherit; font-size: 13.5px; font-weight: 600; opacity: .6; cursor: pointer; transition: opacity .15s, background .15s, color .15s; }
+        .fin-clear-btn:hover { opacity: 1; background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+        .fin-clear-btn[hidden] { display: none; }
+        .fin-clear-card { width: min(100%, 400px); }
+        .fin-clear-card .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 18px; }
+        .fin-clear-text { margin: 4px 0 14px; font-size: 14.5px; line-height: 1.5; opacity: .85; }
+        .fin-clear-text b { font-variant-numeric: tabular-nums; }
+        .fin-clear-card .flex-row .glass-btn { flex: 1; }
+        #toastContainer .toast.undo { border-left-color: var(--danger); align-items: center; }
+        .toast.undo .glass-btn { width: auto; margin: 0; padding: 8px 14px; white-space: nowrap; }
         /* скрытые записи дневника */
         .diary-lockhint { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: -2px 0 12px; padding: 10px 12px; border-radius: 12px; background: var(--soft); font-size: 13px; line-height: 1.4; }
         .diary-lockhint span { opacity: .8; }
@@ -1956,6 +1968,20 @@
         </div>
     </div>
 
+    <!-- Очистка бюджета -->
+    <div class="modal" id="finClearModal" hidden onclick="if (event.target === this) closeFinClear()">
+        <div class="modal-card fin-clear-card" role="dialog" aria-modal="true" aria-labelledby="finClearTitle" aria-describedby="finClearText">
+            <div class="modal-head"><b id="finClearTitle">Очистить бюджет?</b><button type="button" class="icon-btn" onclick="closeFinClear()" aria-label="Закрыть">✕</button></div>
+            <p class="fin-clear-text" id="finClearText"></p>
+            <label class="check-label" id="finClearCatsRow"><input type="checkbox" id="finClearCats"> <span id="finClearCatsLbl">Удалить и категории</span></label>
+            <label class="check-label" id="finClearGoalsRow"><input type="checkbox" id="finClearGoals"> <span id="finClearGoalsLbl">Удалить и цели</span></label>
+            <div class="flex-row" style="margin-top: 6px;">
+                <button type="button" class="glass-btn secondary" onclick="closeFinClear()" style="margin: 0;">Отмена</button>
+                <button type="button" class="glass-btn danger" id="finClearGo" onclick="doFinClear()" style="margin: 0;">Очистить</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Пароль для скрытых записей дневника -->
     <div class="modal" id="pinModal" hidden onclick="if (event.target === this) pinCancel()">
         <div class="modal-card pin-card" role="dialog" aria-modal="true" aria-labelledby="pinTitle" aria-describedby="pinSub">
@@ -2560,6 +2586,7 @@
                 <div class="card-header" style="justify-content: center;">Текущий баланс</div>
                 <div class="balance-display" id="balanceDisplay">0 ₽</div>
                 <div id="finPockets"></div>
+                <button type="button" class="fin-clear-btn" id="finClearBtn" onclick="openFinClear()"><span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M8 11h24M16 11V8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v3M11 11l1.6 21.2A3 3 0 0 0 15.6 35h8.8a3 3 0 0 0 3-2.8L29 11M17.5 17.5v11M22.5 17.5v11" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Очистить бюджет</button>
             </div>
 
             <div class="glass-card">
@@ -9565,6 +9592,58 @@
             goalsReachedNow(before);
         }
 
+        // ---- очистка бюджета: удаляем историю операций (баланс, категории и цели обнуляются), по желанию — и сами категории/цели ----
+        function openFinClear() {
+            const n = data.finance.length, nc = data.finCats.length, ng = data.finGoals.length;
+            if (!n && !nc && !ng) return;
+            $('finClearText').innerHTML = n
+                ? `Будет удалена вся история — <b>${n} ${ruPlural(n, 'операция', 'операции', 'операций')}</b>. Баланс, деньги в категориях и накопления в целях станут <b>0 ₽</b>. После очистки будет несколько секунд, чтобы всё вернуть.`
+                : 'Операций в истории нет. Можно удалить категории и цели.';
+            $('finClearCatsRow').hidden = !nc; $('finClearGoalsRow').hidden = !ng;
+            $('finClearCats').checked = false; $('finClearGoals').checked = !n;
+            $('finClearCatsLbl').textContent = `Удалить и категории (${nc})`;
+            $('finClearGoalsLbl').textContent = `Удалить и цели (${ng})`;
+            $('finClearModal').hidden = false;
+            setTimeout(() => $('finClearGo').focus(), 30);
+        }
+        function closeFinClear() { $('finClearModal').hidden = true; }
+        let finUndo = null;
+        function doFinClear() {
+            const cats = $('finClearCats').checked, goals = $('finClearGoals').checked;
+            const snap = { finance: data.finance.slice(), finCats: cats ? data.finCats.slice() : [], finGoals: goals ? data.finGoals.slice() : [] };
+            if (!snap.finance.length && !snap.finCats.length && !snap.finGoals.length) { closeFinClear(); return; }
+            snap.finance.forEach(t => tomb('finance:' + t.id));
+            snap.finCats.forEach(c => tomb('finCats:' + c.id));
+            snap.finGoals.forEach(g => tomb('finGoals:' + g.id));
+            data.finance = [];
+            if (cats) data.finCats = [];
+            if (goals) data.finGoals = [];
+            closeFinClear();
+            saveData();
+            finUndoToast(snap);
+        }
+        function finUndoToast(snap) {
+            if (finUndo) { clearTimeout(finUndo.t); finUndo.el.remove(); }
+            const parts = [snap.finance.length && `${snap.finance.length} ${ruPlural(snap.finance.length, 'операция', 'операции', 'операций')}`,
+                snap.finCats.length && `${snap.finCats.length} ${ruPlural(snap.finCats.length, 'категория', 'категории', 'категорий')}`,
+                snap.finGoals.length && `${snap.finGoals.length} ${ruPlural(snap.finGoals.length, 'цель', 'цели', 'целей')}`].filter(Boolean);
+            const el = document.createElement('div');
+            el.className = 'toast undo';
+            el.setAttribute('role', 'status');
+            el.innerHTML = `<div style="flex: 1; min-width: 0;"><div class="toast-title">Бюджет очищен</div><div class="toast-body">Удалено: ${parts.join(', ')}</div></div>
+                <button type="button" class="glass-btn secondary">Вернуть</button>`;
+            el.querySelector('button').onclick = () => {
+                // возвращаем всё как было: снимаем отметки об удалении и помечаем записи свежими, чтобы синхронизация их не стёрла
+                const back = (key, list) => list.forEach(x => { delete data._deleted[key + ':' + x.id]; if (!data[key].some(y => y.id === x.id)) data[key].push(touch(x)); });
+                back('finance', snap.finance); back('finCats', snap.finCats); back('finGoals', snap.finGoals);
+                clearTimeout(finUndo.t); el.remove(); finUndo = null;
+                saveData();
+            };
+            $('toastContainer').appendChild(el);
+            finUndo = { el, t: setTimeout(() => { el.remove(); finUndo = null; }, 10000) };
+        }
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('finClearModal').hidden) closeFinClear(); });
+
         function deleteTransaction(id) {
             const t = data.finance.find(x => x.id === id);
             if (!t || !confirm(`Удалить операцию «${t.desc}» на ${money(t.amount)}?`)) return;
@@ -9704,6 +9783,7 @@
 
         function renderFinance() {
             if (!$('module-finance')) return;
+            $('finClearBtn').hidden = !data.finance.length && !data.finCats.length && !data.finGoals.length;
             const sum = finSummary();
             const bd = $('balanceDisplay');
             bd.textContent = money(sum.total);
@@ -10560,6 +10640,68 @@
             if (f) { f.focus(); f.scrollIntoView({ block: 'center', behavior: 'smooth' }); return true; }
             return false;
         };
+    })();
+    </script>
+    <!-- ===== Нижняя панель: скруглённая «таблетка» и подсветка, которая плавно переезжает к выбранному пункту ===== -->
+    <style>
+        .nav3 { position: relative; isolation: isolate; border-radius: 999px !important; }
+        .nav3-btn { border-radius: 999px !important; }
+        .nav3-btn.active { background: transparent !important; box-shadow: none !important; }
+        .nav3-btn.active:hover { background: transparent !important; }
+        .nav3-ind { position: absolute; top: 0; left: 0; width: 0; z-index: -1; border-radius: 999px; pointer-events: none; opacity: 0;
+            background: var(--nav-active); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .06); transition: opacity .25s ease; will-change: transform, width; }
+        .nav3-ind.on { opacity: 1; }
+        .nav3[data-on="navHome"] .nav3-ind.green { background: color-mix(in srgb, var(--green-2, #70e000) 18%, transparent); }
+    </style>
+    <script>
+    (function () {
+        'use strict';
+        const nav = document.getElementById('mainDock');
+        if (!nav) return;
+        const ind = document.createElement('span');
+        ind.className = 'nav3-ind';
+        ind.setAttribute('aria-hidden', 'true');
+        nav.prepend(ind);
+        // в ProdU Sport/Team у «Главной» своя зелёная подсветка — сохраняем её
+        try {
+            const hasGreenHome = [...document.styleSheets].some(sh => { try { return [...sh.cssRules].some(r => r.selectorText === '#navHome.active'); } catch (e) { return false; } });
+            if (hasGreenHome) ind.classList.add('green');
+        } catch (e) {}
+        const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+        let cur = null, anim = null;
+        function place(animate) {
+            const b = nav.querySelector('.nav3-btn.active');
+            if (!b) { ind.classList.remove('on'); return; }
+            const x = b.offsetLeft, w = b.offsetWidth;
+            ind.style.top = b.offsetTop + 'px';
+            ind.style.height = b.offsetHeight + 'px';
+            nav.dataset.on = b.id;
+            const wasOn = ind.classList.contains('on');
+            if (wasOn && cur && cur.x === x && cur.w === w) return;   // уже на месте — не сбиваем текущую анимацию
+            if (anim) { anim.cancel(); anim = null; }
+            if (animate && wasOn && cur && (cur.x !== x || cur.w !== w) && ind.animate && !reduce.matches) {
+                // «перетекание»: подсветка вытягивается в сторону нового пункта и догоняет его
+                const c0 = cur.x + cur.w / 2, c1 = x + w / 2, mid = (c0 + c1) / 2;
+                const mw = Math.max(cur.w, w) + Math.abs(c1 - c0) * 0.42;
+                anim = ind.animate([
+                    { transform: `translateX(${cur.x}px)`, width: cur.w + 'px' },
+                    { transform: `translateX(${mid - mw / 2}px)`, width: mw + 'px', offset: 0.45 },
+                    { transform: `translateX(${x}px)`, width: w + 'px' }
+                ], { duration: 460, easing: 'cubic-bezier(.3, .8, .3, 1)' });
+                anim.onfinish = () => { anim = null; };
+            }
+            ind.style.transform = `translateX(${x}px)`;
+            ind.style.width = w + 'px';
+            ind.classList.add('on');
+            cur = { x, w };
+        }
+        let queued = false;
+        const schedule = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; place(true); }); };
+        new MutationObserver(schedule).observe(nav, { subtree: true, attributes: true, attributeFilter: ['class'] });
+        if ('ResizeObserver' in window) new ResizeObserver(() => place(false)).observe(nav);
+        window.addEventListener('resize', () => place(false));
+        place(false);
+        requestAnimationFrame(() => place(false));
     })();
     </script>
 </body>
