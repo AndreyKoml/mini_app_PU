@@ -1042,6 +1042,15 @@
         .glass-btn.danger { background: var(--danger); color: #fff; }
         .glass-btn:disabled { opacity: 0.5; cursor: progress; }
         .sync-line { font-size: 14px; line-height: 1.5; }
+        .net-check-btn { margin: 12px 0 0; }
+        .net-check { margin-top: 10px; font-size: 13.5px; line-height: 1.5; display: grid; gap: 4px; }
+        .net-check[hidden] { display: none; }
+        .net-check .row { display: flex; gap: 8px; align-items: baseline; }
+        .net-check .row b { font-weight: 600; }
+        .net-check .row span:first-child { flex: none; width: 1.3em; text-align: center; }
+        .net-check .verdict { margin-top: 6px; padding: 10px 12px; border-radius: 14px; background: rgba(128, 128, 128, .12); }
+        .net-check .verdict.bad { background: color-mix(in srgb, var(--danger) 13%, transparent); }
+        .net-check .verdict.good { background: color-mix(in srgb, #70e000 16%, transparent); }
         code { font-family: monospace; background: var(--soft); padding: 1px 5px; border-radius: 5px; overflow-wrap: anywhere; }
 
         /* --- ФИНАНСЫ --- */
@@ -2367,6 +2376,8 @@
                         <button class="glass-btn secondary" onclick="logout()" style="margin-bottom: 0;">Выйти</button>
                     </div>
                     <div class="hint">Изменения отправляются сами через пару секунд, а изменения с других устройств подтягиваются раз в минуту и при открытии приложения.</div>
+                    <button type="button" class="glass-btn secondary net-check-btn" id="netCheckBtn" onclick="runNetCheck()">Проверить связь с сервером</button>
+                    <div class="net-check" id="netCheck" role="status" aria-live="polite" hidden></div>
                 </div>
                 <div class="set-noauth hint" style="margin-top: 0;">Вы не вошли в аккаунт. Оформление и ссылка на приложение работают и без него.</div>
             </div>
@@ -4432,20 +4443,37 @@
         }
 
         // --- запросы к серверу ---
-        async function api(path, { method = 'GET', body, raw = false, useAuth = true } = {}) {
+        // Сколько ждать ответа сервера. Без ограничения зависшее соединение держало синхронизацию «в процессе» бесконечно.
+        const API_TIMEOUT = { GET: 25000, other: 90000 };
+        function apiTimeoutError() {
+            const err = new Error('Сервер не ответил вовремя — соединение зависло');
+            err.offline = true;
+            err.timeout = true;
+            return err;
+        }
+        async function api(path, { method = 'GET', body, raw = false, useAuth = true, timeout } = {}) {
             const headers = {};
             if (body !== undefined) headers['Content-Type'] = raw ? 'text/plain;charset=UTF-8' : 'application/json';
             if (useAuth && auth) headers.Authorization = 'Bearer ' + auth.token;
-            let r;
+            const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+            let timedOut = false;
+            const timer = ctl ? setTimeout(() => { timedOut = true; ctl.abort(); }, timeout || (method === 'GET' ? API_TIMEOUT.GET : API_TIMEOUT.other)) : 0;
+            let r, j = null;
             try {
-                r = await fetch(SERVER_BASE + path, { method, headers, body: body === undefined ? undefined : (raw ? body : JSON.stringify(body)) });
-            } catch (e) {
-                const err = new Error('Нет связи с сервером');
-                err.offline = true;
-                throw err;
+                try {
+                    r = await fetch(SERVER_BASE + path, { method, headers, cache: 'no-store', signal: ctl ? ctl.signal : undefined,
+                        body: body === undefined ? undefined : (raw ? body : JSON.stringify(body)) });
+                } catch (e) {
+                    if (timedOut) throw apiTimeoutError();
+                    const err = new Error('Нет связи с сервером');
+                    err.offline = true;
+                    throw err;
+                }
+                // ответ мог начать приходить и застрять на середине — это тоже тайм-аут, а не «пустой ответ»
+                try { j = await r.json(); } catch (e) { if (timedOut) throw apiTimeoutError(); }
+            } finally {
+                clearTimeout(timer);
             }
-            let j = null;
-            try { j = await r.json(); } catch (e) {}
             if (r.status === 401 && useAuth) sessionExpired();
             if (!r.ok && r.status !== 409) {
                 const err = new Error((j && j.error) || ('Ошибка сервера ' + r.status));
@@ -4496,7 +4524,7 @@
                     if (canonical(data) !== raw0) changedHere = true;
                     const g = await api('/data?since=' + (meta.version || 0));
                     if (!auth) return;
-                    checkAvatarVersion(g.body.av);
+                    try { checkAvatarVersion(g.body.av).catch(() => {}); } catch (e) {}
                     const version = g.body.version || 0;
                     const seqAtStart = changeSeq;
                     let needPush;
@@ -4519,7 +4547,7 @@
                         done = true;
                         break;
                     }
-                    const p = await api('/data?base=' + version, { method: 'PUT', raw: true, body: canonical(data) });
+                    const p = await api('/data?base=' + version, { method: 'PUT', raw: true, body: canonical(data), timeout: 60000 });
                     if (p.status === 409) continue;      // другое устройство успело раньше — забираем его версию и объединяем
                     meta.version = p.body.version;
                     if (changeSeq === seqAtStart) meta.dirty = false;
@@ -4527,14 +4555,90 @@
                 }
                 if (!auth) return;
                 persist(false);
-                if (changedHere) renderAll();
+                if (changedHere) safeRenderAll();
                 if (!done) throw new Error('Не удалось сохранить: данные одновременно меняются на нескольких устройствах. Попробуйте ещё раз.');
                 lastSyncAt = Date.now();
                 setSyncState(data._meta.dirty ? 'pending' : 'ok');
             } catch (e) {
                 if (!auth) return;
-                if (changedHere) { persist(false); renderAll(); }
-                setSyncState(e.offline ? 'offline' : 'error', e.message);
+                if (changedHere) { try { persist(false); } catch (e2) {} safeRenderAll(); }
+                if (e.timeout) setSyncState('error', e.message + '. ' + SYNC_STALL_HINT);
+                else setSyncState(e.offline ? 'offline' : 'error', e.message);
+            }
+        }
+
+        // ---- проверка связи: маленький запрос, скачивание данных и отправка ~64 КБ ----
+        // Различает «сервер недоступен» и «мелкие запросы проходят, крупные зависают» (так выглядит ограничение
+        // провайдера на соединения с Cloudflare: соединение замирает после первых нескольких килобайт).
+        let netCheckBusy = false;
+        async function runNetCheck() {
+            if (netCheckBusy || !SERVER_BASE) return;
+            netCheckBusy = true;
+            const box = $('netCheck'), btn = $('netCheckBtn');
+            btn.disabled = true;
+            box.hidden = false;
+            const rows = [];
+            const show = (verdict, cls) => {
+                box.innerHTML = rows.map(r => `<div class="row"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('')
+                    + (verdict ? `<div class="verdict ${cls || ''}">${verdict}</div>` : '');
+            };
+            const kb = n => (n / 1024).toFixed(n < 10240 ? 1 : 0).replace('.', ',') + ' КБ';
+            const sec = ms => (ms / 1000).toFixed(1).replace('.', ',') + ' с';
+            const headers = () => (auth ? { Authorization: 'Bearer ' + auth.token } : {});
+            // запрос с ограничением по времени и подсчётом пришедших байт; «застой» — 8 с без новых данных
+            async function probe(url, init, total = 30000) {
+                const ctl = new AbortController(), t0 = performance.now();
+                let got = 0, last = performance.now(), why = '';
+                const all = setTimeout(() => { why = 'total'; ctl.abort(); }, total);
+                const stall = setInterval(() => { if (performance.now() - last > 8000) { why = 'stall'; ctl.abort(); } }, 500);
+                try {
+                    const r = await fetch(url, { ...init, cache: 'no-store', signal: ctl.signal });
+                    last = performance.now();
+                    if (r.body && r.body.getReader) {
+                        const rd = r.body.getReader();
+                        for (;;) { const { done, value } = await rd.read(); if (done) break; got += value.length; last = performance.now(); }
+                    } else got = (await r.arrayBuffer()).byteLength;
+                    return { ok: true, status: r.status, got, ms: performance.now() - t0 };
+                } catch (e) {
+                    return { ok: false, got, ms: performance.now() - t0, why: why || 'net' };
+                } finally { clearTimeout(all); clearInterval(stall); }
+            }
+            try {
+                rows.push(['⏳', 'Короткий запрос к серверу…']); show();
+                const a = await probe(SERVER_BASE + '/config', {}, 15000);
+                rows[0] = a.ok ? ['✅', `Сервер отвечает — <b>${sec(a.ms)}</b>`] : ['❌', a.why === 'net' ? 'Сервер недоступен из этой сети' : 'Сервер не ответил за 15 с'];
+                if (!a.ok) {
+                    show('Сервер не открывается из этой сети. Проверьте интернет; если он есть — попробуйте другую сеть или VPN.', 'bad');
+                    return;
+                }
+                if (!auth) { show('Войдите в аккаунт, чтобы проверить передачу данных.'); return; }
+
+                rows.push(['⏳', 'Скачиваем ваши данные…']); show();
+                const b = await probe(SERVER_BASE + '/data?since=0', { headers: headers() }, 40000);
+                rows[1] = b.ok ? ['✅', `Данные скачались: <b>${kb(b.got)}</b> за <b>${sec(b.ms)}</b>`]
+                    : ['❌', `Скачивание остановилось на <b>${kb(b.got)}</b>${b.why === 'stall' ? ' — данные перестали приходить' : ''}`];
+
+                let c = null;
+                if ((data._meta.version || 0) > 0) {
+                    // «пустая» отправка ~64 КБ на заведомо неверную версию: сервер прочитает её и ответит 409, ничего не сохранив
+                    rows.push(['⏳', 'Отправляем проверочные 64 КБ…']); show();
+                    const pad = '{"probe":"' + 'x'.repeat(64 * 1024) + '"}';
+                    c = await probe(SERVER_BASE + '/data?base=9007199254740000', { method: 'PUT', headers: { ...headers(), 'Content-Type': 'text/plain;charset=UTF-8' }, body: pad }, 40000);
+                    rows[2] = c.ok ? ['✅', `Отправка 64 КБ прошла за <b>${sec(c.ms)}</b>`] : ['❌', 'Отправка 64 КБ зависла'];
+                }
+
+                if (b.ok && (!c || c.ok)) {
+                    const big = b.got > 40 * 1024;
+                    show(big ? 'Связь в порядке: и мелкие, и крупные запросы проходят. Нажмите «Синхронизировать».'
+                        : `Связь в порядке. Данных пока немного (${kb(b.got)}), поэтому крупные передачи проверены только отправкой.`, 'good');
+                } else {
+                    show('Короткие запросы проходят, а крупные зависают на первых килобайтах. Так выглядит ограничение провайдера на соединения с Cloudflare, где работает сервер ProdU: '
+                        + 'синхронизация в этой сети работать не будет, хотя сайт открывается. Что можно сделать: подключиться через другую сеть (например, раздать мобильный интернет) или VPN. '
+                        + 'Изменения на этом устройстве не пропадут — они уйдут, как только связь заработает.', 'bad');
+                }
+            } finally {
+                netCheckBusy = false;
+                btn.disabled = false;
             }
         }
 
@@ -4561,8 +4665,13 @@
         function setSyncState(s, msg = '') {
             syncState = s;
             syncMessage = msg;
-            renderAccount();
+            try { renderAccount(); } catch (e) { console.error('ProdU: renderAccount', e); }
         }
+        // ошибка в отрисовке какого-то раздела не должна останавливать синхронизацию
+        function safeRenderAll() {
+            try { renderAll(); } catch (e) { console.error('ProdU: renderAll', e); }
+        }
+        const SYNC_STALL_HINT = 'Если в другой сети (например, через мобильный интернет) всё работает, похоже, провайдер ограничивает соединения с Cloudflare, где работает сервер. Нажмите «Проверить связь», чтобы убедиться.';
 
         // --- экран аккаунта ---
         const $ = id => document.getElementById(id);
@@ -9869,15 +9978,10 @@
 
         // ================= ГЛОБАЛЬНЫЙ РЕНДЕР =================
         function renderAll() {
-            setCoins(data.coins);
-            renderCalendar();
-            renderReminders();
-            renderDiary();
-            renderLists();
-            renderFinance();
-            renderCards();
-            renderAccount();
-            renderHome();
+            const parts = [() => setCoins(data.coins), renderCalendar, renderReminders, renderDiary, renderLists, renderFinance, renderCards, renderAccount, renderHome];
+            for (const fn of parts) {
+                try { fn(); } catch (e) { console.error('ProdU: ошибка отрисовки', fn.name || 'setCoins', e); }
+            }
         }
 
         homeReady = true;

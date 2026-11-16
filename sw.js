@@ -11,7 +11,7 @@
  *     при закрытой странице нужен сервер, который пришлёт push в нужное время).
  */
 
-const CACHE = 'produ-v17';
+const CACHE = 'produ-v18';
 const PRECACHE = ['./', './index.html', './sport.html', './team.html', './winter.html', './manifest.json', './icon_newyear.png', './icon-192.png', './icon-512.png'];
 
 // ---------- IndexedDB (страница кладёт сюда список напоминаний) ----------
@@ -64,6 +64,11 @@ self.addEventListener('fetch', event => {
     if (req.method !== 'GET') return;
     const url = new URL(req.url);
     if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
+    // Запросы к серверу ProdU (fetch() со страницы на другой адрес) идут мимо кэша: раньше сюда попадали ответы /data,
+    // ленты, чаты — кэш разрастался, а при обрыве связи страница могла получить устаревший ответ вместо ошибки.
+    // Библиотеки и шрифты с CDN (script/style/font) по-прежнему кэшируются для работы без интернета.
+    if (req.headers.has('Authorization')) return;
+    if (url.origin !== self.location.origin && req.destination === '') return;
 
     event.respondWith(
         fetch(req)
