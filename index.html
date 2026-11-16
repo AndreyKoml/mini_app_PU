@@ -1820,6 +1820,9 @@
             .w-tab { padding: 7px 4px; font-size: 12px; }
             .w-tab:not(.on) .w-tab-lbl { display: none; }
             .w-grid > section.w-card:first-of-type .w-tile { min-height: 120px; }
+            /* на телефоне первый виджет уже не «высокий» — список дня снова обычной высоты (раньше сжимался почти до нуля) */
+            .w-grid > section.w-card:first-of-type .w-evs { flex: 0 0 auto; max-height: 236px; }
+            .w-grid > section.w-card:first-of-type .w-cal { flex: 0 0 auto; }
             .nav3-btn .sync-dot { bottom: 8px; }
         }
 
@@ -2387,13 +2390,18 @@
                 <div class="ui-choices" id="uiChoices" role="radiogroup" aria-label="Стиль интерфейса">
                     <button type="button" class="ui-choice" data-ui="liquid" role="radio" onclick="setUiStyle('liquid')">
                         <span class="ui-prev p-liquid" aria-hidden="true"><i></i><i></i><i></i></span>
-                        <b>Стекло</b><small>Полупрозрачные карточки с размытием фона</small>
+                        <b>Стекло</b><small>Жидкое стекло: преломление, блики, пружины</small>
                     </button>
                     <button type="button" class="ui-choice" data-ui="flat" role="radio" onclick="setUiStyle('flat')">
                         <span class="ui-prev p-flat" aria-hidden="true"><i></i><i></i><i></i></span>
                         <b>Классика</b><small>Без стекла: сплошные спокойные цвета</small>
                     </button>
                 </div>
+                <div class="set-row lg-only">
+                    <span>Физика стекла</span>
+                    <button type="button" class="theme-switch lg-fx-switch" id="glassFxToggle" role="switch" aria-checked="true" aria-describedby="glassFxHint" onclick="produGlass.toggle()"><span class="knob"></span></button>
+                </div>
+                <div class="hint lg-only" id="glassFxHint" style="margin-top: 6px;"></div>
                 <div class="set-row">
                     <span>Шрифт</span>
                     <div class="segmented" id="fontSwitch">
@@ -10495,6 +10503,7 @@
                 const pop = target.closest('.pop');
                 if (pop) { const seg = target.closest('.segmented'); return seg ? { type: 'seg', el: seg } : { type: 'pop', el: pop }; }
                 if (swModalOpen() || wDrag) return null;
+                if (target.closest('#bottomBar')) return null;      // нижнюю панель тащат пальцем — это не свайп «назад»
                 const tabs = target.closest('.w-tabs'), card = target.closest('#module-home .w-card');
                 if (tabs || card) return wSwipeKind((tabs || card).closest('.w-card'));
                 const seg = target.closest('.segmented');
@@ -10746,9 +10755,541 @@
         };
     })();
     </script>
-    <!-- ===== Нижняя панель: скруглённая «таблетка» и подсветка, которая плавно переезжает к выбранному пункту ===== -->
+    <!-- ===== Жидкое стекло: преломление света по законам оптики, блики от наклона, пружинная «живая» анимация ===== -->
     <style>
-        .nav3 { position: relative; isolation: isolate; border-radius: 999px !important; }
+        /* направление на источник света (x, y); меняется от наклона телефона */
+        html { --lg-lx: -0.5; --lg-ly: -0.86; }
+        html[data-ui="liquid"] body {
+            --lg-rim: inset calc(var(--lg-lx) * -1.6px) calc(var(--lg-ly) * -1.6px) 1px -.6px rgba(255, 255, 255, .95),
+                      inset calc(var(--lg-lx) * 1.4px) calc(var(--lg-ly) * 1.4px) 1px -.6px rgba(255, 255, 255, .5),
+                      inset 0 0 0 .6px rgba(255, 255, 255, .42),
+                      inset calc(var(--lg-lx) * -9px) calc(var(--lg-ly) * -9px) 20px -12px rgba(255, 255, 255, .6);
+            --lg-clear: rgba(255, 255, 255, .14);
+            --lg-drop-sm: 0 6px 18px rgba(40, 30, 20, .14), 0 1px 3px rgba(40, 30, 20, .08);
+        }
+        html[data-ui="liquid"] body[data-theme="dark"] {
+            --lg-rim: inset calc(var(--lg-lx) * -1.6px) calc(var(--lg-ly) * -1.6px) 1px -.6px rgba(255, 255, 255, .5),
+                      inset calc(var(--lg-lx) * 1.4px) calc(var(--lg-ly) * 1.4px) 1px -.6px rgba(255, 255, 255, .2),
+                      inset 0 0 0 .6px rgba(255, 255, 255, .12),
+                      inset calc(var(--lg-lx) * -9px) calc(var(--lg-ly) * -9px) 20px -12px rgba(255, 255, 255, .16);
+            --lg-clear: rgba(255, 255, 255, .06);
+            --lg-drop-sm: 0 6px 18px rgba(0, 0, 0, .4), 0 1px 3px rgba(0, 0, 0, .3);
+        }
+        /* кромка стекла с бликом — у карточек, меню, панели и переключателей */
+        html[data-ui="liquid"] .glass-card, html[data-ui="liquid"] .w-card:not(.dragging):not(:focus-visible) { box-shadow: var(--lg-rim), var(--card-shadow); }
+        html[data-ui="liquid"] .w-card:focus-visible { box-shadow: var(--lg-rim), 0 0 0 3px var(--accent-color); }
+        html[data-ui="liquid"] .pop { box-shadow: var(--lg-rim), 0 18px 50px rgba(0, 0, 0, .2); }
+        html[data-ui="liquid"] .theme-btn { box-shadow: var(--lg-rim), var(--lg-drop-sm); }
+        html[data-ui="liquid"] .seg-ind { box-shadow: var(--lg-rim), var(--pill-shadow); }
+        /* нижняя панель — прозрачное «чистое» стекло: контент под ней видно и он преломляется в краях */
+        html[data-ui="liquid"] .nav3 {
+            background: color-mix(in srgb, var(--nav-bg) 44%, transparent); border-color: rgba(255, 255, 255, .5);
+            -webkit-backdrop-filter: blur(12px) saturate(190%); backdrop-filter: blur(12px) saturate(190%);
+            box-shadow: var(--lg-rim), 0 12px 34px rgba(40, 30, 20, .16);
+        }
+        html[data-ui="liquid"] body[data-theme="dark"] .nav3 { border-color: rgba(255, 255, 255, .12); box-shadow: var(--lg-rim), 0 12px 34px rgba(0, 0, 0, .45); }
+        html[data-ui="liquid"] .theme-switch { box-shadow: inset 0 1px 3px rgba(0, 0, 0, .25), var(--lg-rim); }
+        /* преломление: фильтр с картой смещений, посчитанной для размера и скругления элемента (только Chromium) */
+        html[data-ui="liquid"] .lg-r { -webkit-backdrop-filter: var(--lg-f) !important; backdrop-filter: var(--lg-f) !important; }
+        /* «линза»: ползунок переключателя и подсветка панели, пока их держат пальцем */
+        html[data-ui="liquid"] .lg-lens { background: var(--lg-clear) !important; box-shadow: var(--lg-rim), 0 6px 16px rgba(0, 0, 0, .2) !important;
+            -webkit-backdrop-filter: brightness(1.12) saturate(1.6); backdrop-filter: brightness(1.12) saturate(1.6); }
+        /* линза панели живёт рядом с панелью, а не внутри: так она «видит» и значки, и то, что под панелью */
+        .nav3-lens { position: absolute; left: 0; top: 0; z-index: 3; width: 0; height: 0; border-radius: 999px; pointer-events: none; display: none; }
+        html[data-ui="liquid"] .nav3-lens.on { display: block; }
+        html[data-ui="liquid"] .nav3-ind.under-lens { opacity: 0 !important; }
+        .lg-anim { transition-property: background-color, color, box-shadow, opacity, border-color !important; }
+        /* пружинное движение подсветки в переключателях (с лёгким перелётом, как у настоящей пружины) */
+        @supports (transition-timing-function: linear(0, 1)) {
+            html[data-ui="liquid"] .seg-ind {
+                transition: transform .55s var(--lg-spring), width .55s var(--lg-spring), height .55s var(--lg-spring), opacity .2s;
+                --lg-spring: linear(0, 0.024, 0.082, 0.165, 0.26, 0.364, 0.465, 0.565, 0.654, 0.737, 0.808, 0.87, 0.919, 0.961, 0.992, 1.016, 1.032, 1.044, 1.05, 1.052, 1.052, 1.05, 1.046, 1.041, 1.036, 1.03, 1.025, 1.02, 1.015, 1.011, 1.008, 1.005, 1.003, 1.001, 1, 0.999, 0.998, 0.997, 0.997, 0.997, 1);
+            }
+        }
+        /* ползунок масштаба (редактор аватара) — стеклянная «капсула» */
+        html[data-ui="liquid"] input[type="range"] { -webkit-appearance: none; appearance: none; height: 30px; background: transparent; --p: 0%; }
+        html[data-ui="liquid"] input[type="range"]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px;
+            background: linear-gradient(to right, var(--accent-color) var(--p), rgba(128, 128, 128, .3) var(--p)); }
+        html[data-ui="liquid"] input[type="range"]::-moz-range-track { height: 6px; border-radius: 3px; background: rgba(128, 128, 128, .3); }
+        html[data-ui="liquid"] input[type="range"]::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--accent-color); }
+        html[data-ui="liquid"] input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 38px; height: 26px; margin-top: -10px; border-radius: 13px;
+            border: 1px solid rgba(255, 255, 255, .85); background: radial-gradient(120% 90% at 30% 20%, rgba(255, 255, 255, .85), rgba(255, 255, 255, .25) 55%, rgba(255, 255, 255, .45));
+            box-shadow: inset 0 1px 1px #fff, inset 0 -3px 6px rgba(0, 0, 0, .08), 0 4px 12px rgba(0, 0, 0, .18); transition: transform .25s cubic-bezier(.3, 1.6, .5, 1); }
+        html[data-ui="liquid"] input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.25, 1.15); }
+        html[data-ui="liquid"] input[type="range"]::-moz-range-thumb { width: 38px; height: 26px; border-radius: 13px; border: 1px solid rgba(255, 255, 255, .85);
+            background: radial-gradient(120% 90% at 30% 20%, rgba(255, 255, 255, .85), rgba(255, 255, 255, .25) 55%, rgba(255, 255, 255, .45)); box-shadow: 0 4px 12px rgba(0, 0, 0, .18); }
+        /* настройка в «Оформлении» */
+        html:not([data-ui="liquid"]) .lg-only { display: none !important; }
+        .lg-fx-switch[aria-checked="true"] { background: #70e000; }
+        .lg-fx-switch[aria-checked="true"] .knob { background: #fff; }
+    </style>
+    <script>
+    (function () {
+        'use strict';
+        const root = document.documentElement;
+        const liquid = () => root.dataset.ui === 'liquid';
+        const ua = navigator.userAgent;
+        const IOS = /iP(hone|ad|od)/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+        const brands = (navigator.userAgentData && navigator.userAgentData.brands) || [];
+        // SVG-фильтры в backdrop-filter умеют только браузеры на Chromium (Chrome, Edge, Яндекс, Samsung Internet)
+        const CHROMIUM = !IOS && (brands.some(b => /Chromium/i.test(b.brand)) || (/Chrome\/\d/.test(ua) && !/Firefox/.test(ua)));
+        const mqMotion = matchMedia('(prefers-reduced-motion: reduce)');
+        const mqTransp = matchMedia('(prefers-reduced-transparency: reduce)');
+        const PREF = 'produ_glass_fx';
+        let enabled = true;
+        try { enabled = localStorage.getItem(PREF) !== 'off'; } catch (e) {}
+        let lowPower = false;                 // включается сам, если на прокрутке проседает частота кадров
+        try { lowPower = sessionStorage.getItem('produ_glass_low') === '1'; } catch (e) {}
+        const physics = () => liquid() && enabled && !mqMotion.matches;
+        const refractOn = kind => CHROMIUM && liquid() && enabled && !mqTransp.matches && !(lowPower && kind === 'card');
+
+        // ================= оптика =================
+        // Поверхность: плоская середина и выпуклый бортик-«сквиркл» шириной bezel. Луч от глаза идёт вертикально вниз,
+        // преломляется на поверхности по закону Снеллиуса (n = 1,5) и попадает в фон со сдвигом — этот сдвиг и есть карта смещений.
+        const N_GLASS = 1.5;
+        const profile = t => Math.pow(1 - Math.pow(1 - t, 4), 0.25);
+        const KINDS = {
+            card: { sel: '.glass-card, .w-card, .pop, .modal-card', bezel: (w, h, r) => Math.max(10, Math.min(22, r * .85)), strength: 10, blur: 3, sat: 1.5, chroma: 0, bump: 2.2, spec: .5, exp: 42, baked: true },
+            bar: { sel: '.nav3, .theme-btn', bezel: (w, h, r) => Math.max(8, Math.min(r, h / 2) * .95), strength: 15, blur: 2.5, sat: 1.9, chroma: .07, bump: 3.5, spec: .85, exp: 32 },
+            lens: { sel: null, bezel: (w, h) => Math.min(w, h) / 2, strength: 13, blur: .4, sat: 1.6, chroma: .05, bump: 5, spec: 1, exp: 26 },
+        };
+        // у больших карточек блик «запекается» в картинку один раз (дешевле, чем считать освещение в каждом кадре)
+        let lastBuild = 0;
+        function buildMaps(w, h, r, bezel, strength, K) {
+            lastBuild = performance.now();
+            const bake = K && K.baked;
+            const az = 240 * Math.PI / 180, el = 40 * Math.PI / 180;
+            let hx = Math.cos(az) * Math.cos(el), hy = Math.sin(az) * Math.cos(el), hz = Math.sin(el) + 1;
+            const hl = Math.hypot(hx, hy, hz); hx /= hl; hy /= hl; hz /= hl;
+            const base = bake ? Math.pow(hz, K.exp) : 0;
+            const q = Math.min(1, Math.max(8 / bezel, 0.35), Math.sqrt(90000 / (w * h)));
+            const W = Math.max(2, Math.round(w * q)), H = Math.max(2, Math.round(h * q));
+            const dx = new Float32Array(W * H), dy = new Float32Array(W * H), ht = new Uint8ClampedArray(W * H), sp = bake ? new Uint8ClampedArray(W * H) : null;
+            const hw = w / 2, hh = h / 2, eta = 1 / N_GLASS, thick = bezel;
+            r = Math.min(r, hw, hh);
+            let maxD = 0.0001;
+            for (let j = 0; j < H; j++) {
+                const y = (j + 0.5) / q, qy = Math.abs(y - hh) - (hh - r), sy = y < hh ? -1 : 1;
+                for (let i = 0; i < W; i++) {
+                    const x = (i + 0.5) / q, qx = Math.abs(x - hw) - (hw - r), sx = x < hw ? -1 : 1, k = j * W + i;
+                    let dist, gx, gy;             // dist — от края внутрь; (gx, gy) — нормаль края наружу
+                    if (qx > 0 && qy > 0) { const l = Math.hypot(qx, qy); dist = r - l; gx = qx / l * sx; gy = qy / l * sy; }
+                    else if (qx > qy) { dist = r - qx; gx = sx; gy = 0; }
+                    else { dist = r - qy; gx = 0; gy = sy; }
+                    if (dist <= 0) continue;
+                    if (dist >= bezel) { ht[k] = 255; continue; }
+                    const t = dist / bezel;
+                    ht[k] = profile(t) * 255;
+                    const t0 = Math.max(0, t - 0.01), t1 = Math.min(1, t + 0.01);
+                    const slope = (profile(t1) - profile(t0)) / (t1 - t0) * (thick / bezel);
+                    // нормаль поверхности: бортик поднимается внутрь, поэтому нормаль наклонена наружу
+                    const nl = Math.hypot(slope, 1), nx = slope * gx / nl, ny = slope * gy / nl, nz = 1 / nl;
+                    // преломление вертикального луча I = (0, 0, -1): T = η·I + (η·cos − √(1 − η²(1 − cos²)))·N
+                    const c = nz, kk = eta * c - Math.sqrt(1 - eta * eta * (1 - c * c));
+                    const tx = kk * nx, ty = kk * ny, tz = -eta + kk * nz;
+                    const depth = thick * profile(t);          // путь луча в стекле до фона
+                    const ox = tx / -tz * depth, oy = ty / -tz * depth;
+                    // только блик от изгиба бортика: ровный «глянец» плоской части вычитаем, иначе по краю шла бы светлая полоса
+                    if (sp) sp[k] = 255 * K.spec * Math.max(0, Math.pow(Math.max(0, nx * hx + ny * hy + nz * hz), K.exp) - base) / (1 - base);
+                    dx[k] = ox; dy[k] = oy;
+                    const m = Math.hypot(ox, oy);
+                    if (m > maxD) maxD = m;
+                }
+            }
+            // карта смещений: R/G = 0,5 ± смещение / (2·масштаб); форму даёт физика, а силу — настройка
+            const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+            const cx = cv.getContext('2d'), img = cx.createImageData(W, H), dd = img.data, f = strength / maxD;
+            for (let k = 0, p = 0; k < W * H; k++, p += 4) {
+                dd[p] = 128 + Math.max(-127, Math.min(127, dx[k] * f / strength * 127));
+                dd[p + 1] = 128 + Math.max(-127, Math.min(127, dy[k] * f / strength * 127));
+                dd[p + 2] = 128; dd[p + 3] = 255;
+            }
+            cx.putImageData(img, 0, 0);
+            const disp = cv.toDataURL('image/png');
+            // карта высот для бликов (освещение по Фонгу считает сам SVG-фильтр)
+            // карта высот — в альфе (её читает освещение); запечённый блик — яркостью непрозрачной картинки (её просто прибавляем)
+            if (sp) for (let k = 0, p = 0; k < W * H; k++, p += 4) { dd[p] = dd[p + 1] = dd[p + 2] = sp[k]; dd[p + 3] = 255; }
+            else for (let k = 0, p = 0; k < W * H; k++, p += 4) { dd[p] = dd[p + 1] = dd[p + 2] = 255; dd[p + 3] = ht[k]; }
+            cx.putImageData(img, 0, 0);
+            return { disp, height: cv.toDataURL('image/png'), scale: strength * 2, baked: !!sp };
+        }
+
+        // ================= SVG-фильтры =================
+        const NS = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(NS, 'svg');
+        svg.setAttribute('aria-hidden', 'true');
+        svg.setAttribute('focusable', 'false');
+        svg.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none';
+        const defs = document.createElementNS(NS, 'defs');
+        svg.appendChild(defs);
+        document.body.appendChild(svg);
+        const LIGHT = { az: 240, el: 40 };
+        const lights = new Set();
+        const mk = (tag, attrs, parent) => {
+            const n = document.createElementNS(NS, tag);
+            for (const k in attrs) n.setAttribute(k, attrs[k]);
+            if (parent) parent.appendChild(n);
+            return n;
+        };
+        let fid = 0;
+        function makeFilter(w, h, maps, K) {
+            const id = 'lgf' + (++fid);
+            const f = mk('filter', { id, x: 0, y: 0, width: w, height: h, filterUnits: 'userSpaceOnUse', primitiveUnits: 'userSpaceOnUse', 'color-interpolation-filters': 'sRGB' }, defs);
+            let src = 'SourceGraphic';
+            if (K.blur) { mk('feGaussianBlur', { in: src, stdDeviation: K.blur, edgeMode: 'duplicate', result: 'bl' }, f); src = 'bl'; }
+            const img = [mk('feImage', { href: maps.disp, x: 0, y: 0, width: w, height: h, preserveAspectRatio: 'none', result: 'map' }, f)];
+            const disps = [];
+            if (K.chroma) {
+                // дисперсия: синий преломляется сильнее красного — по краям появляется лёгкая радуга
+                [['r', 1 - K.chroma, '1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0'], ['g', 1, '0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0'], ['b', 1 + K.chroma, '0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0']]
+                    .forEach(([c, s, m]) => {
+                        disps.push([mk('feDisplacementMap', { in: src, in2: 'map', scale: maps.scale * s, xChannelSelector: 'R', yChannelSelector: 'G', result: 'd' + c }, f), s]);
+                        mk('feColorMatrix', { in: 'd' + c, type: 'matrix', values: m, result: 'c' + c }, f);
+                    });
+                mk('feComposite', { in: 'cr', in2: 'cg', operator: 'arithmetic', k2: 1, k3: 1, result: 'rg' }, f);
+                mk('feComposite', { in: 'rg', in2: 'cb', operator: 'arithmetic', k2: 1, k3: 1, result: 'refr' }, f);
+            } else disps.push([mk('feDisplacementMap', { in: src, in2: 'map', scale: maps.scale, xChannelSelector: 'R', yChannelSelector: 'G', result: 'refr' }, f), 1]);
+            mk('feColorMatrix', { in: 'refr', type: 'saturate', values: K.sat, result: 'sat' }, f);
+            img.push(mk('feImage', { href: maps.height, x: 0, y: 0, width: w, height: h, preserveAspectRatio: 'none', result: maps.baked ? 'spec' : 'hm' }, f));
+            let light = null;
+            if (!maps.baked) {
+                // блик по Фонгу от карты высот; направление света обновляется при наклоне телефона
+                const sp = mk('feSpecularLighting', { in: 'hm', surfaceScale: K.bump, specularConstant: K.spec, specularExponent: K.exp, 'lighting-color': '#ffffff', result: 'spec' }, f);
+                light = mk('feDistantLight', { azimuth: LIGHT.az, elevation: LIGHT.el }, sp);
+                lights.add(light);
+            }
+            mk('feComposite', { in: 'spec', in2: 'sat', operator: 'arithmetic', k1: 0, k2: 1, k3: 1, k4: 0 }, f);
+            return { id, node: f, img, disps, light, users: 0, w, h, unused: 0 };
+        }
+        const filters = new Map();      // общий фильтр для одинаковых по размеру элементов
+        function acquire(key, w, h, r, K) {
+            let f = filters.get(key);
+            if (!f) {
+                f = makeFilter(w, h, buildMaps(w, h, r, K.bezel(w, h, r), K.strength, K), K);
+                filters.set(key, f);
+            }
+            f.users++;
+            return f;
+        }
+        function release(it) {
+            if (!it.key) return;
+            const f = filters.get(it.key);
+            it.key = null;
+            if (!f) return;
+            if (--f.users <= 0 && !it.own) {
+                f.unused = performance.now();
+                // кэш неиспользуемых фильтров — не больше 16
+                const idle = [...filters].filter(([, x]) => x.users <= 0).sort((a, b) => a[1].unused - b[1].unused);
+                while (idle.length > 16) { const [k, x] = idle.shift(); x.node.remove(); lights.delete(x.light); filters.delete(k); }
+            } else if (it.own) { f.node.remove(); lights.delete(f.light); filters.delete(it.ownKey); }
+        }
+
+        // ================= какие элементы стеклянные =================
+        const items = new Map();      // элемент → { kind, key, own }
+        const ro = new ResizeObserver(es => es.forEach(e => queue(e.target)));
+        const pending = new Set();
+        let flushRaf = 0;
+        function queue(el) { pending.add(el); if (!flushRaf) flushRaf = requestAnimationFrame(flush); }
+        function flush() {
+            flushRaf = 0;
+            const t0 = performance.now();
+            for (const el of pending) {
+                pending.delete(el);
+                apply(el);
+                if (performance.now() - t0 > 10 && pending.size) { flushRaf = requestAnimationFrame(flush); break; }
+            }
+        }
+        function radiusOf(el, w, h) {
+            const v = getComputedStyle(el).borderTopLeftRadius;
+            const r = v.endsWith('%') ? parseFloat(v) / 100 * Math.min(w, h) : parseFloat(v) || 0;
+            return Math.min(r, w / 2, h / 2);
+        }
+        function detach(el, it) {
+            release(it);
+            el.classList.remove('lg-r');
+            el.style.removeProperty('--lg-f');
+        }
+        function apply(el) {
+            const it = items.get(el);
+            if (!it) return;
+            if (!el.isConnected) { ro.unobserve(el); detach(el, it); items.delete(el); return; }
+            const K = KINDS[it.kind];
+            const w = el.offsetWidth, h = el.offsetHeight;
+            if (!refractOn(it.kind) || w < 8 || h < 8) { detach(el, it); return; }
+            if (it.own) {
+                // линза меняет размер на ходу: растягиваем готовые карты, а точные пересчитываем, когда она успокоится
+                const f = it.key && filters.get(it.ownKey);
+                if (f) {
+                    f.node.setAttribute('width', w); f.node.setAttribute('height', h);
+                    f.img.forEach(n => { n.setAttribute('width', w); n.setAttribute('height', h); });
+                    clearTimeout(it.t);
+                    it.t = setTimeout(() => { if (items.has(el) && Math.abs(w / h - f.w / f.h) > .25) { detach(el, it); queue(el); } }, 250);
+                    return;
+                }
+                it.ownKey = 'own' + (++fid);
+                filters.set(it.ownKey, makeFilter(w, h, buildMaps(w, h, radiusOf(el, w, h), K.bezel(w, h), K.strength, K), K));
+                it.key = it.ownKey;
+            } else {
+                const r = radiusOf(el, w, h);
+                const key = `${it.kind}:${Math.round(w)}x${Math.round(h)}:${Math.round(r)}`;
+                if (it.key === key) return;
+                release(it);
+                acquire(key, w, h, r, K);
+                it.key = key;
+            }
+            el.style.setProperty('--lg-f', `url(#${filters.get(it.key).id})`);
+            el.classList.add('lg-r');
+        }
+        function track(el, kind, own) {
+            if (items.has(el)) return;
+            items.set(el, { kind, key: null, own: !!own });
+            ro.observe(el);
+        }
+        let scanRaf = 0;
+        function scan() {
+            scanRaf = 0;
+            if (!CHROMIUM) return;
+            for (const [kind, K] of Object.entries(KINDS)) if (K.sel) document.querySelectorAll(K.sel).forEach(el => track(el, kind));
+            for (const [el, it] of items) if (!el.isConnected) { ro.unobserve(el); detach(el, it); items.delete(el); }
+        }
+        const scanSoon = () => { if (!scanRaf) scanRaf = requestAnimationFrame(scan); };
+        function refreshAll() { items.forEach((it, el) => { if (!refractOn(it.kind)) detach(el, it); queue(el); }); }
+        if (CHROMIUM) {
+            new MutationObserver(scanSoon).observe(document.body, { childList: true, subtree: true });
+            new MutationObserver(() => { refreshAll(); updateUi(); }).observe(root, { attributes: true, attributeFilter: ['data-ui'] });
+            new MutationObserver(refreshAll).observe(document.body, { attributes: true, attributeFilter: ['data-theme'] });
+            scan();
+        }
+
+        // ================= свет от наклона телефона =================
+        let lx = -0.5, ly = -0.86, tlx = lx, tly = ly, lightRaf = 0, lastFilterLight = 0;
+        function setLightTarget(x, y) {
+            const l = Math.hypot(x, y) || 1;
+            tlx = x / l; tly = y / l;
+            if (!lightRaf) lightRaf = requestAnimationFrame(lightStep);
+        }
+        function lightStep(t) {
+            lightRaf = 0;
+            lx += (tlx - lx) * .18; ly += (tly - ly) * .18;
+            root.style.setProperty('--lg-lx', lx.toFixed(3));
+            root.style.setProperty('--lg-ly', ly.toFixed(3));
+            // блики в фильтрах обновляем реже — это дороже
+            const az = Math.atan2(ly, lx) * 180 / Math.PI;
+            if (t - lastFilterLight > 90 && Math.abs(az - LIGHT.az) > 2) {
+                lastFilterLight = t; LIGHT.az = az;
+                lights.forEach(n => n.setAttribute('azimuth', az.toFixed(1)));
+            }
+            if (Math.abs(tlx - lx) > .004 || Math.abs(tly - ly) > .004) lightRaf = requestAnimationFrame(lightStep);
+        }
+        window.addEventListener('deviceorientation', e => {
+            if (e.beta == null || !physics()) return;
+            // свет «висит» над экраном чуть сверху-слева; наклоняя телефон, вы поворачиваете стекло относительно него
+            const g = Math.max(-45, Math.min(45, e.gamma || 0)) / 45, b = Math.max(-40, Math.min(40, (e.beta || 0) - 50)) / 40;
+            setLightTarget(-0.5 - g * .9, -0.86 + b * .7);
+        }, { passive: true });
+
+        // ================= пружины =================
+        class Spring {
+            constructor(x, k, c) { this.x = x; this.v = 0; this.to = x; this.k = k; this.c = c; }
+            step(dt) { this.v += (-this.k * (this.x - this.to) - this.c * this.v) * dt; this.x += this.v * dt; }
+            set(x) { this.x = this.to = x; this.v = 0; }
+            rest(eps) { return Math.abs(this.x - this.to) < eps && Math.abs(this.v) < eps * 8; }
+        }
+        const active = new Set();
+        let sRaf = 0, sLast = 0;
+        function run(o) { active.add(o); if (!sRaf) { sLast = performance.now(); sRaf = requestAnimationFrame(tick); } }
+        function tick(t) {
+            const dt = Math.min(.034, (t - sLast) / 1000);
+            sLast = t;
+            const n = Math.max(1, Math.ceil(dt / .006));
+            for (const o of active) {
+                for (let i = 0; i < n; i++) o.step(dt / n);
+                o.render();
+                if (o.rest()) { active.delete(o); o.end(); }
+            }
+            sRaf = active.size ? requestAnimationFrame(tick) : 0;
+        }
+        const rubber = (d, lim) => Math.sign(d) * lim * (1 - 1 / (1 + Math.abs(d) / lim * .55));
+
+        // ---- «живые» кнопки: при нажатии стекло набухает и тянется за пальцем, отпущенное — пружинит ----
+        const PRESS = '.glass-btn, .icon-btn, .chip-btn, .nav-btn, .theme-btn, .w-go, .back-btn, .pp-app, .ui-choice, .logo-btn, .w-ev-add, .fin-clear-btn, .fx-btn';
+        const jellies = new Map();
+        class Jelly {
+            constructor(el) { this.el = el; this.s = new Spring(1, 520, 19); this.x = new Spring(0, 420, 24); this.y = new Spring(0, 420, 24); this.down = false; el.classList.add('lg-anim'); }
+            step(dt) { this.s.step(dt); this.x.step(dt); this.y.step(dt); }
+            render() {
+                const { s, x, y } = this;
+                // объём сохраняется: когда стекло вытягивается по одной оси, по другой оно сжимается
+                const sp = Math.min(.1, Math.hypot(x.v, y.v) / 3000), a = Math.atan2(y.v, x.v);
+                const jig = Math.max(-.06, Math.min(.06, s.v * .006));
+                const sx = s.x * (1 + sp * Math.abs(Math.cos(a)) - sp * .5 * Math.abs(Math.sin(a)) + jig);
+                const sy = s.x * (1 + sp * Math.abs(Math.sin(a)) - sp * .5 * Math.abs(Math.cos(a)) - jig);
+                this.el.style.transform = `translate(${x.x.toFixed(2)}px, ${y.x.toFixed(2)}px) scale(${sx.toFixed(4)}, ${sy.toFixed(4)})`;
+            }
+            rest() { return !this.down && this.s.rest(.0015) && this.x.rest(.05) && this.y.rest(.05); }
+            end() { this.el.style.removeProperty('transform'); this.el.classList.remove('lg-anim'); jellies.delete(this.el); }
+        }
+        function layoutTransform(el) {
+            // у элемента есть собственный сдвиг (раскладка) — не трогаем, чтобы не сбить положение
+            const m = getComputedStyle(el).transform;
+            if (!m || m === 'none') return false;
+            const v = /matrix\(([^)]+)\)/.exec(m);
+            if (!v) return true;
+            const p = v[1].split(',').map(Number);
+            return Math.abs(p[4]) > .5 || Math.abs(p[5]) > .5;
+        }
+        document.addEventListener('pointerdown', e => {
+            if (!physics() || (e.pointerType === 'mouse' && e.button !== 0)) return;
+            const el = e.target.closest && e.target.closest(PRESS);
+            if (!el || el.disabled || el.closest('.nav3') || el.closest('.w-handle')) return;
+            let j = jellies.get(el);
+            if (!j) { if (layoutTransform(el)) return; j = new Jelly(el); jellies.set(el, j); }
+            const w = el.offsetWidth, h = el.offsetHeight;
+            Object.assign(j, { down: true, ox: e.clientX, oy: e.clientY, pid: e.pointerId, lim: Math.min(8, Math.max(3, Math.min(w, h) * .12)) });
+            j.s.to = Math.min(1.16, Math.max(1.025, 1 + 10 / Math.max(w, h)));
+            run(j);
+        }, { capture: true, passive: true });
+        document.addEventListener('pointermove', e => {
+            for (const j of jellies.values()) {
+                if (!j.down || j.pid !== e.pointerId) continue;
+                const dx = e.clientX - j.ox, dy = e.clientY - j.oy;
+                j.x.to = rubber(dx, j.lim); j.y.to = rubber(dy, j.lim);
+                if (Math.hypot(dx, dy) > 60) j.s.to = 1;
+                run(j);
+            }
+        }, { passive: true });
+        const jellyUp = e => {
+            for (const j of jellies.values()) {
+                if (!j.down || j.pid !== e.pointerId) continue;
+                j.down = false; j.s.to = 1; j.x.to = 0; j.y.to = 0;
+                run(j);
+            }
+        };
+        document.addEventListener('pointerup', jellyUp, { passive: true });
+        document.addEventListener('pointercancel', jellyUp, { passive: true });
+
+        // ---- переключатели: ползунок превращается в стеклянную линзу, его можно тащить пальцем ----
+        let swallowClick = false;
+        window.addEventListener('click', e => { if (swallowClick && e.isTrusted) { swallowClick = false; e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+        class Knob {
+            constructor(sw, knob, drag) {
+                this.sw = sw; this.k = knob; this.drag = drag;
+                this.x = new Spring(0, 380, 26); this.g = new Spring(0, 420, 24);
+                knob.classList.add('lg-anim');
+            }
+            travel() { return Math.max(0, this.k.parentElement.clientWidth - this.k.offsetWidth - 2 * this.k.offsetLeft); }
+            step(dt) { this.x.step(dt); this.g.step(dt); }
+            render() {
+                const g = Math.max(-.2, this.g.x), sq = Math.max(-.05, Math.min(.05, this.x.v / 4000));
+                this.k.style.transform = `translateX(${this.x.x.toFixed(2)}px) scale(${(1 + .55 * g + Math.abs(sq)).toFixed(4)}, ${(1 + .3 * g - Math.abs(sq)).toFixed(4)})`;
+            }
+            rest() { return !this.down && this.x.rest(.05) && this.g.rest(.004); }
+            end() {
+                this.k.style.removeProperty('transform'); this.k.classList.remove('lg-anim');
+                lens(this.k, false); knobs.delete(this.sw);
+            }
+        }
+        const knobs = new Map();
+        const isOn = sw => sw.getAttribute('aria-checked') === 'true';
+        document.addEventListener('pointerdown', e => {
+            if (!physics() || (e.pointerType === 'mouse' && e.button !== 0)) return;
+            const sw = e.target.closest && e.target.closest('.theme-switch, .fx-switch-row');
+            if (!sw) return;
+            const knob = sw.querySelector('.knob, .fx-switch > i');
+            if (!knob) return;
+            let k = knobs.get(sw);
+            if (!k) { k = new Knob(sw, knob, sw.classList.contains('theme-switch')); knobs.set(sw, k); k.x.set(isOn(sw) ? k.travel() : 0); }
+            Object.assign(k, { down: true, ox: e.clientX, pid: e.pointerId, base: k.x.to, moved: false });
+            k.g.to = 1;
+            lens(knob, true);
+            run(k);
+        }, { capture: true, passive: true });
+        document.addEventListener('pointermove', e => {
+            for (const k of knobs.values()) {
+                if (!k.down || k.pid !== e.pointerId || !k.drag) continue;
+                const dx = e.clientX - k.ox;
+                if (Math.abs(dx) > 4) k.moved = true;
+                const t = k.travel();
+                k.x.to = Math.max(-4, Math.min(t + 4, k.base + dx));
+                run(k);
+            }
+        }, { passive: true });
+        const knobUp = e => {
+            for (const k of knobs.values()) {
+                if (!k.down || k.pid !== e.pointerId) continue;
+                k.down = false;
+                const t = k.travel(), was = isOn(k.sw);
+                if (k.moved && e.type === 'pointerup') {
+                    swallowClick = true;                 // палец отпустили после перетаскивания — обычный «клик» не нужен
+                    setTimeout(() => { swallowClick = false; }, 400);
+                    if ((k.x.x > t / 2) !== was) k.sw.click();
+                }
+                // окончательное положение — по фактическому состоянию после обработки клика
+                setTimeout(() => { k.x.to = isOn(k.sw) ? k.travel() : 0; k.g.to = 0; run(k); }, 0);
+            }
+        };
+        document.addEventListener('pointerup', knobUp, { passive: true });
+        document.addEventListener('pointercancel', knobUp, { passive: true });
+
+        // ================= «Физика стекла» в настройках и автоэкономия =================
+        function lens(el, on) {
+            el.classList.toggle('lg-lens', on);
+            if (!CHROMIUM) return;
+            if (on) { track(el, 'lens', true); queue(el); }
+            else { const it = items.get(el); if (it) { ro.unobserve(el); detach(el, it); items.delete(el); } }
+        }
+        function updateUi() {
+            const b = document.getElementById('glassFxToggle');
+            if (b) b.setAttribute('aria-checked', String(enabled));
+            const h = document.getElementById('glassFxHint');
+            if (h) h.textContent = 'Преломление света в краях стекла, блики, которые следуют за наклоном телефона, и «живые» кнопки на пружинах.'
+                + (CHROMIUM ? (lowPower ? ' Чтобы не тормозить, на этом устройстве преломление в карточках выключено — осталось в панели и кнопках.' : ' Если телефон тормозит, выключите.')
+                    : ' Преломление в этом браузере недоступно (оно работает в Chrome, Edge и Яндекс Браузере) — остаются блики и пружинная анимация.');
+        }
+        function toggle() {
+            enabled = !enabled;
+            try { localStorage.setItem(PREF, enabled ? 'on' : 'off'); } catch (e) {}
+            if (!enabled) { root.style.setProperty('--lg-lx', '-0.5'); root.style.setProperty('--lg-ly', '-0.86'); }
+            refreshAll(); updateUi();
+        }
+        // если на прокрутке частота кадров заметно падает — убираем преломление из больших карточек (панель и кнопки остаются)
+        if (CHROMIUM && !lowPower) {
+            let frames = [], watching = false, bad = 0, lastT = 0;
+            const t0 = performance.now();
+            const watch = t => {
+                if (lastT) frames.push(t - lastT);
+                lastT = t;
+                if (frames.length < 45) { requestAnimationFrame(watch); return; }
+                frames.sort((a, b) => a - b);
+                const med = frames[frames.length >> 1];
+                frames = []; lastT = 0; watching = false;
+                if (med > 24) bad++; else bad = Math.max(0, bad - 1);
+                if (bad >= 2) {
+                    lowPower = true;
+                    try { sessionStorage.setItem('produ_glass_low', '1'); } catch (e) {}
+                    refreshAll(); updateUi();
+                }
+            };
+            window.addEventListener('scroll', () => {
+                // первые секунды не считаем: в это время строятся карты стекла и грузится страница
+                if (watching || lowPower || !liquid() || !enabled || document.hidden || performance.now() - t0 < 5000 || performance.now() - lastBuild < 1500) return;
+                watching = true; requestAnimationFrame(watch);
+            }, { passive: true, capture: true });
+        }
+        // ползунок: закрашенная часть дорожки
+        document.addEventListener('input', e => {
+            const r = e.target;
+            if (r && r.type === 'range') r.style.setProperty('--p', ((r.value - r.min) / (r.max - r.min) * 100) + '%');
+        }, true);
+
+        window.produGlass = { lens, toggle, refresh: refreshAll, run, Spring, get refraction() { return CHROMIUM; }, physics };
+        updateUi();
+    })();
+    </script>
+
+    <!-- ===== Нижняя панель: подсветка — стеклянная капля на пружине; её можно тащить пальцем по панели ===== -->
+    <style>
+        .nav3 { position: relative; isolation: isolate; border-radius: 999px !important; touch-action: none; }
         .nav3-btn { border-radius: 999px !important; }
         .nav3-btn.active { background: transparent !important; box-shadow: none !important; }
         .nav3-btn.active:hover { background: transparent !important; }
@@ -10756,6 +11297,7 @@
             background: var(--nav-active); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .06); transition: opacity .25s ease; will-change: transform, width; }
         .nav3-ind.on { opacity: 1; }
         .nav3[data-on="navHome"] .nav3-ind.green { background: color-mix(in srgb, var(--green-2, #70e000) 18%, transparent); }
+        html[data-ui="liquid"] .nav3-ind:not(.lens) { box-shadow: var(--lg-rim); }
     </style>
     <script>
     (function () {
@@ -10766,38 +11308,71 @@
         ind.className = 'nav3-ind';
         ind.setAttribute('aria-hidden', 'true');
         nav.prepend(ind);
-        // в ProdU Sport/Team у «Главной» своя зелёная подсветка — сохраняем её
+        const lensEl = document.createElement('span');
+        lensEl.className = 'nav3-lens';
+        lensEl.setAttribute('aria-hidden', 'true');
+        nav.parentElement.appendChild(lensEl);
+        const liquid = () => document.documentElement.dataset.ui === 'liquid';
+        let lensOn = false;
+        function setLens(on) {
+            if (on === lensOn) return;
+            lensOn = on;
+            lensEl.classList.toggle('on', on);
+            ind.classList.toggle('under-lens', on);
+            G && G.lens(lensEl, on);
+        }
         try {
             const hasGreenHome = [...document.styleSheets].some(sh => { try { return [...sh.cssRules].some(r => r.selectorText === '#navHome.active'); } catch (e) { return false; } });
             if (hasGreenHome) ind.classList.add('green');
         } catch (e) {}
         const reduce = matchMedia('(prefers-reduced-motion: reduce)');
-        let cur = null, anim = null;
+        const G = window.produGlass;
+        class Sp {
+            constructor(x, k, c) { this.x = x; this.v = 0; this.to = x; this.k = k; this.c = c; }
+            step(dt) { this.v += (-this.k * (this.x - this.to) - this.c * this.v) * dt; this.x += this.v * dt; }
+            set(x) { this.x = this.to = x; this.v = 0; }
+            rest(e) { return Math.abs(this.x - this.to) < e && Math.abs(this.v) < e * 8; }
+        }
+        // центр, ширина, «набухание» (линза)
+        const X = new Sp(0, 260, 24), W = new Sp(0, 300, 26), L = new Sp(0, 380, 18);
+        let top = 0, height = 0, placed = false, drag = null;
+        const anim = {
+            step(dt) { X.step(dt); W.step(dt); L.step(dt); },
+            render() {
+                // капля вытягивается по направлению движения и сплющивается поперёк — как жидкость
+                const st = Math.min(.45, Math.abs(X.v) / 2600), g = Math.max(0, L.x);
+                const w = W.x * (1 + st) + g * 14, h = height * (1 - st * .22) * (1 + g * .14);
+                ind.style.width = w.toFixed(1) + 'px';
+                ind.style.height = h.toFixed(1) + 'px';
+                ind.style.transform = `translate(${(X.x - w / 2).toFixed(1)}px, ${(top + height / 2 - h / 2).toFixed(1)}px)`;
+                if (lensOn) {
+                    const ox = nav.offsetLeft + nav.clientLeft, oy = nav.offsetTop + nav.clientTop;
+                    lensEl.style.width = w.toFixed(1) + 'px';
+                    lensEl.style.height = h.toFixed(1) + 'px';
+                    lensEl.style.transform = `translate(${(ox + X.x - w / 2).toFixed(1)}px, ${(oy + top + height / 2 - h / 2).toFixed(1)}px)`;
+                }
+            },
+            rest() { return !drag && X.rest(.1) && W.rest(.1) && L.rest(.002); },
+            end() { if (!drag) { ind.classList.remove('lens'); setLens(false); } }
+        };
+        const go = () => {
+            if (G && G.run && !reduce.matches) { G.run(anim); return; }
+            // без анимации (настройка «уменьшить движение»): сразу в конечное положение
+            X.set(X.to); W.set(W.to); L.set(drag && drag.moved ? 1 : 0);
+            anim.render();
+            if (!drag) anim.end();
+        };
         function place(animate) {
             const b = nav.querySelector('.nav3-btn.active');
             if (!b) { ind.classList.remove('on'); return; }
-            const x = b.offsetLeft, w = b.offsetWidth;
-            ind.style.top = b.offsetTop + 'px';
-            ind.style.height = b.offsetHeight + 'px';
             nav.dataset.on = b.id;
-            const wasOn = ind.classList.contains('on');
-            if (wasOn && cur && cur.x === x && cur.w === w) return;   // уже на месте — не сбиваем текущую анимацию
-            if (anim) { anim.cancel(); anim = null; }
-            if (animate && wasOn && cur && (cur.x !== x || cur.w !== w) && ind.animate && !reduce.matches) {
-                // «перетекание»: подсветка вытягивается в сторону нового пункта и догоняет его
-                const c0 = cur.x + cur.w / 2, c1 = x + w / 2, mid = (c0 + c1) / 2;
-                const mw = Math.max(cur.w, w) + Math.abs(c1 - c0) * 0.42;
-                anim = ind.animate([
-                    { transform: `translateX(${cur.x}px)`, width: cur.w + 'px' },
-                    { transform: `translateX(${mid - mw / 2}px)`, width: mw + 'px', offset: 0.45 },
-                    { transform: `translateX(${x}px)`, width: w + 'px' }
-                ], { duration: 460, easing: 'cubic-bezier(.3, .8, .3, 1)' });
-                anim.onfinish = () => { anim = null; };
-            }
-            ind.style.transform = `translateX(${x}px)`;
-            ind.style.width = w + 'px';
+            top = b.offsetTop; height = b.offsetHeight;
+            const cx = b.offsetLeft + b.offsetWidth / 2;
+            if (drag) return;
+            if (!animate || !placed || reduce.matches) { X.set(cx); W.set(b.offsetWidth); anim.render(); }
+            else if (X.to !== cx || W.to !== b.offsetWidth) { X.to = cx; W.to = b.offsetWidth; go(); }
             ind.classList.add('on');
-            cur = { x, w };
+            placed = true;
         }
         let queued = false;
         const schedule = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; place(true); }); };
@@ -10806,7 +11381,54 @@
         window.addEventListener('resize', () => place(false));
         place(false);
         requestAnimationFrame(() => place(false));
+
+        // ---- перетаскивание: капля становится линзой и увеличивает значки под собой, отпущенная — встаёт на ближайший пункт ----
+        const btns = () => [...nav.querySelectorAll('.nav3-btn')];
+        // после перетаскивания браузер ещё пришлёт «клик» по панели — он закрыл бы только что открытое меню
+        let swallow = 0;
+        window.addEventListener('click', e => { if (swallow && e.isTrusted && performance.now() - swallow < 500) { swallow = 0; e.preventDefault(); e.stopImmediatePropagation(); } }, true);
+        nav.addEventListener('pointerdown', e => {
+            if (e.pointerType === 'mouse' && e.button !== 0) return;
+            if (!e.target.closest('.nav3-btn')) return;
+            drag = { id: e.pointerId, x0: e.clientX, moved: false, left: nav.getBoundingClientRect().left };
+        });
+        nav.addEventListener('pointermove', e => {
+            if (!drag || e.pointerId !== drag.id) return;
+            const dx = e.clientX - drag.x0;
+            if (!drag.moved) {
+                if (Math.abs(dx) < 8) return;
+                drag.moved = true;
+                try { nav.setPointerCapture(e.pointerId); } catch (err) {}
+                ind.classList.add('lens', 'on');
+                if (liquid()) setLens(true);
+                L.to = 1;
+            }
+            const bs = btns(), first = bs[0], last = bs[bs.length - 1];
+            const min = first.offsetLeft + first.offsetWidth / 2, max = last.offsetLeft + last.offsetWidth / 2;
+            const x = e.clientX - drag.left;
+            // за краями панели капля упирается, как резиновая
+            X.to = x < min ? min - (1 - 1 / (1 + (min - x) / 60)) * 20 : x > max ? max + (1 - 1 / (1 + (x - max) / 60)) * 20 : x;
+            go();
+        });
+        const up = e => {
+            if (!drag || e.pointerId !== drag.id) return;
+            const d = drag;
+            drag = null;
+            if (!d.moved) return;
+            L.to = 0;
+            const bs = btns();
+            let best = bs[0], bd = Infinity;
+            bs.forEach(b => { const c = b.offsetLeft + b.offsetWidth / 2, dd = Math.abs(c - X.x); if (dd < bd) { bd = dd; best = b; } });
+            X.to = best.offsetLeft + best.offsetWidth / 2; W.to = best.offsetWidth;
+            go();
+            if (e.type === 'pointerup') swallow = performance.now();
+            if (e.type === 'pointerup' && !best.classList.contains('active')) best.click();
+            setTimeout(schedule, 60);      // если пункт не стал активным (например, меню не открылось) — капля вернётся
+        };
+        nav.addEventListener('pointerup', up);
+        nav.addEventListener('pointercancel', up);
     })();
     </script>
+
 </body>
 </html>
