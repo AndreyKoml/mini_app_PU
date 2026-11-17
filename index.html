@@ -1980,6 +1980,77 @@
         </div>
     </div>
 
+    <!-- Вишлист: создать / изменить -->
+    <div class="modal wish-modal" id="wishListModal" hidden onclick="if (event.target === this) closeWishModal('wishListModal')">
+        <div class="modal-card wish-mcard" role="dialog" aria-modal="true" aria-labelledby="wlTitleH">
+            <div class="modal-head"><b id="wlTitleH">Новый вишлист</b><button type="button" class="icon-btn" onclick="closeWishModal('wishListModal')" aria-label="Закрыть">✕</button></div>
+            <div class="wl-emojis" id="wlEmojis" role="radiogroup" aria-label="Значок списка"></div>
+            <label class="wl-label" for="wlName">Название</label>
+            <input type="text" id="wlName" class="glass-input" maxlength="120" placeholder="Например, «День рождения» или «Новый год»" onkeydown="if (event.key === 'Enter') saveWishList()">
+            <label class="wl-label" for="wlNote">Пара слов для гостей <small>(необязательно)</small></label>
+            <textarea id="wlNote" class="glass-input wish-ta" rows="2" maxlength="1000" placeholder="Например: «Размер одежды — M, люблю зелёный»"></textarea>
+            <label class="wl-label" for="wlDate">Дата праздника <small>(необязательно)</small></label>
+            <input type="date" id="wlDate" class="glass-input">
+            <div class="wl-label" id="wlVisLbl">Кто видит</div>
+            <div class="wl-vis" id="wlVis" role="radiogroup" aria-labelledby="wlVisLbl"></div>
+            <div class="form-msg" id="wlMsg"></div>
+            <div class="flex-row wish-mbtns">
+                <button type="button" class="glass-btn danger" id="wlDel" onclick="deleteWishList()">Удалить</button>
+                <button type="button" class="glass-btn" id="wlSave" onclick="saveWishList()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Вишлист: подарок -->
+    <div class="modal wish-modal" id="wishItemModal" hidden onclick="if (event.target === this) closeWishModal('wishItemModal')">
+        <div class="modal-card wish-mcard" role="dialog" aria-modal="true" aria-labelledby="wiTitleH">
+            <div class="modal-head"><b id="wiTitleH">Новый подарок</b><button type="button" class="icon-btn" onclick="closeWishModal('wishItemModal')" aria-label="Закрыть">✕</button></div>
+            <div class="wi-photo" id="wiPhoto">
+                <img id="wiImg" alt="Фото подарка" hidden>
+                <div class="wi-photo-empty" id="wiPhotoEmpty" aria-hidden="true">🎁</div>
+                <div class="wi-photo-btns">
+                    <button type="button" class="glass-btn secondary compact" onclick="$('wiFile').click()" id="wiPick">📷 Добавить фото</button>
+                    <button type="button" class="glass-btn secondary compact" id="wiImgDel" onclick="wishImgRemove()" hidden>Убрать фото</button>
+                </div>
+            </div>
+            <label class="wl-label" for="wiUrl">Ссылка на товар <small>(необязательно)</small></label>
+            <div class="flex-row wi-url-row">
+                <input type="url" id="wiUrl" class="glass-input" maxlength="2000" placeholder="https://магазин/товар" inputmode="url" autocomplete="off">
+                <button type="button" class="glass-btn secondary compact" id="wiFetch" onclick="wishFetchPreview()" title="Подтянуть название, цену и фото со страницы товара">Подтянуть</button>
+            </div>
+            <label class="wl-label" for="wiName">Что подарить</label>
+            <input type="text" id="wiName" class="glass-input" maxlength="120" placeholder="Например, беспроводные наушники">
+            <label class="wl-label" for="wiPrice">Примерная цена, ₽ <small>(необязательно)</small></label>
+            <input type="text" id="wiPrice" class="glass-input" inputmode="numeric" maxlength="14" placeholder="5 000">
+            <label class="wl-label" for="wiNote">Описание <small>(необязательно)</small></label>
+            <textarea id="wiNote" class="glass-input wish-ta" rows="3" maxlength="1000" placeholder="Цвет, размер, модель — всё, что поможет не ошибиться"></textarea>
+            <label class="check-label"><input type="checkbox" id="wiWant"> ★ Очень хочу — показывать первым</label>
+            <div class="form-msg" id="wiMsg"></div>
+            <div class="flex-row wish-mbtns">
+                <button type="button" class="glass-btn danger" id="wiDel" onclick="deleteWishItem()">Удалить</button>
+                <button type="button" class="glass-btn" id="wiSave" onclick="saveWishItem()">Сохранить</button>
+            </div>
+            <input type="file" id="wiFile" accept="image/*" hidden onchange="onWishImgFile(this)">
+        </div>
+    </div>
+
+    <!-- Вишлист: поделиться -->
+    <div class="modal wish-modal" id="wishShareModal" hidden onclick="if (event.target === this) closeWishModal('wishShareModal')">
+        <div class="modal-card wish-mcard" role="dialog" aria-modal="true" aria-labelledby="wsTitleH">
+            <div class="modal-head"><b id="wsTitleH">Поделиться</b><button type="button" class="icon-btn" onclick="closeWishModal('wishShareModal')" aria-label="Закрыть">✕</button></div>
+            <div class="wl-label" id="wsVisLbl">Кто видит</div>
+            <div class="wl-vis" id="wsVis" role="radiogroup" aria-labelledby="wsVisLbl"></div>
+            <div id="wsLink"></div>
+            <div id="wsFriends"></div>
+            <div class="ws-sec">
+                <div class="wl-label">Брони</div>
+                <p class="ws-hint">Друзья и гости отмечают «Я подарю», чтобы не купить одно и то же. Вы этих отметок не видите — так сохраняется сюрприз.</p>
+                <button type="button" class="glass-btn secondary compact" onclick="resetWishReserv()">Сбросить все брони</button>
+            </div>
+            <div class="form-msg" id="wsMsg"></div>
+        </div>
+    </div>
+
     <!-- Очистка бюджета -->
     <div class="modal" id="finClearModal" hidden onclick="if (event.target === this) closeFinClear()">
         <div class="modal-card fin-clear-card" role="dialog" aria-modal="true" aria-labelledby="finClearTitle" aria-describedby="finClearText">
@@ -2224,6 +2295,24 @@
             <div id="customListsContainer" class="full-width lst-wrap"></div>
         </div>
 
+        <!-- ВИШЛИСТЫ -->
+        <div class="dashboard" id="module-wish" data-view="lists">
+            <div class="glass-card full-width wish-out" id="wishOut" hidden>
+                <div class="wish-out-ic" aria-hidden="true">🎁</div>
+                <b>Вишлисты живут в аккаунте</b>
+                <p>Войдите, чтобы собирать списки подарков, показывать их друзьям в ProdU и делиться ссылкой — её можно открыть и без ProdU.</p>
+                <button type="button" class="glass-btn" onclick="openAccount()" style="margin: 0;">Войти или зарегистрироваться</button>
+            </div>
+            <div class="full-width wish-home" id="wishHome">
+                <button type="button" class="glass-card wish-new" onclick="openWishListEditor(null)">
+                    <span class="wish-new-plus" aria-hidden="true">+</span>
+                    <span><b>Новый вишлист</b><small>Ссылки на подарки, фото и описания — для друзей и по ссылке</small></span>
+                </button>
+                <div class="wish-lists" id="wishLists" aria-live="polite"></div>
+            </div>
+            <div class="full-width wish-view" id="wishView"></div>
+        </div>
+
         <!-- КАРТЫ (ШТРИХКОДЫ) -->
         <div class="dashboard" id="module-cards">
             <div class="glass-card full-width">
@@ -2342,6 +2431,7 @@
 
             <div class="full-width pp-apps acc-in page-apps">
                 <button type="button" class="pp-app" onclick="switchTab('social')"><span class="pp-app-ic" aria-hidden="true"><span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 31 36"><g fill="currentColor"><path d="M31 29.64c0 6.6-7.72 5.75-15.5 5.75S0 36.24 0 29.64s7.72-10.45 15.5-10.45S31 23.05 31 29.64Z"/><ellipse cx="15.5" cy="7.38" rx="8.12" ry="7.38"/></g></svg></span></span>Друзья<span class="w-badge" id="socPageBadge"></span></button>
+                <button type="button" class="pp-app" onclick="openWishHome()"><span class="pp-app-ic" aria-hidden="true"><span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"><rect x="4.5" y="15" width="39" height="10" rx="3"/><path d="M8.5 25v14.5a4 4 0 0 0 4 4h23a4 4 0 0 0 4-4V25M24 15v28.5"/><path d="M24 15c-2.5-6.5-12.5-9-12.5-3.2 0 2.8 5.5 3.2 12.5 3.2Zm0 0c2.5-6.5 12.5-9 12.5-3.2 0 2.8-5.5 3.2-12.5 3.2Z"/></g></svg></span></span>Вишлисты</button>
             </div>
 
             <div class="glass-card full-width acc-in post-composer" id="postComposer">
@@ -2495,6 +2585,7 @@
                     <div class="form-msg" id="pvMsg"></div>
                 </div>
             </div>
+            <div class="full-width pv-wish" id="pvWish" hidden></div>
             <div class="full-width posts-feed" id="pvPosts"></div>
         </div>
 
@@ -2696,6 +2787,7 @@
             <div class="pp-hello" id="popHello">Привет, <b>гость</b>!</div>
             <div class="pp-apps">
                 <button type="button" class="pp-app" onclick="closePops(); switchTab('social')"><span class="pp-app-ic" aria-hidden="true"><span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 31 36"><g fill="currentColor"><path d="M31 29.64c0 6.6-7.72 5.75-15.5 5.75S0 36.24 0 29.64s7.72-10.45 15.5-10.45S31 23.05 31 29.64Z"/><ellipse cx="15.5" cy="7.38" rx="8.12" ry="7.38"/></g></svg></span></span>Друзья<span class="w-badge" id="socDockBadge"></span></button>
+                <button type="button" class="pp-app" onclick="closePops(); openWishHome()"><span class="pp-app-ic" aria-hidden="true"><span class="ui-ic" aria-hidden="true"><svg viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"><rect x="4.5" y="15" width="39" height="10" rx="3"/><path d="M8.5 25v14.5a4 4 0 0 0 4 4h23a4 4 0 0 0 4-4V25M24 15v28.5"/><path d="M24 15c-2.5-6.5-12.5-9-12.5-3.2 0 2.8 5.5 3.2 12.5 3.2Zm0 0c2.5-6.5 12.5-9 12.5-3.2 0 2.8-5.5 3.2-12.5 3.2Z"/></g></svg></span></span>Вишлисты</button>
             </div>
             <div class="pp-actions" id="popIn">
                 <button type="button" class="glass-btn" onclick="closePops(); openAccount()">Мой профиль</button>
@@ -5314,6 +5406,8 @@
             auth = null;
             saveAuth();
             saveAvatarCache(null);
+            Object.assign(wish, { lists: null, cur: null, curId: 0, from: '', person: { id: 0, lists: null } });
+            wish.imgs.clear();
             resetLocalData();
             persist(false);
             renderAll();
@@ -5518,7 +5612,7 @@
                         <div class="info">
                             <div class="nm">${esc(f.login)}</div>
                             <div class="sub">${f.last
-                                ? (f.last.sender === social.me ? 'Вы: ' : '') + (f.last.voice ? `${uiIc('sound')} Голосовое (${fmtDur(f.last.voice.dur)})` : '') + (f.last.img ? uiIc('photo') + ' Фото' + (f.last.body ? ' · ' : '') : '') + esc(f.last.body.split('\n')[0])
+                                ? (f.last.sender === social.me ? 'Вы: ' : '') + (f.last.voice ? `${uiIc('sound')} Голосовое (${fmtDur(f.last.voice.dur)})` : '') + (f.last.img ? uiIc('photo') + ' Фото' + (f.last.body ? ' · ' : '') : '') + (f.last.wish ? `🎁 Вишлист «${esc(f.last.wish.title)}»` + (f.last.body ? ' · ' : '') : '') + esc(f.last.body.split('\n')[0])
                                 : 'Напишите первое сообщение'}</div>
                         </div>
                         <div class="side">
@@ -5759,7 +5853,9 @@
                 else if (mine) meta += m.id <= chat.peerRead ? ' ✓✓' : ' ✓';
                 const failed = m.state === 'failed';
                 let inner;
-                if (m.voice) {
+                if (m.wish) {
+                    inner = chatWishHtml(m.wish) + (m.body ? esc(m.body) : '');
+                } else if (m.voice) {
                     const key = m.id ? 'v' + m.id : m.tmp;
                     inner = `<div class="voice" data-key="${key}" data-dur="${m.voice.dur}" ${m.id ? `data-mid="${m.id}"` : `data-tmp="${m.tmp}"`}>` +
                         `<button type="button" class="vplay" onclick="event.stopPropagation(); toggleVoice(this.parentElement)" aria-label="Слушать">▶</button>` +
@@ -6315,6 +6411,7 @@
                 const r = await api('/profile?user=' + id);
                 if (seq !== person.seq || person.id !== id) return;
                 person.profile = r.body.profile;
+                if (person.profile.rel === 'friend') loadPersonWish(id);
                 renderPerson();
                 if (person.profile.postsVisible) loadPersonPosts(false);
                 else { Object.assign(person.posts, { items: [], hasMore: false, loaded: true, hidden: true }); renderPerson(); }
@@ -6350,6 +6447,7 @@
                 incoming: `<button type="button" class="glass-btn compact" onclick="friendAction('accept', ${person.id})">✓ Принять заявку</button><button type="button" class="glass-btn secondary compact" onclick="friendAction('decline', ${person.id})">Отклонить</button>`
             }[rel] || '';
             renderPosts($('pvPosts'), person.posts, false);
+            renderPersonWish();
         }
         function viewPersonAvatar() {
             const c = othersAv[person.id];
@@ -6546,13 +6644,13 @@
         }
 
         // Сжатие: уменьшаем до 1280 px по длинной стороне и сохраняем как JPEG
-        function compressImage(file) {
+        function compressImage(file, max = CHAT_IMG_MAX) {
             return new Promise((resolve, reject) => {
                 const url = URL.createObjectURL(file);
                 const img = new Image();
                 img.onload = () => {
                     URL.revokeObjectURL(url);
-                    const k = Math.min(1, CHAT_IMG_MAX / Math.max(img.naturalWidth, img.naturalHeight));
+                    const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
                     const w = Math.max(1, Math.round(img.naturalWidth * k)), h = Math.max(1, Math.round(img.naturalHeight * k));
                     const c = document.createElement('canvas');
                     c.width = w; c.height = h;
@@ -7603,6 +7701,7 @@
         };
         const uiIc = k => `<span class="ui-ic" aria-hidden="true">${UI_ICONS[k]}</span>`;
         const SEC_ICONS = {
+            gift: ['<svg viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"><rect x="4.5" y="15" width="39" height="10" rx="3"/><path d="M8.5 25v14.5a4 4 0 0 0 4 4h23a4 4 0 0 0 4-4V25M24 15v28.5"/><path d="M24 15c-2.5-6.5-12.5-9-12.5-3.2 0 2.8 5.5 3.2 12.5 3.2Zm0 0c2.5-6.5 12.5-9 12.5-3.2 0 2.8-5.5 3.2-12.5 3.2Z"/></g></svg>', '<svg viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"><rect x="4.5" y="15" width="39" height="10" rx="3"/><path d="M8.5 25v14.5a4 4 0 0 0 4 4h23a4 4 0 0 0 4-4V25M24 15v28.5"/><path d="M24 15c-2.5-6.5-12.5-9-12.5-3.2 0 2.8 5.5 3.2 12.5 3.2Zm0 0c2.5-6.5 12.5-9 12.5-3.2 0 2.8-5.5 3.2-12.5 3.2Z"/></g></svg>'],
             friend: [UI_ICONS.friend, UI_ICONS.friend],
             check: ['<svg viewBox="0 0 49 49"><path d="M10 2.5h29a7.5 7.5 0 0 1 7.5 7.5v29a7.5 7.5 0 0 1-7.5 7.5H10A7.5 7.5 0 0 1 2.5 39V10A7.5 7.5 0 0 1 10 2.5Z" fill="none" stroke="currentColor" stroke-width="5"/><path d="M38.57 15 21.23 32.33M11 22.1l12 12" fill="none" stroke="currentColor" stroke-width="5"/></svg>', '<svg viewBox="0 0 49 49"><path d="M10 2.5h29a7.5 7.5 0 0 1 7.5 7.5v29a7.5 7.5 0 0 1-7.5 7.5H10A7.5 7.5 0 0 1 2.5 39V10A7.5 7.5 0 0 1 10 2.5Z" fill="none" stroke="currentColor" stroke-width="5"/><path d="M38.57 15 21.23 32.33M11 22.1l12 12" fill="none" stroke="currentColor" stroke-width="5"/></svg>'],
             goal: ['<svg viewBox="0 0 63 62"><path d="M51 35a24 24 0 1 1-24-24" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><path d="M31.2 33.61a2 2 0 0 1-2.56-2.55l7.24-20.51a2 2 0 0 1 3.3-.75l13.27 13.27a2 2 0 0 1-.75 3.3Z" fill="currentColor"/><path d="M35 35a8 8 0 1 1-8-8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>', '<svg viewBox="0 0 63 62"><path d="M51 35a24 24 0 1 1-24-24" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round"/><path d="M31.2 33.61a2 2 0 0 1-2.56-2.55l7.24-20.51a2 2 0 0 1 3.3-.75l13.27 13.27a2 2 0 0 1-.75 3.3Z" fill="currentColor"/><path d="M35 35a8 8 0 1 1-8-8" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>'],
@@ -7619,19 +7718,19 @@
         };
         // какой значок у вкладки виджета и у заголовка раздела
         const TAB_ICON = { calendar: 'calendar', reminders: 'reminders', timer: 'timer', tasks: 'check', goal: 'goal', lists: 'list', diary: 'diary', finance: 'finance', cards: 'scan' };
-        const PAGE_ICON = { social: 'friend', calendar: 'calendar', reminders: 'reminders', timer: 'timer', tasks: 'list', diary: 'diary', finance: 'finance', cards: 'scan' };
+        const PAGE_ICON = { wish: 'gift', social: 'friend', calendar: 'calendar', reminders: 'reminders', timer: 'timer', tasks: 'list', diary: 'diary', finance: 'finance', cards: 'scan' };
         // значки типов в календаре: дело — как «Задачи», напоминание — как раздел «Напоминания», событие — «Закрепить»
         const typeIc = t => t === 'event' ? uiIc('pin') : secIcon(t === 'reminder' ? 'reminders' : 'check');
         const secIcon = id => SEC_ICONS[id] ? `<span class="sec-ic"><span class="ic-l">${SEC_ICONS[id][0]}</span><span class="ic-d">${SEC_ICONS[id][1]}</span></span>` : '';
         document.querySelectorAll('[data-sec]').forEach(el => { el.innerHTML = secIcon(el.dataset.sec); });
         const PAGE_TITLES = { calendar: 'Календарь', reminders: 'Напоминания', timer: 'Таймер', diary: 'Дневник', social: 'Друзья',
-                              tasks: 'Списки', finance: 'Финансы', cards: 'Карты', account: 'Профиль', settings: 'Настройки', person: 'Профиль' };
+                              tasks: 'Списки', finance: 'Финансы', cards: 'Карты', account: 'Профиль', settings: 'Настройки', person: 'Профиль', wish: 'Вишлисты' };
         Object.entries(PAGE_TITLES).forEach(([id, title]) => {
             const m = $('module-' + id);
             if (!m) return;
             const h = document.createElement('div');
             h.className = 'page-head full-width';
-            const back = id === 'person' ? 'closePerson()' : id === 'social' ? 'openAccount()' : 'goHome()';
+            const back = id === 'person' ? 'closePerson()' : id === 'social' ? 'openAccount()' : id === 'wish' ? 'wishBack()' : 'goHome()';
             h.innerHTML = `<button type="button" class="back-btn" onclick="${back}" aria-label="${back === 'goHome()' ? 'На главную' : 'Назад'}">‹</button><span class="title-pill">${secIcon(PAGE_ICON[id])}${title}</span>`;
             m.prepend(h);
         });
@@ -7997,9 +8096,9 @@
             if (prev === 'diary' && moduleName !== 'diary') diaryLockAll();
             document.querySelectorAll('#mainAppContainer .dashboard').forEach(el => el.classList.remove('active'));
             document.getElementById(`module-${moduleName}`).classList.add('active');
-            $('navHome').classList.toggle('active', !['settings', 'account', 'social', 'person'].includes(moduleName));
+            $('navHome').classList.toggle('active', !['settings', 'account', 'social', 'person', 'wish'].includes(moduleName));
             $('navSettings').classList.toggle('active', moduleName === 'settings');
-            $('navProfile').classList.toggle('active', ['account', 'social', 'person'].includes(moduleName));
+            $('navProfile').classList.toggle('active', ['account', 'social', 'person', 'wish'].includes(moduleName));
             closePops();
             updateHomeBadge();
             if (prev !== moduleName) window.scrollTo(0, 0);
@@ -8008,6 +8107,7 @@
             if (moduleName !== 'cards') { stopCardScanner(); closeCodeView(); }
             if (moduleName === 'reminders') { renderReminders(); renderNotifStatus(); }
             if (moduleName === 'timer') renderTimer();
+            if (moduleName === 'wish') onWishTab();
             document.documentElement.classList.toggle('no-anchor', moduleName === 'account');
             if (moduleName === 'account') { renderAccount(); loadServerConfig(); setProfileHeadTarget(profileHeadWanted(), true); loadMyProfile(); }
             if (moduleName === 'settings') { renderAccount(); loadMyProfile(); }
@@ -10755,6 +10855,562 @@
         };
     })();
     </script>
+    <!-- ===== Вишлисты: списки подарков, ссылки, фото, «Я подарю» и публичная страница ===== -->
+    <style>
+        .wish-out { text-align: center; display: grid; gap: 10px; justify-items: center; padding: 26px 20px !important; }
+        .wish-out[hidden] { display: none !important; }
+        .wish-out-ic { font-size: 44px; line-height: 1; }
+        .wish-out p { margin: 0 0 6px; opacity: .75; font-size: 14.5px; line-height: 1.5; max-width: 420px; }
+        #module-wish[data-view="list"] .wish-home, #module-wish[data-view="lists"] .wish-view, #module-wish[data-view="out"] .wish-home, #module-wish[data-view="out"] .wish-view { display: none; }
+        .wish-home, .wish-view { display: flex; flex-direction: column; gap: 14px; }
+        .wish-new { display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: flex-start !important; gap: 14px; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; border: none; padding: 16px 18px !important; }
+        .wish-new b { display: block; font-size: 16px; }
+        .wish-new small { display: block; opacity: .65; font-size: 13.5px; margin-top: 2px; }
+        .wish-new-plus { flex: none; width: 46px; height: 46px; border-radius: 16px; display: grid; place-items: center; font-size: 28px; font-weight: 400; color: #1a1a1a;
+            background: linear-gradient(180deg, #9ef01a, #70e000); box-shadow: 0 4px 12px rgba(112, 224, 0, .35); }
+        .wish-lists { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+        .wl-card { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: 22px; border: 1px solid var(--surface-edge, var(--glass-border)); background: var(--surface, var(--glass-bg));
+            color: inherit; font: inherit; text-align: left; cursor: pointer; box-shadow: var(--tile-shadow, none); min-width: 0; }
+        .wl-card:hover { transform: translateY(-1px); }
+        .wl-card:focus-visible { outline: 3px solid var(--accent-color); outline-offset: 2px; }
+        .wl-cover { flex: none; width: 64px; height: 64px; border-radius: 16px; background: var(--tile, rgba(255,255,255,.5)) center / cover no-repeat; display: grid; place-items: center; font-size: 30px; }
+        .wl-cover.has-img { font-size: 0; }
+        .wl-info { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .wl-info b { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .wl-info small { opacity: .65; font-size: 13px; }
+        .wl-badge { align-self: flex-start; margin-top: 3px; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: rgba(128, 128, 128, .16); }
+        .wish-empty { text-align: center; opacity: .7; padding: 18px 10px; font-size: 14.5px; line-height: 1.5; }
+        /* открытый список */
+        .wv-head { display: flex; flex-direction: column; gap: 10px; }
+        .wv-top { display: flex; align-items: center; gap: 14px; min-width: 0; }
+        .wv-emoji { flex: none; width: 58px; height: 58px; border-radius: 18px; display: grid; place-items: center; font-size: 32px; background: var(--tile, rgba(255,255,255,.5)); }
+        .wv-top h2 { margin: 0; font-size: 22px; line-height: 1.2; overflow-wrap: anywhere; }
+        .wv-by { opacity: .7; font-size: 14px; margin-top: 2px; }
+        .wv-by button { all: unset; cursor: pointer; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+        .wv-note { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14.5px; line-height: 1.5; }
+        .wv-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .wv-chips span { font-size: 13px; font-weight: 600; padding: 5px 11px; border-radius: 999px; background: rgba(128, 128, 128, .15); }
+        .wv-acts { display: flex; flex-wrap: wrap; gap: 8px; }
+        .wv-hint { font-size: 13px; opacity: .7; line-height: 1.45; }
+        .wv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+        .wi-card { display: flex; flex-direction: column; border-radius: 22px; overflow: hidden; background: var(--surface, var(--glass-bg)); border: 1px solid var(--surface-edge, var(--glass-border));
+            box-shadow: var(--tile-shadow, none); min-width: 0; }
+        .wi-card.owner { cursor: pointer; }
+        .wi-card.owner:hover { transform: translateY(-1px); }
+        .wi-card.res { opacity: .62; }
+        .wi-pic { aspect-ratio: 4 / 3; background: var(--tile, rgba(255,255,255,.5)) center / cover no-repeat; display: grid; place-items: center; font-size: 42px; }
+        .wi-pic.has-img { font-size: 0; }
+        .wi-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+        .wi-want { color: #e0a100; font-size: 12.5px; font-weight: 700; }
+        .wi-t { font-weight: 700; font-size: 15.5px; overflow-wrap: anywhere; }
+        .wi-price { font-weight: 700; font-variant-numeric: tabular-nums; font-size: 14.5px; }
+        .wi-note { opacity: .72; font-size: 13.5px; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+        .wi-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: auto; padding-top: 6px; }
+        .wi-acts .glass-btn { padding: 7px 12px; font-size: 13px; }
+        .wi-state { font-size: 12.5px; font-weight: 600; opacity: .8; }
+        .wi-link { text-decoration: none; display: inline-flex; align-items: center; }
+        @media (max-width: 600px) {
+            .wv-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .wi-body { padding: 9px 10px 11px; }
+            .wi-t { font-size: 14.5px; }
+            .wish-lists { grid-template-columns: 1fr; }
+        }
+        /* окна */
+        .wish-mcard { width: min(100%, 460px) !important; max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; }
+        .wish-mcard .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 18px; margin-bottom: 12px; }
+        .wl-label { display: block; font-size: 13px; font-weight: 700; opacity: .75; margin: 4px 2px 6px; }
+        .wl-label small { font-weight: 500; opacity: .8; }
+        .wish-ta { min-height: 64px !important; }
+        .wl-emojis { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+        .wl-emojis button { width: 42px; height: 42px; border-radius: 14px; border: 2px solid transparent; background: rgba(128, 128, 128, .12); font-size: 22px; cursor: pointer; }
+        .wl-emojis button[aria-checked="true"] { border-color: var(--accent-color); background: color-mix(in srgb, var(--accent-color) 18%, transparent); }
+        .wl-vis { display: grid; gap: 6px; margin-bottom: 12px; }
+        .wl-vis button { display: flex; align-items: center; gap: 10px; text-align: left; padding: 10px 12px; border-radius: 14px; border: 2px solid transparent; background: rgba(128, 128, 128, .1);
+            color: inherit; font: inherit; cursor: pointer; }
+        .wl-vis button[aria-checked="true"] { border-color: var(--accent-color); background: color-mix(in srgb, var(--accent-color) 14%, transparent); }
+        .wl-vis i { font-style: normal; font-size: 20px; }
+        .wl-vis b { display: block; font-size: 14.5px; }
+        .wl-vis small { display: block; font-size: 12.5px; opacity: .7; }
+        .wish-mbtns .glass-btn { margin: 0; flex: 1; }
+        .wi-photo { position: relative; border-radius: 18px; overflow: hidden; background: rgba(128, 128, 128, .1); aspect-ratio: 16 / 10; margin-bottom: 12px; display: grid; place-items: center; }
+        .wi-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        .wi-photo-empty { font-size: 46px; opacity: .55; }
+        .wi-photo-btns { position: absolute; left: 10px; bottom: 10px; display: flex; gap: 6px; }
+        .wi-photo-btns .glass-btn { background: rgba(255, 255, 255, .85) !important; color: #1a1a1a !important; backdrop-filter: blur(8px); }
+        .wi-url-row { align-items: flex-start; }
+        .wi-url-row .glass-input { flex: 1; min-width: 0; }
+        .wi-url-row .glass-btn { margin-top: 3px !important; }
+        .ws-sec { margin-top: 14px; }
+        .ws-hint { margin: 0 2px 8px; font-size: 13px; opacity: .72; line-height: 1.45; }
+        .ws-link { display: flex; gap: 8px; margin-bottom: 8px; }
+        .ws-link input { margin: 0 !important; flex: 1; min-width: 0; font-size: 13px !important; }
+        .ws-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+        .ws-friends { display: grid; gap: 6px; max-height: 260px; overflow-y: auto; }
+        .ws-friend { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 8px; border-radius: 14px; background: rgba(128, 128, 128, .08); }
+        .ws-friend .avatar { width: 34px; height: 34px; font-size: 14px; flex: none; }
+        .ws-friend span.nm { flex: 1; min-width: 0; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* открытка вишлиста в чате и в профиле друга */
+        .chat-wish { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 8px 10px; margin: -2px -4px 4px; border-radius: 14px;
+            background: rgba(128, 128, 128, .14); min-width: 200px; max-width: 100%; }
+        .chat-wish:focus-visible { outline: 3px solid var(--accent-color); }
+        .chat-wish .ce { font-size: 28px; line-height: 1; }
+        .chat-wish b { display: block; overflow-wrap: anywhere; }
+        .chat-wish small { display: block; opacity: .7; font-size: 12.5px; }
+        .chat-wish.gone { cursor: default; opacity: .7; }
+        .pv-wish { display: flex; flex-direction: column; gap: 10px; }
+        .pv-wish .wish-lists { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+        .pv-wish-h { font-weight: 800; font-size: 17px; padding: 0 4px; }
+    </style>
+    <script>
+        // ================= ВИШЛИСТЫ =================
+        // Хранятся на сервере (как посты), поэтому работают только с аккаунтом и при наличии связи.
+        const WISH_VIS = {
+            private: ['🔒', 'Только я', 'Никто, кроме вас, список не увидит'],
+            friends: ['👥', 'Друзья в ProdU', 'Появится в вашем профиле, можно отправить в чат'],
+            link: ['🔗', 'Друзья и все по ссылке', 'Страница откроется у любого, даже без ProdU']
+        };
+        const WISH_EMOJI = ['🎁', '🎂', '🎄', '💝', '🎓', '👶', '🏠', '💍', '✈️', '🌟', '🎮', '📚'];
+        const wish = { lists: null, loading: false, err: '', seq: 0, curId: 0, cur: null, curErr: '', from: '', imgs: new Map(),
+            editList: null, emoji: '🎁', vis: 'friends', editItem: null, draftImg: undefined, person: { id: 0, lists: null } };
+        const wishPublicUrl = token => SERVER_BASE + '/w/' + token;
+        const wishRub = n => n ? Number(n).toLocaleString('ru-RU') + ' ₽' : '';
+        const wishCount = n => `${n} ${ruPlural(n, 'подарок', 'подарка', 'подарков')}`;
+        const wishDate = s => { if (!s) return ''; const [y, m, d] = s.split('-').map(Number); return `${d} ${MONTHS_GEN[m - 1]}${y !== new Date().getFullYear() ? ' ' + y : ''}`; };
+
+        // ---- картинки: тянем по одной и помним ----
+        function wishImg(id, v) {
+            const key = id + ':' + v;
+            if (!wish.imgs.has(key)) {
+                const t = wish.cur && wish.cur.token4guest ? '&t=' + encodeURIComponent(wish.cur.token4guest) : '';
+                wish.imgs.set(key, api('/wish/image?id=' + id + t).then(r => r.body.data).catch(() => { wish.imgs.delete(key); return ''; }));
+            }
+            return wish.imgs.get(key);
+        }
+        function paintWishImgs(root) {
+            root.querySelectorAll('[data-wimg]').forEach(el => {
+                const [id, v] = el.dataset.wimg.split(':');
+                wishImg(id, v).then(src => { if (src && el.isConnected) { el.style.backgroundImage = `url("${src}")`; el.classList.add('has-img'); } });
+            });
+        }
+
+        // ---- навигация ----
+        function openWishHome() {
+            wish.curId = 0; wish.cur = null; wish.from = '';
+            switchTab('wish');
+        }
+        function openWish(id, from = '', token = '') {
+            if (!auth) { openWishHome(); return; }
+            wish.curId = Number(id); wish.from = from; wish.cur = null; wish.curErr = ''; wish.curToken = token;
+            switchTab('wish');
+            loadWishList();
+        }
+        function wishBack() {
+            if (!wish.curId) { openAccount(); return; }
+            const from = wish.from;
+            wish.curId = 0; wish.cur = null; wish.from = '';
+            if (from === 'social') { switchTab('social'); return; }
+            if (from === 'person') { switchTab('person', dockIcon('social')); return; }
+            renderWish();
+            window.scrollTo(0, 0);
+            if (!wish.lists) loadWishLists();
+        }
+        function onWishTab() {
+            renderWish();
+            if (!auth) return;
+            if (wish.curId) { if (!wish.cur) loadWishList(); }
+            else loadWishLists();
+        }
+
+        // ---- загрузка ----
+        async function loadWishLists() {
+            if (!auth || wish.loading) return;
+            wish.loading = true; wish.err = '';
+            renderWish();
+            try {
+                wish.lists = (await api('/wish/lists')).body.lists;
+            } catch (e) {
+                wish.err = e.offline ? 'Нет связи с сервером — списки откроются, когда появится интернет.' : e.message;
+            } finally {
+                wish.loading = false;
+                renderWish();
+            }
+        }
+        async function loadWishList() {
+            const id = wish.curId, seq = ++wish.seq;
+            try {
+                const r = await api('/wish/list?' + (wish.curToken ? 't=' + encodeURIComponent(wish.curToken) : 'id=' + id));
+                if (seq !== wish.seq) return;
+                wish.cur = { ...r.body, token4guest: r.body.access === 'guest' ? wish.curToken : '' };
+                wish.curErr = '';
+            } catch (e) {
+                if (seq !== wish.seq) return;
+                wish.curErr = e.status === 404 ? 'Список не найден: его удалили или владелец закрыл доступ.' : e.offline ? 'Нет связи с сервером.' : e.message;
+            }
+            renderWish();
+        }
+
+        // ---- отрисовка ----
+        function renderWish() {
+            const m = $('module-wish');
+            if (!m) return;
+            const out = !auth || !SERVER_BASE;
+            $('wishOut').hidden = !out;
+            m.dataset.view = out ? 'out' : wish.curId ? 'list' : 'lists';
+            if (out) return;
+            if (!wish.curId) renderWishLists(); else renderWishView();
+        }
+        function wishListCard(l, onclick) {
+            const cover = l.cover ? `data-wimg="${esc(l.cover)}"` : '';
+            const sub = [wishCount(l.count || 0), l.date ? '📅 ' + wishDate(l.date) : ''].filter(Boolean).join(' · ');
+            return `<button type="button" class="wl-card" onclick="${onclick}">
+                <span class="wl-cover" ${cover}>${esc(l.emoji || '🎁')}</span>
+                <span class="wl-info"><b>${esc(l.title)}</b><small>${sub}</small>${l.vis ? `<span class="wl-badge">${WISH_VIS[l.vis][0]} ${WISH_VIS[l.vis][1]}</span>` : ''}</span></button>`;
+        }
+        function renderWishLists() {
+            const box = $('wishLists');
+            if (wish.err) { box.innerHTML = `<div class="glass-card wish-empty">${esc(wish.err)}<br><button type="button" class="glass-btn secondary compact" onclick="loadWishLists()" style="margin-top: 10px;">Повторить</button></div>`; return; }
+            if (!wish.lists) { box.innerHTML = '<div class="wish-empty">Загрузка…</div>'; return; }
+            if (!wish.lists.length) { box.innerHTML = '<div class="wish-empty">Пока ни одного списка. Создайте первый — например, к дню рождения.</div>'; return; }
+            box.innerHTML = wish.lists.map(l => wishListCard(l, `openWish(${l.id})`)).join('');
+            paintWishImgs(box);
+        }
+        function renderWishView() {
+            const box = $('wishView');
+            if (wish.curErr) {
+                box.innerHTML = `<div class="glass-card wish-empty">${esc(wish.curErr)}<br><button type="button" class="glass-btn secondary compact" onclick="loadWishList()" style="margin-top: 10px;">Повторить</button></div>`;
+                return;
+            }
+            if (!wish.cur) { box.innerHTML = '<div class="wish-empty">Загрузка…</div>'; return; }
+            const { list: l, owner, access, items } = wish.cur;
+            const own = access === 'owner';
+            const chips = [wishCount(items.length), l.date ? '📅 ' + wishDate(l.date) : '', own ? WISH_VIS[l.vis][0] + ' ' + WISH_VIS[l.vis][1] : ''].filter(Boolean);
+            const acts = own
+                ? `<button type="button" class="glass-btn compact" onclick="openWishItemEditor(null)">＋ Подарок</button>
+                   <button type="button" class="glass-btn secondary compact" onclick="openWishShare()">Поделиться</button>
+                   <button type="button" class="glass-btn secondary compact" onclick="openWishListEditor(wish.cur.list)">Изменить</button>`
+                : (owner && access === 'friend' ? `<button type="button" class="glass-btn secondary compact" onclick="openChatWhenReady(${owner.id})">💬 Написать ${esc(owner.login)}</button>` : '');
+            const by = own ? 'Ваш вишлист' : `Вишлист <button type="button" onclick="openPerson(${owner.id})">${esc(owner.login)}</button>`;
+            box.innerHTML = `<div class="glass-card full-width wv-head">
+                    <div class="wv-top"><span class="wv-emoji" aria-hidden="true">${esc(l.emoji)}</span><div style="min-width: 0;"><h2>${esc(l.title)}</h2><div class="wv-by">${by}</div></div></div>
+                    ${l.note ? `<div class="wv-note">${esc(l.note)}</div>` : ''}
+                    <div class="wv-chips">${chips.map(c => `<span>${esc(c)}</span>`).join('')}</div>
+                    ${acts ? `<div class="wv-acts">${acts}</div>` : ''}
+                    ${own ? '' : '<div class="wv-hint">Нажмите «Я подарю» на выбранном подарке — другие увидят, что он занят. Владелец списка этого не видит.</div>'}
+                </div>
+                <div class="wv-grid" aria-label="Подарки">${items.length ? items.map(i => wishItemCard(i, own, l)).join('')
+                    : `<div class="glass-card wish-empty" style="grid-column: 1 / -1;">${own ? 'Добавьте первый подарок: ссылку на товар, фото или просто описание.' : 'Здесь пока нет подарков.'}</div>`}</div>`;
+            paintWishImgs(box);
+        }
+        function wishItemCard(i, own, l) {
+            const r = i.reserved;
+            let state = '';
+            if (!own) {
+                if (r && r.mine) state = `<span class="wi-state">Вы дарите 🎁</span><button type="button" class="glass-btn secondary compact" onclick="event.stopPropagation(); wishReserve(${i.id}, false)">Отменить</button>`;
+                else if (r) state = `<span class="wi-state">${r.name ? 'Дарит ' + esc(r.name) : 'Уже кто-то дарит'}</span>`;
+                else state = `<button type="button" class="glass-btn compact" onclick="event.stopPropagation(); wishReserve(${i.id}, true)">Я подарю</button>`;
+            }
+            const link = i.url ? `<a class="glass-btn secondary compact wi-link" href="${esc(i.url)}" target="_blank" rel="noopener noreferrer nofollow" onclick="event.stopPropagation()">Где купить ↗</a>` : '';
+            return `<article class="wi-card${own ? ' owner' : ''}${r && !r.mine ? ' res' : ''}" ${own ? `onclick="openWishItemEditor(${i.id})" role="button" tabindex="0" onkeydown="if (event.key === 'Enter' && event.target === this) openWishItemEditor(${i.id})" aria-label="Изменить: ${esc(i.title)}"` : ''}>
+                <div class="wi-pic" ${i.img ? `data-wimg="${i.id}:${i.img.v}"` : ''} aria-hidden="true">${esc(l.emoji)}</div>
+                <div class="wi-body">${i.want ? '<div class="wi-want">★ Очень хочу</div>' : ''}<div class="wi-t">${esc(i.title)}</div>
+                    ${i.price ? `<div class="wi-price">${wishRub(i.price)}</div>` : ''}${i.note ? `<div class="wi-note">${esc(i.note)}</div>` : ''}
+                    ${link || state ? `<div class="wi-acts">${link}${state}</div>` : ''}</div></article>`;
+        }
+
+        async function wishReserve(itemId, on) {
+            const c = wish.cur;
+            if (!c) return;
+            try {
+                const r = await api('/wish/reserve', { method: 'POST', body: { item: itemId, reserve: on, t: c.token4guest || '' } });
+                const it = c.items.find(x => x.id === itemId);
+                if (it) it.reserved = r.body.reserved || undefined;
+                renderWish();
+                if (on) showToast('🎁 Подарок за вами', 'Остальные увидят, что он занят. Владелец списка об этом не узнает.', 5000);
+            } catch (e) {
+                showToast('Не получилось', e.offline ? 'Нет связи с сервером' : e.message, 5000);
+                if (e.status === 409) loadWishList();
+            }
+        }
+
+        // ---- окна ----
+        let wishModalReturn = null;
+        function openWishModal(id, focusId) {
+            wishModalReturn = document.activeElement;
+            $(id).hidden = false;
+            setTimeout(() => { const f = $(focusId); if (f) f.focus(); }, 40);
+        }
+        function closeWishModal(id) {
+            $(id).hidden = true;
+            if (wishModalReturn && wishModalReturn.isConnected) try { wishModalReturn.focus(); } catch (e) {}
+        }
+        document.addEventListener('keydown', e => {
+            if (e.key !== 'Escape') return;
+            for (const id of ['wishItemModal', 'wishListModal', 'wishShareModal']) if (!$(id).hidden) { closeWishModal(id); e.stopPropagation(); return; }
+        }, true);
+        function wishVisPicker(boxId, cur, onpick) {
+            $(boxId).innerHTML = Object.entries(WISH_VIS).map(([k, [ic, t, s]]) =>
+                `<button type="button" role="radio" aria-checked="${k === cur}" onclick="${onpick}('${k}')"><i aria-hidden="true">${ic}</i><span><b>${t}</b><small>${s}</small></span></button>`).join('');
+        }
+
+        // список: создать / изменить
+        function openWishListEditor(l) {
+            if (!auth) { openAccount(); return; }
+            wish.editList = l;
+            wish.emoji = l ? l.emoji : '🎁';
+            wish.vis = l ? l.vis : 'friends';
+            $('wlTitleH').textContent = l ? 'Изменить вишлист' : 'Новый вишлист';
+            $('wlName').value = l ? l.title : '';
+            $('wlNote').value = l ? l.note : '';
+            $('wlDate').value = l ? l.date : '';
+            $('wlDel').hidden = !l;
+            setMsg('wlMsg', '');
+            paintWlEmoji();
+            wishVisPicker('wlVis', wish.vis, 'pickWlVis');
+            openWishModal('wishListModal', 'wlName');
+        }
+        function paintWlEmoji() {
+            const all = WISH_EMOJI.includes(wish.emoji) ? WISH_EMOJI : [wish.emoji, ...WISH_EMOJI];
+            $('wlEmojis').innerHTML = all.map(e => `<button type="button" role="radio" aria-checked="${e === wish.emoji}" aria-label="${e}" onclick="wish.emoji = '${e}'; paintWlEmoji()">${e}</button>`).join('');
+        }
+        function pickWlVis(v) { wish.vis = v; wishVisPicker('wlVis', v, 'pickWlVis'); }
+        async function saveWishList() {
+            const title = $('wlName').value.trim();
+            if (!title) { setMsg('wlMsg', 'Назовите список'); $('wlName').focus(); return; }
+            const btn = $('wlSave');
+            btn.disabled = true;
+            try {
+                const l = wish.editList;
+                const r = await api('/wish/save', { method: 'POST', body: { id: l ? l.id : undefined, title, note: $('wlNote').value, date: $('wlDate').value, emoji: wish.emoji, vis: wish.vis } });
+                closeWishModal('wishListModal');
+                const nl = r.body.list;
+                if (l && wish.cur && wish.cur.list.id === l.id) Object.assign(wish.cur.list, nl);
+                wish.lists = null;
+                if (!l) { openWish(nl.id); loadWishLists(); showToast('🎁 Список создан', 'Добавьте подарки — ссылки, фото или просто описание.', 4000); }
+                else { renderWish(); loadWishLists(); }
+            } catch (e) {
+                setMsg('wlMsg', e.offline ? 'Нет связи с сервером' : e.message);
+            } finally { btn.disabled = false; }
+        }
+        async function deleteWishList() {
+            const l = wish.editList;
+            if (!l || !confirm(`Удалить вишлист «${l.title}» со всеми подарками? Ссылка на него перестанет открываться.`)) return;
+            try {
+                await api('/wish/delete', { method: 'POST', body: { id: l.id } });
+                closeWishModal('wishListModal');
+                wish.curId = 0; wish.cur = null; wish.lists = null;
+                renderWish(); loadWishLists();
+            } catch (e) { setMsg('wlMsg', e.offline ? 'Нет связи с сервером' : e.message); }
+        }
+
+        // подарок: создать / изменить
+        function openWishItemEditor(id) {
+            const c = wish.cur;
+            if (!c || c.access !== 'owner') return;
+            const it = id ? c.items.find(x => x.id === id) : null;
+            wish.editItem = it;
+            wish.draftImg = undefined;
+            $('wiTitleH').textContent = it ? 'Подарок' : 'Новый подарок';
+            $('wiUrl').value = it ? it.url : '';
+            $('wiName').value = it ? it.title : '';
+            $('wiPrice').value = it && it.price ? it.price.toLocaleString('ru-RU') : '';
+            $('wiNote').value = it ? it.note : '';
+            $('wiWant').checked = !!(it && it.want);
+            $('wiDel').hidden = !it;
+            setMsg('wiMsg', '');
+            showWishPhoto(null);
+            if (it && it.img) wishImg(it.id, it.img.v).then(src => { if (wish.editItem === it && wish.draftImg === undefined) showWishPhoto(src); });
+            openWishModal('wishItemModal', it ? 'wiName' : 'wiUrl');
+        }
+        function showWishPhoto(src) {
+            const img = $('wiImg');
+            if (src) img.src = src; else img.removeAttribute('src');
+            img.hidden = !src;
+            $('wiPhotoEmpty').hidden = !!src;
+            $('wiImgDel').hidden = !src;
+            $('wiPick').textContent = src ? '📷 Заменить' : '📷 Добавить фото';
+        }
+        async function onWishImgFile(input) {
+            const f = input.files && input.files[0];
+            input.value = '';
+            if (!f) return;
+            if (f.type && !f.type.startsWith('image/')) { setMsg('wiMsg', 'Это не картинка'); return; }
+            try { wish.draftImg = await compressImage(f, 900); showWishPhoto(wish.draftImg.data); setMsg('wiMsg', ''); }
+            catch (e) { setMsg('wiMsg', e.message); }
+        }
+        function wishImgRemove() { wish.draftImg = null; showWishPhoto(null); }
+        async function wishFetchPreview() {
+            const url = $('wiUrl').value.trim();
+            if (!url) { setMsg('wiMsg', 'Вставьте ссылку на товар'); $('wiUrl').focus(); return; }
+            const btn = $('wiFetch');
+            btn.disabled = true; btn.textContent = 'Ищем…';
+            setMsg('wiMsg', '');
+            try {
+                const r = (await api('/wish/preview?url=' + encodeURIComponent(url))).body;
+                let got = 0;
+                if (r.title && !$('wiName').value.trim()) { $('wiName').value = r.title; got++; }
+                if (r.price && !$('wiPrice').value.trim()) { $('wiPrice').value = r.price.toLocaleString('ru-RU'); got++; }
+                const hasPhoto = wish.draftImg ? true : wish.draftImg === null ? false : !!(wish.editItem && wish.editItem.img);
+                if (r.image && !hasPhoto) {
+                    const b64 = r.image.slice(r.image.indexOf(',') + 1), bin = atob(b64), bytes = new Uint8Array(bin.length);
+                    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+                    try { wish.draftImg = await compressImage(new Blob([bytes], { type: r.image.slice(5, r.image.indexOf(';')) }), 900); showWishPhoto(wish.draftImg.data); got++; } catch (e) {}
+                }
+                setMsg('wiMsg', got ? 'Готово — проверьте, всё ли верно.' : 'Магазин не отдал данные о товаре — заполните вручную.', !!got);
+            } catch (e) {
+                setMsg('wiMsg', e.offline ? 'Нет связи с сервером' : e.message);
+            } finally { btn.disabled = false; btn.textContent = 'Подтянуть'; }
+        }
+        async function saveWishItem() {
+            const c = wish.cur, it = wish.editItem;
+            const title = $('wiName').value.trim();
+            if (!title) { setMsg('wiMsg', 'Напишите, что это за подарок'); $('wiName').focus(); return; }
+            const price = Number($('wiPrice').value.replace(/[^\d]/g, '')) || 0;
+            const body = { id: it ? it.id : undefined, list: c.list.id, title, url: $('wiUrl').value.trim(), price, note: $('wiNote').value, want: $('wiWant').checked };
+            if (wish.draftImg !== undefined) body.image = wish.draftImg;
+            const btn = $('wiSave');
+            btn.disabled = true;
+            try {
+                const r = await api('/wish/item/save', { method: 'POST', body });
+                const ni = r.body.item;
+                if (body.image) wish.imgs.set(ni.id + ':' + ni.img.v, Promise.resolve(body.image.data));
+                if (it) Object.assign(it, ni); else c.items.push(ni);
+                c.items.sort((a, b) => (b.want - a.want) || (a.pos - b.pos) || (a.id - b.id));
+                wish.lists = null;
+                closeWishModal('wishItemModal');
+                renderWish();
+            } catch (e) {
+                setMsg('wiMsg', e.offline ? 'Нет связи с сервером' : e.message);
+            } finally { btn.disabled = false; }
+        }
+        async function deleteWishItem() {
+            const c = wish.cur, it = wish.editItem;
+            if (!it || !confirm(`Удалить «${it.title}» из списка?`)) return;
+            try {
+                await api('/wish/item/delete', { method: 'POST', body: { id: it.id } });
+                c.items = c.items.filter(x => x !== it);
+                wish.lists = null;
+                closeWishModal('wishItemModal');
+                renderWish();
+            } catch (e) { setMsg('wiMsg', e.offline ? 'Нет связи с сервером' : e.message); }
+        }
+
+        // ---- поделиться ----
+        function openWishShare() {
+            const c = wish.cur;
+            if (!c || c.access !== 'owner') return;
+            $('wsTitleH').textContent = `Поделиться «${c.list.title}»`;
+            setMsg('wsMsg', '');
+            renderWishShare();
+            openWishModal('wishShareModal', 'wsVis');
+            if (!social.friends.length) loadSocial().then(renderWishShare).catch(() => {});
+        }
+        function renderWishShare() {
+            const c = wish.cur;
+            if (!c) return;
+            const l = c.list;
+            wishVisPicker('wsVis', l.vis, 'setWishVis');
+            const url = wishPublicUrl(l.token);
+            $('wsLink').innerHTML = `<div class="ws-sec"><div class="wl-label">Ссылка на страницу</div>` + (l.vis === 'link'
+                ? `<div class="ws-link"><input class="glass-input" id="wsUrl" readonly value="${esc(url)}" onfocus="this.select()" aria-label="Ссылка на вишлист">
+                     <button type="button" class="glass-btn compact" onclick="copyWishLink()">Копировать</button></div>
+                   <div class="ws-btns">${navigator.share ? '<button type="button" class="glass-btn secondary compact" onclick="shareWishLink()">Отправить…</button>' : ''}
+                     <a class="glass-btn secondary compact wi-link" href="${esc(url)}?owner=1" target="_blank" rel="noopener">Посмотреть как гость ↗</a>
+                     <button type="button" class="glass-btn secondary compact" onclick="newWishLink()">Новая ссылка</button></div>
+                   <p class="ws-hint" style="margin-top: 8px;">Страница откроется в любом браузере, без ProdU. «Новая ссылка» отключает старую — если её переслали не тем людям.</p>`
+                : `<p class="ws-hint">Ссылка выключена. Выберите «Друзья и все по ссылке», чтобы получить адрес страницы — её можно отправить кому угодно, даже без ProdU.</p>`) + '</div>';
+            const fr = social.friends || [];
+            $('wsFriends').innerHTML = `<div class="ws-sec"><div class="wl-label">Отправить другу в ProdU</div>` + (l.vis === 'private'
+                ? '<p class="ws-hint">Список сейчас виден только вам. Откройте его друзьям, чтобы отправить.</p>'
+                : !fr.length ? '<p class="ws-hint">Друзей в ProdU пока нет — добавьте их в разделе «Друзья».</p>'
+                : `<div class="ws-friends">${fr.map(f => `<div class="ws-friend"><span class="avatar" data-uid="${f.id}" data-av="${f.av || 0}" data-name="${esc(f.login)}"></span>
+                    <span class="nm">${esc(f.login)}</span><button type="button" class="glass-btn secondary compact" data-wsend="${f.id}" onclick="sendWishTo(${f.id}, this)">Отправить</button></div>`).join('')}</div>`) + '</div>';
+            paintOthers($('wsFriends'));
+        }
+        async function setWishVis(v) {
+            const c = wish.cur;
+            if (!c || c.list.vis === v) return;
+            const l = c.list, prev = l.vis;
+            l.vis = v;
+            renderWishShare();
+            try {
+                await api('/wish/save', { method: 'POST', body: { id: l.id, title: l.title, note: l.note, date: l.date, emoji: l.emoji, vis: v } });
+                wish.lists = null;
+                renderWish();
+            } catch (e) {
+                l.vis = prev;
+                renderWishShare();
+                setMsg('wsMsg', e.offline ? 'Нет связи с сервером' : e.message);
+            }
+        }
+        async function copyWishLink() {
+            const url = wishPublicUrl(wish.cur.list.token);
+            try { await navigator.clipboard.writeText(url); }
+            catch (e) { const i = $('wsUrl'); i.focus(); i.select(); try { document.execCommand('copy'); } catch (e2) {} }
+            setMsg('wsMsg', 'Ссылка скопирована', true);
+        }
+        function shareWishLink() {
+            const l = wish.cur.list;
+            navigator.share({ title: `${l.emoji} ${l.title}`, text: `Мой вишлист «${l.title}»`, url: wishPublicUrl(l.token) }).catch(() => {});
+        }
+        async function newWishLink() {
+            if (!confirm('Создать новую ссылку? Старая перестанет открываться — её нужно будет заменить везде, где вы её отправляли.')) return;
+            try {
+                wish.cur.list.token = (await api('/wish/token', { method: 'POST', body: { id: wish.cur.list.id } })).body.token;
+                renderWishShare();
+                setMsg('wsMsg', 'Новая ссылка готова, старая больше не работает', true);
+            } catch (e) { setMsg('wsMsg', e.offline ? 'Нет связи с сервером' : e.message); }
+        }
+        async function resetWishReserv() {
+            if (!confirm('Снять все отметки «Я подарю» в этом списке? Друзья и гости не узнают об этом, но смогут забронировать заново.')) return;
+            try {
+                await api('/wish/reset', { method: 'POST', body: { id: wish.cur.list.id } });
+                setMsg('wsMsg', 'Брони сброшены', true);
+            } catch (e) { setMsg('wsMsg', e.offline ? 'Нет связи с сервером' : e.message); }
+        }
+        async function sendWishTo(peerId, btn) {
+            const l = wish.cur.list;
+            btn.disabled = true;
+            try {
+                const r = await api('/messages/send', { method: 'POST', body: { to: peerId, text: '', wish: l.id } });
+                const m = r.body.message;
+                const f = social.friends.find(x => x.id === peerId);
+                if (f) f.last = { id: m.id, sender: social.me, body: m.body, created: m.created, img: false, voice: null, wish: { title: l.title } };
+                if (chat.peer && chat.peer.id === peerId && !chat.messages.some(x => x.id === m.id)) { chat.messages.push(m); renderChat('own'); }
+                btn.textContent = '✓ Отправлено';
+            } catch (e) {
+                btn.disabled = false;
+                setMsg('wsMsg', e.offline ? 'Нет связи с сервером' : e.message);
+            }
+        }
+
+        // ---- открытка в чате ----
+        function chatWishHtml(w) {
+            if (!w || w.gone) return '<div class="chat-wish gone"><span class="ce" aria-hidden="true">🎁</span><span><b>Вишлист недоступен</b><small>Его удалили или закрыли</small></span></div>';
+            return `<button type="button" class="chat-wish" onclick="event.stopPropagation(); openWish(${w.id}, 'social')"><span class="ce" aria-hidden="true">${esc(w.emoji || '🎁')}</span>` +
+                `<span><b>${esc(w.title)}</b><small>Вишлист · ${wishCount(w.count || 0)} · открыть</small></span></button>`;
+        }
+
+        // ---- вишлисты в профиле друга ----
+        async function loadPersonWish(id) {
+            if (wish.person.id === id && wish.person.lists) return;
+            wish.person = { id, lists: null };
+            try {
+                const r = await api('/wish/lists?user=' + id);
+                if (wish.person.id === id) { wish.person.lists = r.body.lists; renderPersonWish(); }
+            } catch (e) {}
+        }
+        function renderPersonWish() {
+            const box = $('pvWish');
+            if (!box) return;
+            const p = person.profile;
+            const lists = p && p.rel === 'friend' && wish.person.id === person.id ? wish.person.lists : null;
+            box.hidden = !(lists && lists.length);
+            if (box.hidden) return;
+            box.innerHTML = `<div class="pv-wish-h">🎁 Вишлисты</div><div class="wish-lists">${lists.map(l => wishListCard({ ...l, vis: '' }, `openWish(${l.id}, 'person')`)).join('')}</div>`;
+            paintWishImgs(box);
+        }
+    </script>
+
     <!-- ===== Жидкое стекло: преломление света по законам оптики, блики от наклона, пружинная «живая» анимация ===== -->
     <style>
         /* направление на источник света (x, y); меняется от наклона телефона */

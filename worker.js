@@ -38,6 +38,10 @@
  *   POST /messages/send { to, text, image?, voice? } | /messages/read { with, upTo }
  *   GET  /messages/image?id=N  — картинка из сообщения (data:image/jpeg;base64,…)
  *   GET  /messages/voice?id=N  — голосовое сообщение (data:audio/…;base64,…)
+ *   Вишлисты (нужен вход):
+ *   GET  /wish/lists[?user=ID] | /wish/list?id=N (или ?t=токен) | /wish/image?id=N | /wish/preview?url=…
+ *   POST /wish/save | /wish/delete | /wish/token | /wish/reset | /wish/item/save | /wish/item/delete | /wish/reserve
+ *   Публичная страница (без входа): GET /w/<токен>, GET /w/<токен>/img/<id>, POST /w/<токен>/reserve
  */
 
 const MAX_REMINDERS = 500;        // напоминаний с одного устройства
@@ -84,6 +88,12 @@ export default {
             await ensureSchema(env);
             const url = new URL(request.url);
 
+            // публичная страница вишлиста — открывается по ссылке без аккаунта
+            if (url.pathname.startsWith('/w/')) {
+                const r = await handleWishPublic(request, url, env);
+                if (r) return r;
+            }
+
             if (request.method === 'GET' && url.pathname === '/') {
                 if (!env.SITE_URL) return text('Не задана переменная SITE_URL (Settings → Variables).', 500, cors);
                 const { publicKey } = await getVapid(env);
@@ -95,13 +105,16 @@ export default {
                         (SELECT COALESCE(SUM(length(data)), 0) FROM msg_audio) AS voice_bytes,
                         (SELECT COUNT(*) FROM posts) AS posts,
                         (SELECT COALESCE(SUM(length(data)), 0) FROM posts) AS post_bytes,
-                        (SELECT COALESCE(SUM(length(cover)), 0) FROM profiles) AS cover_bytes`
+                        (SELECT COALESCE(SUM(length(cover)), 0) FROM profiles) AS cover_bytes,
+                        (SELECT COUNT(*) FROM wishlists) AS wishlists,
+                        (SELECT COALESCE(SUM(length(data)), 0) FROM wish_images) AS wish_bytes`
                 ).first();
                 const mb = n => (n / 1048576).toFixed(1);
                 return text(`ProdU push: OK\nАккаунтов: ${stats.users}\nУстройств с push: ${stats.devices}\nОжидают отправки: ${stats.pending}\n` +
                     `Картинок в чатах: ${stats.images} (${mb(stats.image_bytes)} МБ)\nГолосовых: ${stats.voices} (${mb(stats.voice_bytes)} МБ)\n` +
                     `Постов: ${stats.posts} (${mb(stats.post_bytes)} МБ)\nОбложки профилей: ${mb(stats.cover_bytes)} МБ\n` +
-                    `Всего вложений: ${mb(stats.image_bytes + stats.voice_bytes + stats.post_bytes + stats.cover_bytes)} МБ из 500 МБ бесплатной базы\nКлюч: ${publicKey.slice(0, 16)}…`, 200, cors);
+                    `Вишлистов: ${stats.wishlists} (фото ${mb(stats.wish_bytes)} МБ)\n` +
+                    `Всего вложений: ${mb(stats.image_bytes + stats.voice_bytes + stats.post_bytes + stats.cover_bytes + stats.wish_bytes)} МБ из 500 МБ бесплатной базы\nКлюч: ${publicKey.slice(0, 16)}…`, 200, cors);
             }
 
             if (request.method === 'GET' && url.pathname === '/config') {
@@ -156,6 +169,13 @@ export default {
                 const user = await authUser(request, env);
                 if (!user) return json({ error: 'Сессия истекла — войдите снова' }, 401, cors);
                 return await handleProfile(url.pathname, request, url, env, user, cors);
+            }
+
+            if ((request.method === 'GET' && ['/wish/lists', '/wish/list', '/wish/image', '/wish/preview'].includes(url.pathname)) ||
+                (request.method === 'POST' && ['/wish/save', '/wish/delete', '/wish/token', '/wish/reset', '/wish/item/save', '/wish/item/delete', '/wish/reserve'].includes(url.pathname))) {
+                const user = await authUser(request, env);
+                if (!user) return json({ error: 'Сессия истекла — войдите снова' }, 401, cors);
+                return await handleWish(url.pathname, request, url, env, user, cors);
             }
 
             if (request.method === 'GET' && url.pathname === '/vapid') {
@@ -256,7 +276,8 @@ async function ensureSchema(env) {
             id INTEGER PRIMARY KEY AUTOINCREMENT, task_id INTEGER NOT NULL, team_id INTEGER NOT NULL, user_id INTEGER NOT NULL,
             text TEXT NOT NULL, created INTEGER NOT NULL)`),
         env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_team_comments_task ON team_comments (task_id, id)'),
-        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_team_comments_team ON team_comments (team_id)')
+        env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_team_comments_team ON team_comments (team_id)'),
+        ...wishSchema(env)
     ]);
     schemaReady = true;
 }
@@ -406,6 +427,11 @@ async function handleAuth(action, request, env, cors) {
             env.DB.prepare('DELETE FROM friends WHERE a = ?1 OR b = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM msg_images WHERE msg_id IN (SELECT id FROM messages WHERE a = ?1 OR b = ?1)').bind(me.id),
             env.DB.prepare('DELETE FROM msg_audio WHERE msg_id IN (SELECT id FROM messages WHERE a = ?1 OR b = ?1)').bind(me.id),
+            env.DB.prepare('DELETE FROM msg_wish WHERE msg_id IN (SELECT id FROM messages WHERE a = ?1 OR b = ?1)').bind(me.id),
+            env.DB.prepare('DELETE FROM wish_images WHERE item_id IN (SELECT i.id FROM wish_items i JOIN wishlists w ON w.id = i.list_id WHERE w.user_id = ?1)').bind(me.id),
+            env.DB.prepare('DELETE FROM wish_reserv WHERE user_id = ?1 OR list_id IN (SELECT id FROM wishlists WHERE user_id = ?1)').bind(me.id),
+            env.DB.prepare('DELETE FROM wish_items WHERE list_id IN (SELECT id FROM wishlists WHERE user_id = ?1)').bind(me.id),
+            env.DB.prepare('DELETE FROM wishlists WHERE user_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM messages WHERE a = ?1 OR b = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM reads WHERE user_id = ?1 OR peer_id = ?1').bind(me.id),
             env.DB.prepare('DELETE FROM sub_users WHERE user_id = ?1').bind(me.id),
@@ -977,6 +1003,8 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
             WHERE f.a = ?1 OR f.b = ?1`).bind(me.id).all();
         const { results: last } = await env.DB.prepare(`
             SELECT m.id, m.a, m.b, m.sender, m.body, m.created, EXISTS(SELECT 1 FROM msg_images i WHERE i.msg_id = m.id) AS img,
+                (SELECT wl.title FROM msg_wish mw JOIN wishlists wl ON wl.id = mw.list_id WHERE mw.msg_id = m.id) AS wish_title,
+                EXISTS(SELECT 1 FROM msg_wish mw WHERE mw.msg_id = m.id) AS wish,
                 (SELECT dur FROM msg_audio au WHERE au.msg_id = m.id) AS vdur FROM messages m
             JOIN (SELECT MAX(id) AS id FROM messages WHERE a = ?1 OR b = ?1 GROUP BY a, b) t ON t.id = m.id`).bind(me.id).all();
         const { results: unread } = await env.DB.prepare(`
@@ -985,7 +1013,7 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
             WHERE (m.a = ?1 OR m.b = ?1) AND m.sender != ?1 AND m.id > COALESCE(r.last_id, 0)
             GROUP BY m.sender`).bind(me.id).all();
 
-        const lastBy = new Map(last.map(m => [m.a === me.id ? m.b : m.a, { id: m.id, sender: m.sender, body: m.body.slice(0, 200), created: m.created, img: !!m.img, voice: m.vdur ? { dur: m.vdur } : null }]));
+        const lastBy = new Map(last.map(m => [m.a === me.id ? m.b : m.a, { id: m.id, sender: m.sender, body: m.body.slice(0, 200), created: m.created, img: !!m.img, voice: m.vdur ? { dur: m.vdur } : null, wish: m.wish ? { title: m.wish_title || '' } : null }]));
         const unreadBy = new Map(unread.map(u => [u.id, u.n]));
         const person = r => ({ id: r.id, login: r.login, av: r.av });
         const friends = rels.filter(r => r.status === 'accepted')
@@ -1057,14 +1085,18 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
         let messages, hasMore = false;
         if (after) {
             ({ results: messages } = await env.DB.prepare(
-                `SELECT m.id, m.sender, m.body, m.created, i.w, i.h, au.dur, au.peaks FROM messages m
+                `SELECT m.id, m.sender, m.body, m.created, i.w, i.h, au.dur, au.peaks, mw.list_id AS wish_id, wl.title AS wish_title, wl.emoji AS wish_emoji, wl.vis AS wish_vis, wl.user_id AS wish_owner,
+                    (SELECT COUNT(*) FROM wish_items wi WHERE wi.list_id = wl.id) AS wish_n FROM messages m
                  LEFT JOIN msg_images i ON i.msg_id = m.id LEFT JOIN msg_audio au ON au.msg_id = m.id
+                 LEFT JOIN msg_wish mw ON mw.msg_id = m.id LEFT JOIN wishlists wl ON wl.id = mw.list_id
                  WHERE m.a = ?1 AND m.b = ?2 AND m.id > ?3 ORDER BY m.id LIMIT 200`
             ).bind(a, b, after).all());
         } else {
             const { results } = await env.DB.prepare(
-                `SELECT m.id, m.sender, m.body, m.created, i.w, i.h, au.dur, au.peaks FROM messages m
+                `SELECT m.id, m.sender, m.body, m.created, i.w, i.h, au.dur, au.peaks, mw.list_id AS wish_id, wl.title AS wish_title, wl.emoji AS wish_emoji, wl.vis AS wish_vis, wl.user_id AS wish_owner,
+                    (SELECT COUNT(*) FROM wish_items wi WHERE wi.list_id = wl.id) AS wish_n FROM messages m
                  LEFT JOIN msg_images i ON i.msg_id = m.id LEFT JOIN msg_audio au ON au.msg_id = m.id
+                 LEFT JOIN msg_wish mw ON mw.msg_id = m.id LEFT JOIN wishlists wl ON wl.id = mw.list_id
                  WHERE m.a = ?1 AND m.b = ?2 AND m.id < ?3 ORDER BY m.id DESC LIMIT 51`
             ).bind(a, b, before || Number.MAX_SAFE_INTEGER).all();
             hasMore = results.length > 50;
@@ -1074,6 +1106,9 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
             const out = { id: m.id, sender: m.sender, body: m.body, created: m.created };
             if (m.w) out.img = { w: m.w, h: m.h };
             if (m.dur) out.voice = { dur: m.dur, peaks: m.peaks };
+            // открытка вишлиста: если список удалили или закрыли — показываем, что он недоступен
+            if (m.wish_id) out.wish = m.wish_title != null && (m.wish_vis !== 'private' || m.wish_owner === me.id)
+                ? { id: m.wish_id, title: m.wish_title, emoji: m.wish_emoji, count: m.wish_n } : { id: m.wish_id, gone: true };
             return out;
         });
         const pr = await env.DB.prepare('SELECT last_id FROM reads WHERE user_id = ?1 AND peer_id = ?2').bind(other, me.id).first();
@@ -1093,7 +1128,7 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
     }
 
     if (path === '/messages/send') {
-        const { to, text, image, voice } = await readJson(request, Math.max(MAX_IMAGE_CHARS, MAX_VOICE_CHARS) + 30_000);
+        const { to, text, image, voice, wish } = await readJson(request, Math.max(MAX_IMAGE_CHARS, MAX_VOICE_CHARS) + 30_000);
         const other = readUserId(to);
         const body = String(text || '').replace(/\r\n?/g, '\n').trim();
         let img = null;
@@ -1117,7 +1152,14 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
             if (!/^[0-9a-f]{0,64}$/.test(peaks)) throw new BadRequest('bad peaks');
             vc = { data, dur, peaks };
         }
-        if (!body && !img && !vc) throw new BadRequest('Пустое сообщение');
+        let wl = null;
+        if (wish) {
+            if (img || vc) throw new BadRequest('Вишлист отправляется отдельным сообщением');
+            wl = await wishList(env, readUserId(wish));
+            if (!wl || wl.user_id !== me.id) return json({ error: 'Список не найден' }, 404, cors);
+            if (wl.vis === 'private') return json({ error: 'Этот список виден только вам — откройте его друзьям, чтобы поделиться' }, 403, cors);
+        }
+        if (!body && !img && !vc && !wl) throw new BadRequest('Пустое сообщение');
         if ([...body].length > MAX_MSG_CHARS) return json({ error: `Сообщение длиннее ${MAX_MSG_CHARS} символов` }, 400, cors);
         if (relation(await getFriendRow(env, me.id, other), me.id) !== 'friend') {
             return json({ error: 'Писать можно только друзьям' }, 403, cors);
@@ -1138,8 +1180,9 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
         const [a, b] = pairOf(me.id, other);
         const row = await env.DB.prepare('INSERT INTO messages (a, b, sender, body, created) VALUES (?1, ?2, ?3, ?4, ?5) RETURNING id')
             .bind(a, b, me.id, body, now).first();
-        if (img || vc) {
+        if (img || vc || wl) {
             try {
+                if (wl) await env.DB.prepare('INSERT INTO msg_wish (msg_id, list_id) VALUES (?1, ?2)').bind(row.id, wl.id).run();
                 if (img) await env.DB.prepare('INSERT INTO msg_images (msg_id, data, w, h) VALUES (?1, ?2, ?3, ?4)').bind(row.id, img.data, img.w, img.h).run();
                 if (vc) await env.DB.prepare('INSERT INTO msg_audio (msg_id, data, dur, peaks) VALUES (?1, ?2, ?3, ?4)').bind(row.id, vc.data, vc.dur, vc.peaks).run();
             } catch (e) {
@@ -1150,9 +1193,10 @@ async function handleSocial(path, request, url, env, me, cors, ctx) {
         const message = { id: row.id, sender: me.id, body, created: now };
         if (img) message.img = { w: img.w, h: img.h };
         if (vc) message.voice = { dur: vc.dur, peaks: vc.peaks };
+        if (wl) message.wish = { id: wl.id, title: wl.title, emoji: wl.emoji, count: (await env.DB.prepare('SELECT COUNT(*) AS n FROM wish_items WHERE list_id = ?1').bind(wl.id).first()).n };
         const textPreview = [...body].slice(0, 140).join('') + ([...body].length > 140 ? '…' : '');
         const fmtDur = ms => { const sec = Math.round(ms / 1000); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`; };
-        const preview = vc ? `🎤 Голосовое (${fmtDur(vc.dur)})`
+        const preview = wl ? `🎁 Вишлист «${wl.title}»` + (textPreview ? ' · ' + textPreview : '') : vc ? `🎤 Голосовое (${fmtDur(vc.dur)})`
             : img ? '📷 Фото' + (textPreview ? ' · ' + textPreview : '') : textPreview;
         const push = pushToUser(env, other, { kind: 'msg', fromId: me.id, title: me.display, body: preview, tag: 'chat-' + me.id });
         if (ctx && ctx.waitUntil) ctx.waitUntil(push); else await push;
@@ -1421,6 +1465,521 @@ async function hkdf(salt, ikm, info, length) {
 }
 
 // ===================== Мелочи =====================
+// ===================== Вишлисты =====================
+// Список хранится на сервере (как посты): его можно показать друзьям в ProdU и открыть по ссылке /w/<токен> без аккаунта.
+// Брони подарков («Я подарю») видят гости и друзья, но не владелец — чтобы не испортить сюрприз.
+const WISH_LISTS_MAX = 50;
+const WISH_ITEMS_MAX = 200;
+const WISH_IMAGE_CHARS = 700_000;     // приложение сжимает фото до 900 px — обычно 60–200 КБ
+const WISH_IMAGES_PER_DAY = 150;
+const WISH_TITLE = 120, WISH_NOTE = 1000, WISH_URL = 2000, WISH_NAME = 40;
+const WISH_VIS = ['private', 'friends', 'link'];
+const WISH_ANON_PER_HOUR = 30;        // броней от гостей по ссылке на один список в час
+const WISH_PREVIEW_HTML = 600_000;    // сколько читаем со страницы товара
+const WISH_PREVIEW_IMG = 2_000_000;
+
+const wishSchema = env => [
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS wishlists (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, title TEXT NOT NULL, note TEXT NOT NULL DEFAULT '',
+        emoji TEXT NOT NULL DEFAULT '🎁', vis TEXT NOT NULL DEFAULT 'friends', token TEXT NOT NULL UNIQUE, date TEXT NOT NULL DEFAULT '',
+        created INTEGER NOT NULL, updated INTEGER NOT NULL)`),
+    env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_wishlists_user ON wishlists (user_id)'),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS wish_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, list_id INTEGER NOT NULL, title TEXT NOT NULL, url TEXT NOT NULL DEFAULT '',
+        price INTEGER NOT NULL DEFAULT 0, note TEXT NOT NULL DEFAULT '', want INTEGER NOT NULL DEFAULT 0, pos INTEGER NOT NULL DEFAULT 0,
+        img_v INTEGER NOT NULL DEFAULT 0, w INTEGER NOT NULL DEFAULT 0, h INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL, updated INTEGER NOT NULL)`),
+    env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_wish_items_list ON wish_items (list_id, pos)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS wish_images (item_id INTEGER PRIMARY KEY, data TEXT NOT NULL)'),
+    env.DB.prepare(`CREATE TABLE IF NOT EXISTS wish_reserv (
+        item_id INTEGER PRIMARY KEY, list_id INTEGER NOT NULL, user_id INTEGER, name TEXT NOT NULL DEFAULT '', secret TEXT NOT NULL DEFAULT '', created INTEGER NOT NULL)`),
+    env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_wish_reserv_list ON wish_reserv (list_id, created)'),
+    env.DB.prepare('CREATE TABLE IF NOT EXISTS msg_wish (msg_id INTEGER PRIMARY KEY, list_id INTEGER NOT NULL)')
+];
+
+const wishText = (v, max) => {
+    const s = String(v ?? '').replace(/\r\n?/g, '\n').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').trim();
+    if ([...s].length > max) throw new BadRequest(`Слишком длинный текст (больше ${max} символов)`);
+    return s;
+};
+function cleanUrl(v) {
+    const s = String(v ?? '').trim();
+    if (!s) return '';
+    if (s.length > WISH_URL) throw new BadRequest('Слишком длинная ссылка');
+    let u;
+    try { u = new URL(/^[a-z][a-z0-9+.-]*:/i.test(s) ? s : 'https://' + s); } catch { throw new BadRequest('Ссылка выглядит неправильно'); }
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') throw new BadRequest('Ссылка должна начинаться с http:// или https://');
+    return u.href;
+}
+const cleanEmoji = v => { const s = [...String(v || '🎁').trim()].slice(0, 4).join(''); return s || '🎁'; };
+
+async function wishList(env, id) {
+    return env.DB.prepare('SELECT * FROM wishlists WHERE id = ?1').bind(id).first();
+}
+// кто что может: владелец — всё; друг — смотреть списки «для друзей» и «по ссылке»; остальные — только по токену
+async function wishAccess(env, meId, list, token) {
+    if (!list) return 'none';
+    if (meId && list.user_id === meId) return 'owner';
+    if (list.vis === 'private') return 'none';
+    if (list.vis === 'link' && token && sameString(token, list.token)) return 'guest';
+    if (meId && relation(await getFriendRow(env, meId, list.user_id), meId) === 'friend') return 'friend';
+    return 'none';
+}
+function listOut(l, extra = {}) {
+    return { id: l.id, title: l.title, note: l.note, emoji: l.emoji, vis: l.vis, date: l.date, created: l.created, updated: l.updated, ...extra };
+}
+const itemOut = i => ({ id: i.id, title: i.title, url: i.url, price: i.price, note: i.note, want: !!i.want, pos: i.pos, img: i.img_v ? { v: i.img_v, w: i.w, h: i.h } : null });
+
+async function wishItemsWithReserv(env, listId, viewerId, showReserv) {
+    const { results } = await env.DB.prepare(`SELECT i.*, r.user_id AS r_user, r.name AS r_name, r.created AS r_at, (r.item_id IS NOT NULL) AS r_on
+        FROM wish_items i LEFT JOIN wish_reserv r ON r.item_id = i.id WHERE i.list_id = ?1 ORDER BY i.want DESC, i.pos, i.id`).bind(listId).all();
+    return results.map(i => {
+        const o = itemOut(i);
+        if (showReserv && i.r_on) o.reserved = { mine: !!viewerId && i.r_user === viewerId, name: i.r_name || '', anon: i.r_user == null };
+        return o;
+    });
+}
+
+async function handleWish(path, request, url, env, me, cors) {
+    // --- списки человека: свои — все, друга — те, что открыты друзьям ---
+    if (path === '/wish/lists') {
+        const uid = url.searchParams.has('user') ? readUserId(url.searchParams.get('user')) : me.id;
+        let where = 'w.user_id = ?1';
+        if (uid !== me.id) {
+            if (relation(await getFriendRow(env, me.id, uid), me.id) !== 'friend') return json({ lists: [], hidden: true }, 200, cors);
+            where += " AND w.vis != 'private'";
+        }
+        const { results } = await env.DB.prepare(`SELECT w.*, (SELECT COUNT(*) FROM wish_items i WHERE i.list_id = w.id) AS n,
+                (SELECT i.id || ':' || i.img_v FROM wish_items i WHERE i.list_id = w.id AND i.img_v > 0 ORDER BY i.want DESC, i.pos, i.id LIMIT 1) AS cover
+            FROM wishlists w WHERE ${where} ORDER BY w.updated DESC`).bind(uid).all();
+        return json({ lists: results.map(l => listOut(l, { count: l.n, cover: l.cover || '', ...(uid === me.id ? { token: l.token } : {}) })) }, 200, cors);
+    }
+
+    // --- один список с подарками ---
+    if (path === '/wish/list') {
+        const token = url.searchParams.get('t') || '';
+        const list = token ? await env.DB.prepare('SELECT * FROM wishlists WHERE token = ?1').bind(token).first()
+            : await wishList(env, readUserId(url.searchParams.get('id')));
+        const access = await wishAccess(env, me.id, list, token);
+        if (access === 'none') return json({ error: 'Список не найден или закрыт владельцем' }, 404, cors);
+        const owner = await env.DB.prepare('SELECT u.id, u.display AS login, COALESCE(av.version, 0) AS av FROM users u LEFT JOIN avatars av ON av.user_id = u.id WHERE u.id = ?1').bind(list.user_id).first();
+        const items = await wishItemsWithReserv(env, list.id, me.id, access !== 'owner');
+        return json({ list: listOut(list, access === 'owner' ? { token: list.token } : {}), owner, access, items }, 200, cors);
+    }
+
+    if (path === '/wish/image') {
+        const id = readUserId(url.searchParams.get('id'));
+        const row = await env.DB.prepare('SELECT w.*, d.data FROM wish_items i JOIN wishlists w ON w.id = i.list_id JOIN wish_images d ON d.item_id = i.id WHERE i.id = ?1').bind(id).first();
+        if (!row || (await wishAccess(env, me.id, row, url.searchParams.get('t') || '')) === 'none') return json({ error: 'Картинка не найдена' }, 404, cors);
+        return new Response(JSON.stringify({ data: row.data }), {
+            status: 200, headers: { ...cors, 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'private, max-age=31536000, immutable' }
+        });
+    }
+
+    // --- создать / изменить список ---
+    if (path === '/wish/save') {
+        const b = await readJson(request);
+        const title = wishText(b.title, WISH_TITLE);
+        if (!title) throw new BadRequest('Назовите список');
+        const note = wishText(b.note, WISH_NOTE);
+        const vis = WISH_VIS.includes(b.vis) ? b.vis : 'friends';
+        const date = /^\d{4}-\d{2}-\d{2}$/.test(String(b.date || '')) ? b.date : '';
+        const emoji = cleanEmoji(b.emoji);
+        const now = Date.now();
+        if (b.id) {
+            const id = readUserId(b.id);
+            const r = await env.DB.prepare('UPDATE wishlists SET title = ?1, note = ?2, vis = ?3, date = ?4, emoji = ?5, updated = ?6 WHERE id = ?7 AND user_id = ?8')
+                .bind(title, note, vis, date, emoji, now, id, me.id).run();
+            if (r && r.meta && !r.meta.changes) return json({ error: 'Список не найден' }, 404, cors);
+            return json({ list: listOut(await wishList(env, id), { token: (await wishList(env, id)).token }) }, 200, cors);
+        }
+        const c = await env.DB.prepare('SELECT COUNT(*) AS n FROM wishlists WHERE user_id = ?1').bind(me.id).first();
+        if (c.n >= WISH_LISTS_MAX) return json({ error: `Можно завести не больше ${WISH_LISTS_MAX} списков` }, 429, cors);
+        const token = randomB64u(12);
+        const row = await env.DB.prepare(`INSERT INTO wishlists (user_id, title, note, emoji, vis, token, date, created, updated)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?8) RETURNING *`).bind(me.id, title, note, emoji, vis, token, date, now).first();
+        return json({ list: listOut(row, { token, count: 0, cover: '' }) }, 200, cors);
+    }
+
+    if (path === '/wish/delete' || path === '/wish/token' || path === '/wish/reset') {
+        const id = readUserId((await readJson(request)).id);
+        const list = await wishList(env, id);
+        if (!list || list.user_id !== me.id) return json({ error: 'Список не найден' }, 404, cors);
+        if (path === '/wish/token') {
+            // новая ссылка: старая перестаёт открываться
+            const token = randomB64u(12);
+            await env.DB.prepare('UPDATE wishlists SET token = ?1 WHERE id = ?2').bind(token, id).run();
+            return json({ token }, 200, cors);
+        }
+        if (path === '/wish/reset') {
+            await env.DB.prepare('DELETE FROM wish_reserv WHERE list_id = ?1').bind(id).run();
+            return json({ ok: true }, 200, cors);
+        }
+        await env.DB.batch([
+            env.DB.prepare('DELETE FROM wish_images WHERE item_id IN (SELECT id FROM wish_items WHERE list_id = ?1)').bind(id),
+            env.DB.prepare('DELETE FROM wish_reserv WHERE list_id = ?1').bind(id),
+            env.DB.prepare('DELETE FROM wish_items WHERE list_id = ?1').bind(id),
+            env.DB.prepare('DELETE FROM wishlists WHERE id = ?1').bind(id)
+        ]);
+        return json({ ok: true }, 200, cors);
+    }
+
+    // --- подарок: создать / изменить (image: {data,w,h} — новое фото, null — убрать, нет поля — не трогать) ---
+    if (path === '/wish/item/save') {
+        const b = await readJson(request, WISH_IMAGE_CHARS + 20_000);
+        const title = wishText(b.title, WISH_TITLE);
+        if (!title) throw new BadRequest('Напишите, что это за подарок');
+        const note = wishText(b.note, WISH_NOTE);
+        const link = cleanUrl(b.url);
+        const price = Math.round(Number(b.price) || 0);
+        if (price < 0 || price > 1e10) throw new BadRequest('Неверная цена');
+        const want = b.want ? 1 : 0;
+        let img;
+        if (b.image) {
+            const data = String(b.image.data || ''), w = Number(b.image.w), h = Number(b.image.h);
+            if (data.length > WISH_IMAGE_CHARS) return json({ error: 'Картинка слишком большая' }, 413, cors);
+            if (!IMAGE_RE.test(data)) throw new BadRequest('Это не похоже на картинку JPEG');
+            if (!Number.isInteger(w) || !Number.isInteger(h) || w < 1 || h < 1 || w > 4096 || h > 4096) throw new BadRequest('bad size');
+            const today = await env.DB.prepare(`SELECT COUNT(*) AS n FROM wish_items i JOIN wishlists w ON w.id = i.list_id
+                WHERE w.user_id = ?1 AND i.img_v > ?2`).bind(me.id, Date.now() - 86400e3).first();
+            if (today.n >= WISH_IMAGES_PER_DAY) return json({ error: `Можно загрузить не больше ${WISH_IMAGES_PER_DAY} фото в сутки` }, 429, cors);
+            img = { data, w, h };
+        } else if (b.image === null) img = null;
+        const now = Date.now();
+        let item;
+        if (b.id) {
+            const id = readUserId(b.id);
+            const cur = await env.DB.prepare('SELECT i.*, w.user_id FROM wish_items i JOIN wishlists w ON w.id = i.list_id WHERE i.id = ?1').bind(id).first();
+            if (!cur || cur.user_id !== me.id) return json({ error: 'Подарок не найден' }, 404, cors);
+            const iv = img ? now : img === null ? 0 : cur.img_v, iw = img ? img.w : img === null ? 0 : cur.w, ih = img ? img.h : img === null ? 0 : cur.h;
+            item = await env.DB.prepare(`UPDATE wish_items SET title = ?1, url = ?2, price = ?3, note = ?4, want = ?5, img_v = ?6, w = ?7, h = ?8, updated = ?9
+                WHERE id = ?10 RETURNING *`).bind(title, link, price, note, want, iv, iw, ih, now, id).first();
+        } else {
+            const list = await wishList(env, readUserId(b.list));
+            if (!list || list.user_id !== me.id) return json({ error: 'Список не найден' }, 404, cors);
+            const c = await env.DB.prepare('SELECT COUNT(*) AS n, COALESCE(MAX(pos), 0) AS p FROM wish_items WHERE list_id = ?1').bind(list.id).first();
+            if (c.n >= WISH_ITEMS_MAX) return json({ error: `В одном списке — не больше ${WISH_ITEMS_MAX} подарков` }, 429, cors);
+            item = await env.DB.prepare(`INSERT INTO wish_items (list_id, title, url, price, note, want, pos, img_v, w, h, created, updated)
+                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11) RETURNING *`)
+                .bind(list.id, title, link, price, note, want, c.p + 1, img ? now : 0, img ? img.w : 0, img ? img.h : 0, now).first();
+        }
+        if (img) await env.DB.prepare('INSERT INTO wish_images (item_id, data) VALUES (?1, ?2) ON CONFLICT(item_id) DO UPDATE SET data = excluded.data').bind(item.id, img.data).run();
+        else if (img === null) await env.DB.prepare('DELETE FROM wish_images WHERE item_id = ?1').bind(item.id).run();
+        await env.DB.prepare('UPDATE wishlists SET updated = ?1 WHERE id = ?2').bind(now, item.list_id).run();
+        return json({ item: itemOut(item) }, 200, cors);
+    }
+
+    if (path === '/wish/item/delete') {
+        const id = readUserId((await readJson(request)).id);
+        const cur = await env.DB.prepare('SELECT i.list_id, w.user_id FROM wish_items i JOIN wishlists w ON w.id = i.list_id WHERE i.id = ?1').bind(id).first();
+        if (!cur || cur.user_id !== me.id) return json({ error: 'Подарок не найден' }, 404, cors);
+        await env.DB.batch([
+            env.DB.prepare('DELETE FROM wish_images WHERE item_id = ?1').bind(id),
+            env.DB.prepare('DELETE FROM wish_reserv WHERE item_id = ?1').bind(id),
+            env.DB.prepare('DELETE FROM wish_items WHERE id = ?1').bind(id),
+            env.DB.prepare('UPDATE wishlists SET updated = ?1 WHERE id = ?2').bind(Date.now(), cur.list_id)
+        ]);
+        return json({ ok: true }, 200, cors);
+    }
+
+    // --- «Я подарю»: друг в ProdU (или кто открыл ссылку в приложении) бронирует подарок ---
+    if (path === '/wish/reserve') {
+        const b = await readJson(request);
+        const id = readUserId(b.item);
+        const row = await env.DB.prepare('SELECT w.*, i.id AS item_id FROM wish_items i JOIN wishlists w ON w.id = i.list_id WHERE i.id = ?1').bind(id).first();
+        const access = await wishAccess(env, me.id, row, String(b.t || ''));
+        if (access === 'none') return json({ error: 'Подарок не найден' }, 404, cors);
+        if (access === 'owner') throw new BadRequest('Свои подарки бронировать не нужно');
+        const cur = await env.DB.prepare('SELECT user_id FROM wish_reserv WHERE item_id = ?1').bind(id).first();
+        if (b.reserve) {
+            if (cur && cur.user_id !== me.id) return json({ error: 'Этот подарок уже кто-то дарит' }, 409, cors);
+            await env.DB.prepare(`INSERT INTO wish_reserv (item_id, list_id, user_id, name, created) VALUES (?1, ?2, ?3, ?4, ?5)
+                ON CONFLICT(item_id) DO NOTHING`).bind(id, row.id, me.id, me.display, Date.now()).run();
+        } else if (cur) {
+            if (cur.user_id !== me.id) return json({ error: 'Отменить бронь может только тот, кто её сделал' }, 403, cors);
+            await env.DB.prepare('DELETE FROM wish_reserv WHERE item_id = ?1').bind(id).run();
+        }
+        return json({ reserved: b.reserve ? { mine: true, name: me.display, anon: false } : null }, 200, cors);
+    }
+
+    // --- подтянуть название, цену и фото по ссылке на товар ---
+    if (path === '/wish/preview') {
+        return json(await wishPreview(cleanUrl(url.searchParams.get('url'))), 200, cors);
+    }
+
+    return json({ error: 'not found' }, 404, cors);
+}
+
+// Метаданные страницы товара (Open Graph, schema.org). Магазины часто не отдают их роботам — тогда просто вернём пусто.
+async function wishPreview(link) {
+    if (!link) return {};
+    const out = {};
+    const get = async (u, limit, accept) => {
+        const ctl = new AbortController();
+        const t = setTimeout(() => ctl.abort(), 7000);
+        try {
+            const r = await fetch(u, { redirect: 'follow', signal: ctl.signal, headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; ProdU-Wishlist/1.0; +link preview)', 'Accept': accept, 'Accept-Language': 'ru,en;q=0.8' } });
+            if (!r.ok || !r.body) return null;
+            const reader = r.body.getReader();
+            const parts = [];
+            let n = 0;
+            for (;;) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                n += value.length;
+                if (n > limit) { if (accept.startsWith('image')) { try { reader.cancel(); } catch {} return null; } parts.push(value.subarray(0, value.length - (n - limit))); try { reader.cancel(); } catch {} break; }
+                parts.push(value);
+            }
+            const buf = new Uint8Array(parts.reduce((s, p) => s + p.length, 0));
+            let o = 0;
+            for (const p of parts) { buf.set(p, o); o += p.length; }
+            return { buf, type: (r.headers.get('content-type') || '').toLowerCase(), url: r.url || u };
+        } catch { return null; } finally { clearTimeout(t); }
+    };
+    const page = await get(link, WISH_PREVIEW_HTML, 'text/html,application/xhtml+xml');
+    if (!page || !/html|xml/.test(page.type)) return out;
+    const html = new TextDecoder('utf-8', { fatal: false }).decode(page.buf);
+    const decode = s => s.replace(/&(#x?[0-9a-f]+|amp|lt|gt|quot|apos|nbsp);/gi, (m, e) => {
+        const map = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+        if (map[e.toLowerCase()]) return map[e.toLowerCase()];
+        const code = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+        return Number.isFinite(code) && code > 0 && code < 0x110000 ? String.fromCodePoint(code) : m;
+    }).replace(/\s+/g, ' ').trim();
+    const meta = name => {
+        const re = new RegExp(`<meta[^>]+(?:property|name|itemprop)=["']${name}["'][^>]*>`, 'i');
+        const tag = re.exec(html);
+        if (!tag) return '';
+        const c = /content=["']([^"']*)["']/i.exec(tag[0]);
+        return c ? decode(c[1]) : '';
+    };
+    const title = meta('og:title') || meta('twitter:title') || ((/<title[^>]*>([^<]*)<\/title>/i.exec(html) || [])[1] ? decode(/<title[^>]*>([^<]*)<\/title>/i.exec(html)[1]) : '');
+    if (title) out.title = [...title].slice(0, WISH_TITLE).join('');
+    const priceRaw = meta('product:price:amount') || meta('og:price:amount') || meta('price') || ((/"price"\s*:\s*"?(\d[\d\s.,]*)/i.exec(html) || [])[1] || '');
+    const price = Number(String(priceRaw).replace(/\s/g, '').replace(',', '.'));
+    if (price > 0 && price < 1e10) out.price = Math.round(price);
+    let img = meta('og:image:secure_url') || meta('og:image') || meta('twitter:image');
+    if (img) {
+        try {
+            img = new URL(img, page.url).href;
+            if (/^https?:/.test(img)) {
+                const pic = await get(img, WISH_PREVIEW_IMG, 'image/avif,image/webp,image/jpeg,image/png,image/*');
+                if (pic && /^image\/(jpeg|png|webp|gif|avif)/.test(pic.type)) {
+                    let s = '';
+                    for (let i = 0; i < pic.buf.length; i += 0x8000) s += String.fromCharCode.apply(null, pic.buf.subarray(i, i + 0x8000));
+                    out.image = `data:${pic.type.split(';')[0]};base64,${btoa(s)}`;
+                }
+            }
+        } catch {}
+    }
+    return out;
+}
+
+// ---------- публичная страница списка: /w/<токен>, /w/<токен>/img/<id>, /w/<токен>/reserve ----------
+async function handleWishPublic(request, url, env) {
+    const m = /^\/w\/([A-Za-z0-9_-]{8,40})(?:\/(img)\/(\d+)|\/(reserve))?\/?$/.exec(url.pathname);
+    if (!m) return null;
+    const token = m[1];
+    const list = await env.DB.prepare('SELECT * FROM wishlists WHERE token = ?1').bind(token).first();
+    const ok = list && list.vis === 'link';
+    if (m[2]) {
+        if (!ok) return new Response('Not found', { status: 404 });
+        const row = await env.DB.prepare('SELECT d.data FROM wish_items i JOIN wish_images d ON d.item_id = i.id WHERE i.id = ?1 AND i.list_id = ?2').bind(Number(m[3]), list.id).first();
+        if (!row) return new Response('Not found', { status: 404 });
+        const b64 = row.data.slice(row.data.indexOf(',') + 1);
+        return new Response(Uint8Array.from(atob(b64), c => c.charCodeAt(0)), {
+            headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff' }
+        });
+    }
+    if (m[4]) {
+        if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 });
+        if (!ok) return json({ error: 'Список закрыт владельцем' }, 404, {});
+        try {
+            return await wishGuestReserve(env, list, await readJson(request));
+        } catch (e) {
+            return json({ error: String(e.message || e) }, e instanceof BadRequest ? 400 : 500, {});
+        }
+    }
+    if (request.method !== 'GET' && request.method !== 'HEAD') return new Response('Method not allowed', { status: 405 });
+    if (!ok) return wishHtml(wishClosedPage(env), 404);
+    const owner = await env.DB.prepare('SELECT display AS login FROM users WHERE id = ?1').bind(list.user_id).first();
+    const items = await wishItemsWithReserv(env, list.id, 0, true);
+    return wishHtml(wishPage(env, url, list, owner ? owner.login : '', items), 200);
+}
+
+async function wishGuestReserve(env, list, b) {
+    const id = Number(b.item);
+    if (!Number.isSafeInteger(id) || id <= 0) throw new BadRequest('bad item');
+    const item = await env.DB.prepare('SELECT id FROM wish_items WHERE id = ?1 AND list_id = ?2').bind(id, list.id).first();
+    if (!item) return json({ error: 'Подарок не найден' }, 404, {});
+    const cur = await env.DB.prepare('SELECT user_id, secret FROM wish_reserv WHERE item_id = ?1').bind(id).first();
+    if (b.cancel) {
+        // отменить может только тот, кто бронировал: у него в браузере хранится секрет
+        if (!cur) return json({ reserved: null }, 200, {});
+        if (cur.user_id != null || !sameString(await sha256b64u(enc(String(b.cancel))), cur.secret)) return json({ error: 'Эту бронь сделал кто-то другой' }, 403, {});
+        await env.DB.prepare('DELETE FROM wish_reserv WHERE item_id = ?1').bind(id).run();
+        return json({ reserved: null }, 200, {});
+    }
+    if (cur) return json({ error: 'Этот подарок уже кто-то дарит' }, 409, {});
+    const recent = await env.DB.prepare('SELECT COUNT(*) AS n FROM wish_reserv WHERE list_id = ?1 AND user_id IS NULL AND created > ?2').bind(list.id, Date.now() - 3600e3).first();
+    if (recent.n >= WISH_ANON_PER_HOUR) return json({ error: 'Слишком много броней за час — попробуйте позже' }, 429, {});
+    const name = wishText(b.name, WISH_NAME);
+    const secret = randomB64u(16);
+    await env.DB.prepare('INSERT INTO wish_reserv (item_id, list_id, user_id, name, secret, created) VALUES (?1, ?2, NULL, ?3, ?4, ?5) ON CONFLICT(item_id) DO NOTHING')
+        .bind(id, list.id, name, await sha256b64u(enc(secret)), Date.now()).run();
+    return json({ reserved: { mine: true, name, anon: true }, secret }, 200, {});
+}
+
+const hEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function wishHtml(body, status) {
+    return new Response(body, { status, headers: {
+        'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer',
+        'Content-Security-Policy': "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    } });
+}
+const WISH_CSS = `
+:root { color-scheme: light dark; --bg: #f4f1ec; --card: rgba(255,255,255,.78); --tile: #fff; --text: #1a1a1a; --muted: rgba(26,26,26,.6); --edge: rgba(0,0,0,.07);
+  --accent: #70e000; --accent2: #9ef01a; --chip: rgba(0,0,0,.06); --danger: #ff4757; }
+@media (prefers-color-scheme: dark) { :root { --bg: #1d1c1c; --card: rgba(48,48,48,.82); --tile: #2a2a2a; --text: #fff; --muted: rgba(255,255,255,.62); --edge: rgba(255,255,255,.08); --chip: rgba(255,255,255,.1); } }
+* { box-sizing: border-box; }
+body { margin: 0; font: 16px/1.45 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: var(--bg); color: var(--text);
+  background-image: radial-gradient(60% 40% at 15% 0%, rgba(158,240,26,.25), transparent 70%), radial-gradient(50% 35% at 100% 20%, rgba(112,224,0,.14), transparent 70%); background-attachment: fixed; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 28px 16px 60px; }
+.head { background: var(--card); border: 1px solid var(--edge); border-radius: 28px; padding: 22px 22px 20px; backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 10px 30px rgba(0,0,0,.08); }
+.emoji { font-size: 44px; line-height: 1; }
+h1 { margin: 10px 0 4px; font-size: 30px; line-height: 1.15; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.by { color: var(--muted); font-size: 15px; }
+.note { margin-top: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chip { background: var(--chip); border-radius: 999px; padding: 6px 12px; font-size: 14px; font-weight: 600; }
+.banner { margin-top: 14px; padding: 10px 14px; border-radius: 16px; background: rgba(255,165,2,.16); font-size: 14px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; margin-top: 16px; }
+.item { background: var(--card); border: 1px solid var(--edge); border-radius: 24px; overflow: hidden; display: flex; flex-direction: column;
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 6px 20px rgba(0,0,0,.06); }
+.item.res { opacity: .62; }
+.pic { aspect-ratio: 4 / 3; background: var(--tile); display: grid; place-items: center; font-size: 46px; overflow: hidden; }
+.pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.t { font-weight: 700; font-size: 17px; overflow-wrap: anywhere; }
+.want { color: #e0a100; font-size: 13px; font-weight: 700; }
+.price { font-weight: 700; font-variant-numeric: tabular-nums; }
+.d { color: var(--muted); font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 6px; }
+.btn { appearance: none; border: 0; border-radius: 999px; padding: 9px 14px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 6px; color: #1a1a1a; background: linear-gradient(180deg, var(--accent2), var(--accent)); }
+.btn.sec { background: var(--chip); color: var(--text); }
+.btn:disabled { opacity: .6; cursor: default; }
+.btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.state { font-size: 13.5px; font-weight: 600; color: var(--muted); }
+.empty { text-align: center; color: var(--muted); padding: 40px 10px; }
+.foot { text-align: center; color: var(--muted); font-size: 14px; margin-top: 30px; }
+.foot a { color: inherit; font-weight: 700; }
+dialog { border: 0; border-radius: 24px; padding: 20px; max-width: 360px; width: calc(100% - 32px); background: var(--tile); color: var(--text); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+dialog::backdrop { background: rgba(0,0,0,.35); backdrop-filter: blur(3px); }
+dialog h2 { margin: 0 0 6px; font-size: 20px; }
+dialog p { margin: 0 0 12px; color: var(--muted); font-size: 14.5px; }
+dialog input { width: 100%; font: inherit; padding: 11px 14px; border-radius: 14px; border: 1px solid var(--edge); background: var(--bg); color: var(--text); margin-bottom: 12px; }
+dialog .row { display: flex; gap: 8px; justify-content: flex-end; }
+.msg { color: var(--danger); font-size: 14px; min-height: 1em; margin-bottom: 8px; }
+@media (max-width: 520px) { .grid { grid-template-columns: 1fr 1fr; gap: 10px; } .t { font-size: 15.5px; } .body { padding: 10px 11px 12px; } h1 { font-size: 26px; } }
+@media (max-width: 360px) { .grid { grid-template-columns: 1fr; } }
+`;
+function wishSiteLink(env) {
+    try { return env.SITE_URL && !env.SITE_URL.startsWith('mailto:') ? new URL(env.SITE_URL).href : ''; } catch { return ''; }
+}
+function wishClosedPage(env) {
+    const site = wishSiteLink(env);
+    return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>Вишлист недоступен</title><style>${WISH_CSS}</style></head><body><div class="wrap"><div class="head"><div class="emoji">🔒</div><h1>Список недоступен</h1>
+<div class="by">Владелец закрыл доступ по ссылке или удалил список.</div></div>${site ? `<div class="foot"><a href="${hEsc(site)}">ProdU</a></div>` : ''}</div></body></html>`;
+}
+const fmtRub = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽';
+function wishPage(env, url, list, ownerLogin, items) {
+    const base = `${url.origin}/w/${list.token}`;
+    const cover = items.find(i => i.img);
+    const site = wishSiteLink(env);
+    const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+    const date = list.date ? (([y, mo, d]) => `${+d} ${months[mo - 1]} ${y}`)(list.date.split('-').map(Number)) : '';
+    const plural = (n, a, b, c) => { const m = n % 100, k = n % 10; return m > 10 && m < 20 ? c : k === 1 ? a : k > 1 && k < 5 ? b : c; };
+    const desc = `${items.length} ${plural(items.length, 'подарок', 'подарка', 'подарков')}${ownerLogin ? ` · ${ownerLogin}` : ''}${list.note ? ' — ' + [...list.note].slice(0, 140).join('') : ''}`;
+    const card = i => {
+        const r = i.reserved;
+        return `<article class="item${r ? ' res' : ''}" data-id="${i.id}">
+<div class="pic">${i.img ? `<img src="${base}/img/${i.id}?v=${i.img.v}" alt="" loading="lazy" width="${i.img.w}" height="${i.img.h}">` : hEsc(list.emoji)}</div>
+<div class="body">${i.want ? '<div class="want">★ Очень хочу</div>' : ''}<div class="t">${hEsc(i.title)}</div>
+${i.price ? `<div class="price">${fmtRub(i.price)}</div>` : ''}${i.note ? `<div class="d">${hEsc(i.note)}</div>` : ''}
+<div class="acts">${i.url ? `<a class="btn sec" href="${hEsc(i.url)}" target="_blank" rel="noopener noreferrer nofollow">Где купить ↗</a>` : ''}
+<span class="rv" data-res="${r ? 1 : 0}" data-name="${r ? hEsc(r.name) : ''}"></span></div></div></article>`;
+    };
+    return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex"><title>${hEsc(list.title)} — вишлист${ownerLogin ? ' ' + hEsc(ownerLogin) : ''}</title>
+<meta name="description" content="${hEsc(desc)}">
+<meta property="og:type" content="website"><meta property="og:title" content="${hEsc(list.emoji + ' ' + list.title)}"><meta property="og:description" content="${hEsc(desc)}">
+<meta property="og:url" content="${hEsc(base)}">${cover ? `<meta property="og:image" content="${base}/img/${cover.id}?v=${cover.img.v}"><meta name="twitter:card" content="summary_large_image">` : ''}
+<meta name="theme-color" content="#70e000"><style>${WISH_CSS}</style></head><body><main class="wrap">
+<header class="head"><div class="emoji" aria-hidden="true">${hEsc(list.emoji)}</div><h1>${hEsc(list.title)}</h1>
+<div class="by">Вишлист${ownerLogin ? ` <b>${hEsc(ownerLogin)}</b>` : ''}</div>${list.note ? `<div class="note">${hEsc(list.note)}</div>` : ''}
+<div class="chips"><span class="chip">${items.length} ${plural(items.length, 'подарок', 'подарка', 'подарков')}</span>${date ? `<span class="chip">📅 ${date}</span>` : ''}</div>
+<div class="banner" id="ownerBanner" hidden>Так список видят гости. Брони скрыты, чтобы не испортить вам сюрприз.</div>
+<div class="banner" id="guestHint">Нажмите «Я подарю» на подарке, который выбрали, — остальные увидят, что он занят, и не купят то же самое. Владелец списка брони не видит.</div></header>
+<section class="grid" aria-label="Подарки">${items.length ? items.map(card).join('') : '<div class="empty">Здесь пока нет подарков.</div>'}</section>
+<div class="foot">Сделано в ${site ? `<a href="${hEsc(site)}">ProdU</a>` : 'ProdU'} — планер, дневник и вишлисты</div></main>
+<dialog id="dlg"><h2>Я подарю это</h2><p>Подарок отметится как занятый, чтобы его не купил кто-то ещё. Владелец списка этого не увидит.</p>
+<input id="nm" maxlength="40" placeholder="Ваше имя (необязательно)" autocomplete="name"><div class="msg" id="err" role="alert"></div>
+<div class="row"><button class="btn sec" id="no" type="button">Отмена</button><button class="btn" id="yes" type="button">Забронировать</button></div></dialog>
+<script>
+(function () {
+  var base = ${JSON.stringify(base)}, KEY = 'produ_wish_' + ${JSON.stringify(list.token)};
+  var owner = /[?&]owner=1/.test(location.search);
+  var mine = {}; try { mine = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) {}
+  var save = function () { try { localStorage.setItem(KEY, JSON.stringify(mine)); } catch (e) {} };
+  if (owner) { document.getElementById('ownerBanner').hidden = false; document.getElementById('guestHint').hidden = true; }
+  function paint(el) {
+    var id = el.closest('.item').dataset.id, res = el.dataset.res === '1', name = el.dataset.name, my = !!mine[id];
+    var art = el.closest('.item');
+    el.textContent = '';
+    if (owner) { art.classList.remove('res'); return; }
+    art.classList.toggle('res', res && !my);
+    if (res && my) {
+      var s = document.createElement('span'); s.className = 'state'; s.textContent = 'Вы дарите это 🎁'; el.appendChild(s);
+      var c = document.createElement('button'); c.className = 'btn sec'; c.type = 'button'; c.textContent = 'Отменить'; c.onclick = function () { act(id, true, null, c); }; el.appendChild(c);
+    } else if (res) {
+      var s2 = document.createElement('span'); s2.className = 'state'; s2.textContent = name ? 'Уже дарит: ' + name : 'Уже кто-то дарит'; el.appendChild(s2);
+    } else {
+      var b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.textContent = 'Я подарю'; b.onclick = function () { ask(id); }; el.appendChild(b);
+    }
+  }
+  var dlg = document.getElementById('dlg'), nm = document.getElementById('nm'), err = document.getElementById('err'), cur = null;
+  try { nm.value = localStorage.getItem('produ_wish_name') || ''; } catch (e) {}
+  function ask(id) { cur = id; err.textContent = ''; if (dlg.showModal) { dlg.showModal(); nm.focus(); } else act(id, false, '', null); }
+  document.getElementById('no').onclick = function () { dlg.close(); };
+  document.getElementById('yes').onclick = function () {
+    var n = nm.value.trim(); try { localStorage.setItem('produ_wish_name', n); } catch (e) {}
+    act(cur, false, n, document.getElementById('yes'));
+  };
+  function act(id, cancel, name, btn) {
+    if (btn) btn.disabled = true;
+    fetch(base + '/reserve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cancel ? { item: +id, cancel: mine[id] } : { item: +id, name: name || '' }) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, j: j }; }); })
+      .then(function (r) {
+        var el = document.querySelector('.item[data-id="' + id + '"] .rv');
+        if (r.ok) {
+          if (cancel) { delete mine[id]; el.dataset.res = '0'; }
+          else { mine[id] = r.j.secret; el.dataset.res = '1'; el.dataset.name = name || ''; }
+          save(); paint(el); if (dlg.open) dlg.close();
+        } else {
+          if (r.status === 409) { el.dataset.res = '1'; paint(el); }
+          if (dlg.open) err.textContent = r.j.error || 'Не получилось'; else alert(r.j.error || 'Не получилось');
+        }
+      })
+      .catch(function () { if (dlg.open) err.textContent = 'Нет связи — попробуйте ещё раз'; })
+      .finally(function () { if (btn) btn.disabled = false; });
+  }
+  document.querySelectorAll('.rv').forEach(paint);
+})();
+</script></body></html>`;
+}
+
 function enc(s) { return new TextEncoder().encode(s); }
 function concat(...arrs) {
     const out = new Uint8Array(arrs.reduce((n, a) => n + a.length, 0));
