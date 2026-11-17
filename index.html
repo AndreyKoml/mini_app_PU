@@ -1883,6 +1883,7 @@
     <div class="lg-backdrop" aria-hidden="true"></div>
 
     <div class="top-left">
+        <button class="theme-btn notif-btn" id="notifBtn" type="button" onclick="openNotifs()" aria-label="Уведомления" title="Уведомления" style="order: 5;"><svg viewBox="0 0 24 24"><path d="M12 2.8a6.2 6.2 0 0 0-6.2 6.2v3.5l-1.6 2.9a1.1 1.1 0 0 0 1 1.6h13.6a1.1 1.1 0 0 0 1-1.6l-1.6-2.9V9A6.2 6.2 0 0 0 12 2.8Z" fill="currentColor"/><path d="M9.3 19.3a2.8 2.8 0 0 0 5.4 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg><span class="notif-badge" id="notifBadge" aria-hidden="true"></span></button>
         <button class="theme-btn fx-btn" id="fxBtn" type="button" hidden onclick="fxBtnClick(event)" onpointerdown="fxHoldStart(event)" oncontextmenu="return false" aria-haspopup="true" aria-expanded="false" aria-describedby="fxHoldHint"></button>
         <span class="fx-bubble" id="fxBubble" role="status" aria-live="polite" hidden></span>
         <div class="fx-menu" id="fxMenu" hidden role="menu">
@@ -1977,6 +1978,19 @@
             <div class="card-header" id="likersTitle">❤️ Нравится</div>
             <div id="likersList" class="likers-list"></div>
             <button type="button" class="glass-btn secondary" onclick="closeLikers()" style="margin: 12px 0 0;">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- Сообщение от разработчика -->
+    <div class="modal dev-modal" id="devModal" hidden onclick="if (event.target === this) closeDevModal()">
+        <div class="modal-card dev-card" role="dialog" aria-modal="true" aria-labelledby="devTitle" aria-describedby="devBody">
+            <div class="dev-logo" aria-hidden="true"><svg id="devLogo" viewBox="0 0 100 100"><g fill="none" stroke="#c4f63a" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"><path/><path/><path/></g></svg></div>
+            <div class="dev-from">Сообщение от разработчика</div>
+            <h2 id="devTitle"></h2>
+            <div class="dev-body" id="devBody"></div>
+            <label class="check-label dev-check" id="devOffRow"><input type="checkbox" id="devOff"> Не показывать при запуске</label>
+            <button type="button" class="glass-btn" id="devOk" onclick="closeDevModal()">Понятно</button>
+            <button type="button" class="dev-more" onclick="closeDevModal(); openNotifs()">Все уведомления</button>
         </div>
     </div>
 
@@ -2293,6 +2307,19 @@
                 </div>
             </div>
             <div id="customListsContainer" class="full-width lst-wrap"></div>
+        </div>
+
+        <!-- УВЕДОМЛЕНИЯ -->
+        <div class="dashboard" id="module-notifs">
+            <div class="glass-card full-width nf-tools">
+                <div class="nf-chips" id="nfChips" role="toolbar" aria-label="Показать уведомления"></div>
+                <div class="nf-acts">
+                    <button type="button" class="glass-btn secondary compact" id="nfReadAll" onclick="nfReadAll()">Прочитать все</button>
+                    <button type="button" class="glass-btn secondary compact" id="nfClear" onclick="nfClear()">Очистить</button>
+                    <button type="button" class="glass-btn secondary compact" onclick="switchTab('reminders')">Настроить push</button>
+                </div>
+            </div>
+            <div class="full-width nf-list" id="nfList" aria-live="polite"></div>
         </div>
 
         <!-- ВИШЛИСТЫ -->
@@ -5569,6 +5596,7 @@
                     if (!auth) return;
                     social = r.body;
                     socialLoadedAt = Date.now();
+                    try { nfFromSocial(social); } catch (e) {}
                     try { localStorage.setItem('produ_social', JSON.stringify({ owner: socialOwner, data: social })); } catch (e) {}
                     setMsg('socMsg', '');
                     if (chat.peer && !social.friends.some(f => f.id === chat.peer.id)) {
@@ -5722,6 +5750,7 @@
         // --- переписка ---
         function openChat(id) {
             id = Number(id);
+            try { notifReadWhere(n => n.act && n.act.chat === id); } catch (e) {}
             const f = social.friends.find(x => x.id === id);
             if (!f) { setMsg('socMsg', 'Переписка доступна только с друзьями.'); return; }
             if (!socialActive()) switchTab('social', dockIcon('social'));
@@ -6390,6 +6419,7 @@
         }
         function openPerson(id) {
             id = Number(id);
+            try { notifReadWhere(n => n.act && n.act.person === id); } catch (e) {}
             if (!auth || !id) return;
             if (id === social.me || (myProfile && myProfile.id === id)) { openAccount(); return; }
             const hint = personHint(id);
@@ -7701,6 +7731,7 @@
         };
         const uiIc = k => `<span class="ui-ic" aria-hidden="true">${UI_ICONS[k]}</span>`;
         const SEC_ICONS = {
+            bell: ['<svg viewBox="0 0 24 24"><path d="M12 2.8a6.2 6.2 0 0 0-6.2 6.2v3.5l-1.6 2.9a1.1 1.1 0 0 0 1 1.6h13.6a1.1 1.1 0 0 0 1-1.6l-1.6-2.9V9A6.2 6.2 0 0 0 12 2.8Z" fill="currentColor"/><path d="M9.3 19.3a2.8 2.8 0 0 0 5.4 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>', '<svg viewBox="0 0 24 24"><path d="M12 2.8a6.2 6.2 0 0 0-6.2 6.2v3.5l-1.6 2.9a1.1 1.1 0 0 0 1 1.6h13.6a1.1 1.1 0 0 0 1-1.6l-1.6-2.9V9A6.2 6.2 0 0 0 12 2.8Z" fill="currentColor"/><path d="M9.3 19.3a2.8 2.8 0 0 0 5.4 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>'],
             gift: ['<svg viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"><rect x="4.5" y="15" width="39" height="10" rx="3"/><path d="M8.5 25v14.5a4 4 0 0 0 4 4h23a4 4 0 0 0 4-4V25M24 15v28.5"/><path d="M24 15c-2.5-6.5-12.5-9-12.5-3.2 0 2.8 5.5 3.2 12.5 3.2Zm0 0c2.5-6.5 12.5-9 12.5-3.2 0 2.8-5.5 3.2-12.5 3.2Z"/></g></svg>', '<svg viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="4.5" stroke-linejoin="round" stroke-linecap="round"><rect x="4.5" y="15" width="39" height="10" rx="3"/><path d="M8.5 25v14.5a4 4 0 0 0 4 4h23a4 4 0 0 0 4-4V25M24 15v28.5"/><path d="M24 15c-2.5-6.5-12.5-9-12.5-3.2 0 2.8 5.5 3.2 12.5 3.2Zm0 0c2.5-6.5 12.5-9 12.5-3.2 0 2.8-5.5 3.2-12.5 3.2Z"/></g></svg>'],
             friend: [UI_ICONS.friend, UI_ICONS.friend],
             check: ['<svg viewBox="0 0 49 49"><path d="M10 2.5h29a7.5 7.5 0 0 1 7.5 7.5v29a7.5 7.5 0 0 1-7.5 7.5H10A7.5 7.5 0 0 1 2.5 39V10A7.5 7.5 0 0 1 10 2.5Z" fill="none" stroke="currentColor" stroke-width="5"/><path d="M38.57 15 21.23 32.33M11 22.1l12 12" fill="none" stroke="currentColor" stroke-width="5"/></svg>', '<svg viewBox="0 0 49 49"><path d="M10 2.5h29a7.5 7.5 0 0 1 7.5 7.5v29a7.5 7.5 0 0 1-7.5 7.5H10A7.5 7.5 0 0 1 2.5 39V10A7.5 7.5 0 0 1 10 2.5Z" fill="none" stroke="currentColor" stroke-width="5"/><path d="M38.57 15 21.23 32.33M11 22.1l12 12" fill="none" stroke="currentColor" stroke-width="5"/></svg>'],
@@ -7718,13 +7749,13 @@
         };
         // какой значок у вкладки виджета и у заголовка раздела
         const TAB_ICON = { calendar: 'calendar', reminders: 'reminders', timer: 'timer', tasks: 'check', goal: 'goal', lists: 'list', diary: 'diary', finance: 'finance', cards: 'scan' };
-        const PAGE_ICON = { wish: 'gift', social: 'friend', calendar: 'calendar', reminders: 'reminders', timer: 'timer', tasks: 'list', diary: 'diary', finance: 'finance', cards: 'scan' };
+        const PAGE_ICON = { notifs: 'bell', wish: 'gift', social: 'friend', calendar: 'calendar', reminders: 'reminders', timer: 'timer', tasks: 'list', diary: 'diary', finance: 'finance', cards: 'scan' };
         // значки типов в календаре: дело — как «Задачи», напоминание — как раздел «Напоминания», событие — «Закрепить»
         const typeIc = t => t === 'event' ? uiIc('pin') : secIcon(t === 'reminder' ? 'reminders' : 'check');
         const secIcon = id => SEC_ICONS[id] ? `<span class="sec-ic"><span class="ic-l">${SEC_ICONS[id][0]}</span><span class="ic-d">${SEC_ICONS[id][1]}</span></span>` : '';
         document.querySelectorAll('[data-sec]').forEach(el => { el.innerHTML = secIcon(el.dataset.sec); });
         const PAGE_TITLES = { calendar: 'Календарь', reminders: 'Напоминания', timer: 'Таймер', diary: 'Дневник', social: 'Друзья',
-                              tasks: 'Списки', finance: 'Финансы', cards: 'Карты', account: 'Профиль', settings: 'Настройки', person: 'Профиль', wish: 'Вишлисты' };
+                              tasks: 'Списки', finance: 'Финансы', cards: 'Карты', account: 'Профиль', settings: 'Настройки', person: 'Профиль', wish: 'Вишлисты', notifs: 'Уведомления' };
         Object.entries(PAGE_TITLES).forEach(([id, title]) => {
             const m = $('module-' + id);
             if (!m) return;
@@ -8108,6 +8139,7 @@
             if (moduleName === 'reminders') { renderReminders(); renderNotifStatus(); }
             if (moduleName === 'timer') renderTimer();
             if (moduleName === 'wish') onWishTab();
+            if (moduleName === 'notifs') renderNotifs();
             document.documentElement.classList.toggle('no-anchor', moduleName === 'account');
             if (moduleName === 'account') { renderAccount(); loadServerConfig(); setProfileHeadTarget(profileHeadWanted(), true); loadMyProfile(); }
             if (moduleName === 'settings') { renderAccount(); loadMyProfile(); }
@@ -8604,6 +8636,7 @@
             if (ev.notifyBefore) body = `${prettyDate(ev.date)} в ${ev.time} (${NOTIFY_LABELS[ev.notifyBefore]})`;
             else body = late ? `Было запланировано: ${prettyDate(ev.date).toLowerCase()}, ${ev.time}` : `Сейчас ${ev.time}`;
             sysNotify(title, body, ev.id ? 'produ-' + ev.id : 'produ-test');
+            notifAdd({ id: ev.id ? `rem-${ev.id}-${ev.date}-${ev.time}` : undefined, src: 'reminder', title, body, act: { tab: 'reminders' } });
             showToast(title, body);
             playBeep();
             if (navigator.vibrate) { try { navigator.vibrate([200, 100, 200]); } catch (e) {} }
@@ -9326,6 +9359,7 @@
             const label = t.label || 'Таймер', total = t.total, endAt = t.endAt;
             Object.assign(t, { status: 'idle', total: t.base, remaining: t.base, endAt: 0 });
             saveTimer();
+            notifAdd({ id: 'tm-' + endAt, src: 'timer', title: '⏰ ' + label, body: `Время вышло (${fmtClock(total)})`, act: { tab: 'timer' } });
             if (silent) { showToast('⏰ ' + label, 'Время вышло, пока приложение было закрыто.', 8000); renderTimer(); return; }
             $('tmAlarmTitle').textContent = 'Время вышло!';
             $('tmAlarmSub').textContent = `${label} · ${fmtClock(total)}`;
@@ -9398,6 +9432,7 @@
             if (silent) p.status = 'idle', p.endAt = 0;      // время давно прошло — следующий этап не запускаем сам
             saveTimer();
             const title = was === 'focus' ? '🍅 Помидор готов! +2 монеты' : '☕ Перерыв закончился';
+            notifAdd({ id: 'pomo-' + endAt, src: 'timer', title, body: was === 'focus' ? 'Пора сделать перерыв.' : 'Пора вернуться к делу.', act: { tab: 'timer' } });
             const body = was === 'focus' ? (p.phase === 'long' ? 'Время для длинного перерыва.' : 'Сделайте короткий перерыв.') : 'Пора вернуться к делу.';
             showToast(title, silent ? body + ' (пока приложение было закрыто)' : body, 8000);
             if (!silent) {
@@ -10653,7 +10688,7 @@
     window.KB_CFG = {
         app: 'ProdU', self: 'index.html',
         sections: [['home', 'Главная'], ['tasks', 'Задачи, цели и списки'], ['reminders', 'Напоминания'], ['calendar', 'Календарь'], ['timer', 'Таймер'],
-            ['diary', 'Дневник'], ['finance', 'Финансы'], ['cards', 'Карты'], ['social', 'Друзья и чаты']],
+            ['diary', 'Дневник'], ['finance', 'Финансы'], ['cards', 'Карты'], ['social', 'Друзья и чаты'], ['notifs', 'Уведомления']],
         go: id => switchTab(id),
         current: () => currentTab,
         scope: () => document.querySelector('#mainAppContainer .dashboard.active'),
@@ -10855,6 +10890,310 @@
         };
     })();
     </script>
+    <!-- ===== Уведомления: всё, что приходило от разделов приложения, и объявления разработчика ===== -->
+    <style>
+        .notif-btn { position: relative; flex: none; }
+        .notif-btn svg { width: 22px; height: 22px; display: block; }
+        .notif-badge { position: absolute; top: -3px; right: -3px; min-width: 19px; height: 19px; padding: 0 5px; box-sizing: border-box; border-radius: 999px;
+            background: var(--danger, #ff4757); color: #fff; font-size: 11.5px; font-weight: 800; line-height: 19px; text-align: center; box-shadow: 0 0 0 2px var(--bg-color); pointer-events: none; }
+        .notif-badge:empty { display: none; }
+        .notif-btn.ring svg { animation: nfRing .9s cubic-bezier(.3, 1.6, .5, 1); transform-origin: 50% 12%; }
+        @keyframes nfRing { 15% { transform: rotate(14deg); } 30% { transform: rotate(-12deg); } 45% { transform: rotate(9deg); } 60% { transform: rotate(-6deg); } 75% { transform: rotate(3deg); } }
+        @media (prefers-reduced-motion: reduce) { .notif-btn.ring svg { animation: none; } }
+        /* раздел */
+        .nf-tools { display: flex; flex-direction: column; gap: 10px; }
+        .nf-chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding: 2px; margin: -2px; }
+        .nf-chips::-webkit-scrollbar { display: none; }
+        .nf-chips button { flex: none; border: none; border-radius: 999px; padding: 8px 13px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; color: inherit;
+            background: rgba(128, 128, 128, .13); }
+        .nf-chips button[aria-pressed="true"] { background: var(--pill, #fff); box-shadow: var(--pill-shadow, 0 2px 8px rgba(0,0,0,.12)); }
+        .nf-chips small { opacity: .6; font-weight: 700; margin-left: 4px; }
+        .nf-acts { display: flex; flex-wrap: wrap; gap: 6px; }
+        .nf-list { display: flex; flex-direction: column; gap: 8px; }
+        .nf-day { font-size: 13px; font-weight: 800; opacity: .6; text-transform: uppercase; letter-spacing: .04em; margin: 8px 6px 0; }
+        .nf-item { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer; border: 1px solid var(--surface-edge, var(--glass-border));
+            background: var(--surface, var(--glass-bg)); border-radius: 20px; padding: 12px 14px; position: relative; box-shadow: var(--tile-shadow, none); }
+        .nf-item:hover { transform: translateY(-1px); }
+        .nf-item:focus-visible { outline: 3px solid var(--accent-color); outline-offset: 2px; }
+        .nf-item.unread::after { content: ''; position: absolute; top: 16px; right: 14px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent-color, #8fe11a); }
+        .nf-item.dev { border-color: color-mix(in srgb, #c4f63a 55%, transparent); }
+        .nf-ic { flex: none; width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; font-size: 21px; background: var(--tile, rgba(255,255,255,.6)); }
+        .nf-ic.logo { background: #fff; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06); }
+        .nf-ic.logo svg { width: 30px; height: 30px; }
+        .nf-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; padding-right: 14px; }
+        .nf-top { display: flex; gap: 8px; align-items: baseline; }
+        .nf-top b { flex: 1; min-width: 0; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .nf-top time { flex: none; font-size: 12.5px; opacity: .55; font-variant-numeric: tabular-nums; }
+        .nf-src { font-size: 12.5px; font-weight: 700; opacity: .55; }
+        .nf-text { font-size: 14px; opacity: .8; line-height: 1.4; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
+        .nf-empty { text-align: center; opacity: .7; padding: 28px 12px; line-height: 1.5; }
+        .nf-empty .big { font-size: 40px; display: block; margin-bottom: 6px; }
+        /* окно разработчика */
+        .dev-modal { -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+        .dev-card { width: min(100%, 390px) !important; max-height: calc(100dvh - 32px); overflow-y: auto; overscroll-behavior: contain; text-align: center;
+            padding: 26px 22px 20px !important; display: flex; flex-direction: column; align-items: center; gap: 10px; animation: devIn .5s cubic-bezier(.2, 1.3, .4, 1);
+            background: color-mix(in srgb, var(--bg-color) 90%, transparent) !important; color: var(--text-color); }
+        @keyframes devIn { from { opacity: 0; transform: translateY(18px) scale(.94); } }
+        @media (prefers-reduced-motion: reduce) { .dev-card { animation: none; } }
+        .dev-logo { width: 108px; height: 108px; border-radius: 32px; background: #fff; display: grid; place-items: center; flex: none;
+            box-shadow: 0 10px 30px rgba(112, 224, 0, .22), 0 2px 6px rgba(0, 0, 0, .08), inset 0 0 0 1px rgba(0, 0, 0, .04); margin-bottom: 4px; }
+        .dev-logo svg { width: 80px; height: 80px; overflow: visible; }
+        .dev-from { font-size: 12.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; opacity: .55; }
+        .dev-card h2 { margin: 0; font-size: 21px; line-height: 1.25; }
+        .dev-body { text-align: left; font-size: 15px; line-height: 1.55; width: 100%; }
+        .dev-body p { margin: 0 0 10px; overflow-wrap: anywhere; }
+        .dev-body p.key { padding: 10px 12px; border-radius: 14px; background: color-mix(in srgb, #c4f63a 26%, transparent); font-weight: 600; }
+        .dev-check { align-self: flex-start; margin: 2px 0 4px !important; }
+        .dev-card .glass-btn { margin: 0; }
+        .dev-more { border: none; background: none; color: inherit; font: inherit; font-size: 14px; font-weight: 600; opacity: .65; cursor: pointer; padding: 6px 10px; border-radius: 10px; }
+        .dev-more:hover { opacity: 1; }
+    </style>
+    <script>
+        // ================= ЛОГОТИП-ЛИЦО: плавная анимация по кадрам 107 → 109 → 110 → 111 → 108 → снова 107 =================
+        // Каждый штрих — две кубические кривые с одинаковой структурой, поэтому между кадрами их можно плавно «перетекать».
+        const LogoFace = (() => {
+            const K = 0.5523;
+            const cap = (cx, cy, r) => [cx - r, cy, cx - r, cy - K * r, cx - K * r, cy - r, cx, cy - r, cx + K * r, cy - r, cx + r, cy - K * r, cx + r, cy];     // ∩
+            const cup = (cx, cy, r) => [cx - r, cy, cx - r, cy + K * r, cx - K * r, cy + r, cx, cy + r, cx + K * r, cy + r, cx + r, cy + K * r, cx + r, cy];     // U
+            const line = (x0, y, x1) => { const m = (x0 + x1) / 2, a = (m - x0) / 3; return [x0, y, x0 + a, y, m - a, y, m, y, m + a, y, x1 - a, y, x1, y]; };
+            // вертикальная палочка — «сложенная» кривая: вверх и обратно; из неё глаз раскрывается в дугу
+            const fold = (x, top, bot) => { const d = (bot - top) / 3; return [x, bot, x, bot - d, x, top + d, x, top, x, top + d, x, bot - d, x, bot]; };
+            const R = 16;
+            const F = {
+                107: [fold(20, 26.5, 44.5), cap(68, 43.7, R), cup(36, 60, R)],          // логотип
+                109: [fold(20, 26.5, 44.5), cap(68, 43.7, R), line(20, 76, 52)],        // улыбка распрямилась
+                110: [fold(20, 26.5, 44.5), cap(68, 43.7, R), line(34.5, 76, 66.5)],    // рот встал по центру
+                111: [cap(25.5, 43.7, R), cap(75.5, 43.7, R), line(34.5, 76, 66.5)],    // оба глаза — дугами
+                108: [cup(25.5, 27.8, R), cup(75.5, 27.8, R), line(34.5, 76, 66.5)]     // глаза-«улыбки»
+            };
+            // [кадр, переход в него (мс), пауза на нём (мс)]
+            const SEQ = [[109, 620, 320], [110, 480, 240], [111, 560, 320], [108, 560, 1000], [107, 780, 3200]];
+            const ease = t => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+            const d = a => `M${a[0].toFixed(2)} ${a[1].toFixed(2)}C${a.slice(2, 8).map(v => v.toFixed(2)).join(' ')} ${'C'}${a.slice(8).map(v => v.toFixed(2)).join(' ')}`;
+            const total = SEQ.reduce((s, [, m, h]) => s + m + h, 0);
+            function frameAt(t) {
+                let prev = 107;
+                for (const [f, move, hold] of SEQ) {
+                    if (t < move) { const k = ease(t / move); return F[prev].map((a, i) => a.map((v, j) => v + (F[f][i][j] - v) * k)); }
+                    t -= move;
+                    if (t < hold) return F[f];
+                    t -= hold;
+                    prev = f;
+                }
+                return F[107];
+            }
+            const svg = (cls = '') => `<svg class="${cls}" viewBox="0 0 100 100" aria-hidden="true"><g fill="none" stroke="#c4f63a" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">${F[107].map(a => `<path d="${d(a)}"/>`).join('')}</g></svg>`;
+            // живая анимация: начинается с паузы на логотипе, чтобы окно успело появиться
+            function play(svgEl) {
+                const paths = [...svgEl.querySelectorAll('path')];
+                let raf = 0, t0 = performance.now() - (total - 1600);
+                const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+                const tick = now => {
+                    const fr = frameAt((now - t0) % total);
+                    paths.forEach((p, i) => p.setAttribute('d', d(fr[i])));
+                    raf = requestAnimationFrame(tick);
+                };
+                if (!reduce) raf = requestAnimationFrame(tick);
+                return () => cancelAnimationFrame(raf);
+            }
+            return { svg, play, frames: F, frameAt, total };
+        })();
+
+        // ================= УВЕДОМЛЕНИЯ =================
+        // Встроенное объявление: показывается даже без связи с сервером (как раз когда она плохая).
+        const DEV_BUILTIN = [{
+            id: 'dev-b-2026-11-vpn', src: 'dev', popup: true, ts: Date.UTC(2026, 10, 17, 15, 0),
+            title: 'ProdU переезжает',
+            body: 'Сейчас у части интернет-провайдеров нестабильно работает связь с серверами ProdU: синхронизация, друзья, сообщения и вишлисты могут зависать или не загружаться.\n\n' +
+                '!Для стабильной работы сервиса рекомендуем включить VPN.\n\n' +
+                'Мы уже начали переносить ProdU на другую платформу — на это понадобится немного времени. Всё, что вы делаете в приложении, сохраняется на устройстве и отправится на сервер, как только связь наладится.\n\n' +
+                'Спасибо, что остаётесь с ProdU! 💚'
+        }];
+        const NF_SRC = { dev: ['logo', 'От разработчика'], reminder: ['🔔', 'Напоминания'], msg: ['💬', 'Сообщения'], friend: ['👤', 'Друзья'], timer: ['⏰', 'Таймер'] };
+        const NF_KEY = 'produ_notifs', NF_MAX = 200;
+        let nf = { items: [], off: {}, since: 0, seen: {} };
+        try { const v = JSON.parse(localStorage.getItem(NF_KEY)); if (v && Array.isArray(v.items)) nf = { ...nf, ...v }; } catch (e) {}
+        let nfFilter = 'all';
+        function nfSave() { try { localStorage.setItem(NF_KEY, JSON.stringify(nf)); } catch (e) {} }
+        const nfUnread = () => nf.items.filter(n => !n.read).length;
+
+        // добавить уведомление; одно и то же (по id) дважды не появится, даже если его удалили
+        function notifAdd(n) {
+            const id = n.id || `${n.src}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+            if (nf.seen[id]) return false;
+            nf.seen[id] = 1;
+            nf.items.unshift({ ts: Date.now(), read: false, ...n, id });
+            nf.items.sort((a, b) => b.ts - a.ts);
+            if (nf.items.length > NF_MAX) {
+                const keep = nf.items.filter(x => x.src === 'dev'), rest = nf.items.filter(x => x.src !== 'dev').slice(0, NF_MAX - keep.length);
+                nf.items = [...keep, ...rest].sort((a, b) => b.ts - a.ts);
+            }
+            const seenIds = Object.keys(nf.seen);
+            if (seenIds.length > 1500) seenIds.slice(0, 500).forEach(k => { if (!nf.items.some(x => x.id === k)) delete nf.seen[k]; });
+            nfSave();
+            nfBadge(true);
+            if (currentTab === 'notifs') renderNotifs();
+            return true;
+        }
+        function notifReadWhere(fn) {
+            let ch = false;
+            nf.items.forEach(n => { if (!n.read && fn(n)) { n.read = true; ch = true; } });
+            if (ch) { nfSave(); nfBadge(); if (currentTab === 'notifs') renderNotifs(); }
+        }
+        function nfBadge(ring) {
+            const b = $('notifBadge'), n = nfUnread();
+            if (b) b.textContent = n ? (n > 99 ? '99+' : n) : '';
+            const btn = $('notifBtn');
+            if (btn) {
+                btn.setAttribute('aria-label', n ? `Уведомления: ${n} ${ruPlural(n, 'новое', 'новых', 'новых')}` : 'Уведомления');
+                if (ring && n) { btn.classList.remove('ring'); void btn.offsetWidth; btn.classList.add('ring'); }
+            }
+        }
+
+        function openNotifs() { switchTab('notifs'); }
+        function setNfFilter(f) { nfFilter = f; renderNotifs(); }
+        function nfIcon(src) {
+            const ic = (NF_SRC[src] || ['🔔'])[0];
+            return ic === 'logo' ? `<span class="nf-ic logo" aria-hidden="true">${LogoFace.svg()}</span>` : `<span class="nf-ic" aria-hidden="true">${ic}</span>`;
+        }
+        function renderNotifs() {
+            const box = $('nfList');
+            if (!box) return;
+            const counts = {};
+            nf.items.forEach(n => { counts[n.src] = (counts[n.src] || 0) + 1; });
+            const chips = [['all', 'Все', nf.items.length], ...Object.entries(NF_SRC).filter(([k]) => counts[k]).map(([k, v]) => [k, v[1], counts[k]])];
+            if (nfFilter !== 'all' && !counts[nfFilter]) nfFilter = 'all';
+            $('nfChips').innerHTML = chips.map(([k, t, c]) => `<button type="button" aria-pressed="${k === nfFilter}" onclick="setNfFilter('${k}')">${t}<small>${c}</small></button>`).join('');
+            $('nfReadAll').hidden = !nfUnread();
+            $('nfClear').hidden = !nf.items.some(n => n.src !== 'dev');
+            const list = nf.items.filter(n => nfFilter === 'all' || n.src === nfFilter);
+            if (!list.length) {
+                box.innerHTML = `<div class="glass-card nf-empty"><span class="big" aria-hidden="true">🔕</span>Здесь будут напоминания, сообщения, заявки в друзья и новости от разработчика.</div>`;
+                return;
+            }
+            let html = '', day = '';
+            for (const n of list) {
+                const d = new Date(n.ts), dd = ymd(d);
+                if (dd !== day) { html += `<div class="nf-day">${prettyDate(dd)}</div>`; day = dd; }
+                const text = n.src === 'dev' ? n.body.replace(/^!/gm, '').replace(/\n{2,}/g, '\n') : n.body;
+                html += `<button type="button" class="nf-item${n.read ? '' : ' unread'}${n.src === 'dev' ? ' dev' : ''}" onclick="openNotif('${esc(n.id)}')">
+                    ${nfIcon(n.src)}<span class="nf-main"><span class="nf-top"><b>${esc(n.title)}</b><time>${pad(d.getHours())}:${pad(d.getMinutes())}</time></span>
+                    <span class="nf-src">${esc((NF_SRC[n.src] || ['', ''])[1])}</span>${text ? `<span class="nf-text">${esc(text)}</span>` : ''}</span></button>`;
+            }
+            box.innerHTML = html;
+        }
+        function openNotif(id) {
+            const n = nf.items.find(x => x.id === id);
+            if (!n) return;
+            if (!n.read) { n.read = true; nfSave(); nfBadge(); }
+            const a = n.act || {};
+            if (n.src === 'dev') return showDevModal(n, false);
+            if (a.chat) return openChatWhenReady(a.chat);
+            if (a.person) return openPerson(a.person);
+            if (a.tab) return switchTab(a.tab);
+            renderNotifs();
+        }
+        function nfReadAll() { notifReadWhere(() => true); }
+        function nfClear() {
+            if (!confirm('Удалить все уведомления, кроме сообщений от разработчика?')) return;
+            nf.items = nf.items.filter(n => n.src === 'dev');
+            nfSave(); nfBadge(); renderNotifs();
+        }
+
+        // ---- окно с сообщением разработчика ----
+        let devStop = null, devCur = null, devReturn = null;
+        function showDevModal(n, atStart) {
+            devCur = n;
+            devReturn = document.activeElement;
+            const paras = n.body.split(/\n{2,}/).map(p => p.startsWith('!') ? `<p class="key">${esc(p.slice(1))}</p>` : `<p>${esc(p).replace(/\n/g, '<br>')}</p>`).join('');
+            $('devTitle').textContent = n.title;
+            $('devBody').innerHTML = paras;
+            $('devOffRow').hidden = !n.popup;
+            $('devOff').checked = !!nf.off[n.id];
+            $('devModal').hidden = false;
+            if (devStop) devStop();
+            devStop = LogoFace.play($('devLogo'));
+            if (!n.read) { n.read = true; nfSave(); nfBadge(); if (currentTab === 'notifs') renderNotifs(); }
+            setTimeout(() => $('devOk').focus(), 60);
+        }
+        function closeDevModal() {
+            if ($('devModal').hidden) return;
+            if (devCur && devCur.popup) {
+                if ($('devOff').checked) nf.off[devCur.id] = 1; else delete nf.off[devCur.id];
+                nfSave();
+            }
+            $('devModal').hidden = true;
+            if (devStop) { devStop(); devStop = null; }
+            if (devReturn && devReturn.isConnected) try { devReturn.focus(); } catch (e) {}
+        }
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('devModal').hidden) { e.stopPropagation(); closeDevModal(); } }, true);
+
+        // после запуска: свежее объявление «показать окном», если его не отключили
+        let nfStarted = false;
+        function nfStartup() {
+            if (nfStarted) return;
+            nfStarted = true;
+            const n = nf.items.filter(x => x.src === 'dev' && x.popup && !nf.off[x.id]).sort((a, b) => b.ts - a.ts)[0];
+            if (n && $('devModal').hidden) showDevModal(n, true);
+        }
+
+        // ---- объявления с сервера ----
+        let nfFetching = false;
+        async function fetchNotices() {
+            if (!SERVER_BASE || nfFetching || location.protocol === 'file:') return;
+            nfFetching = true;
+            try {
+                const r = await api('/notices?since=' + (nf.since || 0), { useAuth: false, timeout: 15000 });
+                const list = (r.body.notices || []).slice().sort((a, b) => a.id - b.id);
+                let popup = null;
+                for (const x of list) {
+                    const item = { id: 'dev-s' + x.id, src: 'dev', title: x.title, body: x.body, ts: x.created, popup: !!x.popup };
+                    if (notifAdd(item) && x.popup) popup = nf.items.find(i => i.id === item.id);
+                    nf.since = Math.max(nf.since || 0, x.id);
+                }
+                nfSave();
+                if (popup && nfStarted && $('devModal').hidden && !nf.off[popup.id]) showDevModal(popup, true);
+            } catch (e) { /* нет связи — покажем позже */ }
+            finally { nfFetching = false; }
+        }
+
+        // ---- что приходит из других разделов ----
+        function nfFromSocial(s) {
+            if (!s || !auth) return;
+            (s.friends || []).forEach(f => {
+                const l = f.last;
+                if (!l || !f.unread || l.sender === s.me) return;
+                const body = l.voice ? '🎤 Голосовое' : l.img ? '📷 Фото' + (l.body ? ' · ' + l.body : '') : l.wish ? `🎁 Вишлист «${l.wish.title}»` : l.body;
+                notifAdd({ id: 'msg-' + l.id, src: 'msg', title: f.login, body: [...String(body || '')].slice(0, 200).join(''), ts: l.created, act: { chat: f.id } });
+            });
+            (s.incoming || []).forEach(p => notifAdd({ id: 'fr-' + p.id, src: 'friend', title: p.login, body: 'Хочет добавить вас в друзья', act: { person: p.id } }));
+        }
+
+        // встроенные объявления — сразу в список
+        DEV_BUILTIN.forEach(n => notifAdd({ ...n }));
+        nfBadge();
+        setTimeout(fetchNotices, 4000);
+        setInterval(fetchNotices, 30 * 60e3);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) fetchNotices(); });
+        if (navigator.serviceWorker) navigator.serviceWorker.addEventListener('message', e => {
+            const m = e.data || {};
+            if (m.type === 'notices') fetchNotices();
+            if (m.type === 'openNotifs') openNotifs();
+        });
+        if (location.hash === '#notifs') { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} openNotifs(); }
+        window.addEventListener('hashchange', () => { if (location.hash === '#notifs') { try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} openNotifs(); } });
+        // окно — когда уйдёт заставка (если заставки уже нет — чуть позже загрузки)
+        (function waitSplash() {
+            const sp = $('splash');
+            if (!sp) { setTimeout(nfStartup, 500); return; }
+            const mo = new MutationObserver(() => {
+                if (!sp.isConnected || sp.classList.contains('hide')) { mo.disconnect(); setTimeout(nfStartup, 450); }
+            });
+            mo.observe(sp, { attributes: true, attributeFilter: ['class'] });
+            mo.observe(document.body, { childList: true });
+        })();
+    </script>
+
     <!-- ===== Вишлисты: списки подарков, ссылки, фото, «Я подарю» и публичная страница ===== -->
     <style>
         .wish-out { text-align: center; display: grid; gap: 10px; justify-items: center; padding: 26px 20px !important; }

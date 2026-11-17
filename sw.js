@@ -11,7 +11,7 @@
  *     при закрытой странице нужен сервер, который пришлёт push в нужное время).
  */
 
-const CACHE = 'produ-v20';
+const CACHE = 'produ-v21';
 const PRECACHE = ['./', './index.html', './sport.html', './team.html', './winter.html', './manifest.json', './icon_newyear.png', './icon-192.png', './icon-512.png'];
 
 // ---------- IndexedDB (страница кладёт сюда список напоминаний) ----------
@@ -152,6 +152,20 @@ self.addEventListener('push', event => {
         event.waitUntil(handleMessagePush(payload));
         return;
     }
+    // объявление разработчика: открытые вкладки сразу подтянут его в «Уведомления»
+    if (payload.kind === 'dev') {
+        event.waitUntil((async () => {
+            const list = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+            list.forEach(c => c.postMessage({ type: 'notices' }));
+            await self.registration.showNotification('📣 ' + (payload.title || 'ProdU'), {
+                body: payload.body || '',
+                tag: 'dev-' + (payload.id || ''),
+                icon: 'icon_newyear.png',
+                data: { url: './index.html#notifs', notifs: true }
+            });
+        })());
+        return;
+    }
 
     const tasks = [
         self.registration.showNotification(payload.title || 'ProdU', {
@@ -210,6 +224,7 @@ self.addEventListener('notificationclick', event => {
             for (const client of list) {
                 if ('focus' in client) {
                     if (data.chat) client.postMessage({ type: 'openChat', id: data.chat });
+                    if (data.notifs) client.postMessage({ type: 'openNotifs' });
                     return client.focus();
                 }
             }
